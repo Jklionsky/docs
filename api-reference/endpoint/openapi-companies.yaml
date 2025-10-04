@@ -1,0 +1,532 @@
+openapi: 3.0.3
+info:
+  title: Fundable Companies API
+  description: |
+    API for accessing company data including search and detailed company information.
+    
+    ## Authentication
+    All API requests require authentication using an API key in the Authorization header.
+    
+    ## Rate Limits
+    API usage is tracked and may be subject to monthly limits depending on your API key tier.
+    
+    ## Company Identifiers
+    Companies can be identified using either:
+    - UUID format (e.g., "550e8400-e29b-41d4-a716-446655440000")
+    - Permalink format (e.g., "acme-corporation")
+    
+  version: 1.0.0
+  contact:
+    name: Fundable API Support
+    url: jacob@tryfundable.ai
+  license:
+    name: Proprietary
+    url: https://www.tryfundable.ai/terms/privacy/
+
+servers:
+  - url: https://tryfundable.ai/api/v1
+    description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /company/{identifier}:
+    get:
+      summary: Get company details by ID or permalink
+      description: Retrieve detailed company information using either company UUID or permalink
+      operationId: getCompany
+      parameters:
+        - name: identifier
+          in: path
+          description: |
+            Company identifier - can be either:
+            - UUID format (e.g., "550e8400-e29b-41d4-a716-446655440000")
+            - Permalink format (e.g., "acme-corporation")
+          required: true
+          schema:
+            type: string
+          examples:
+            uuid:
+              value: "550e8400-e29b-41d4-a716-446655440000"
+              summary: "UUID identifier"
+            permalink:
+              value: "acme-corporation"
+              summary: "Permalink identifier"
+      responses:
+        '200':
+          description: Successful response with company data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      company:
+                        $ref: '#/components/schemas/CompanyDetails'
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        example: 1
+                      offset:
+                        type: integer
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        example: 990
+                required:
+                  - success
+                  - data
+                  - meta
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 3600
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+  /company/search:
+    get:
+      summary: Search companies by name or domain
+      description: Search for companies using name or domain with fuzzy matching and relevance scoring
+      operationId: searchCompanies
+      parameters:
+        - name: q
+          in: query
+          description: General search query (searches across name and domain)
+          required: false
+          schema:
+            type: string
+            example: "acme"
+        - name: query
+          in: query
+          description: Alias for 'q' parameter
+          required: false
+          schema:
+            type: string
+            example: "acme"
+        - name: name
+          in: query
+          description: Search specifically by company name
+          required: false
+          schema:
+            type: string
+            example: "Acme Corporation"
+        - name: domain
+          in: query
+          description: Search specifically by company domain
+          required: false
+          schema:
+            type: string
+            example: "acme.com"
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      companies:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CompanySearchResult'
+                      totalCount:
+                        type: integer
+                        description: Number of companies returned
+                        example: 15
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        example: 1
+                      offset:
+                        type: integer
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        example: 990
+                required:
+                  - success
+                  - data
+                  - meta
+        '400':
+          description: Missing search parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "MISSING_SEARCH_PARAMS"
+                      message:
+                        type: string
+                        example: "At least one search parameter is required"
+                      details:
+                        type: object
+                        properties:
+                          help:
+                            type: string
+                            example: "Provide one of: q, query, name, or domain parameters"
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: |
+        API key authentication using Bearer token format.
+        Format: `Authorization: Bearer vg_your_api_key_here`
+        
+        API keys follow the pattern: `vg_[12_hex_chars]_[32_base64url_chars]`
+        
+  schemas:
+    CompanyDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the company
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          nullable: true
+          description: Company name
+          example: "Acme Corporation"
+        legal_name:
+          type: string
+          nullable: true
+          description: Legal name of the company
+          example: "Acme Corporation Inc."
+        guru_permalink:
+          type: string
+          nullable: true
+          description: Fundable permalink for the company
+          example: "acme-corporation"
+        domain:
+          type: string
+          nullable: true
+          description: Company website domain
+          example: "acme.com"
+        region:
+          type: string
+          nullable: true
+          description: Company region
+          example: "San Francisco Bay Area"
+        full_description:
+          type: string
+          nullable: true
+          description: Full description of the company
+        image:
+          type: string
+          nullable: true
+          format: uri
+          description: Company logo URL
+        num_employees:
+          type: string
+          nullable: true
+          description: Number of employees range
+          example: "11-50"
+        linkedin:
+          type: string
+          nullable: true
+          format: uri
+          description: LinkedIn profile URL
+        twitter:
+          type: string
+          nullable: true
+          format: uri
+          description: Twitter profile URL
+        facebook:
+          type: string
+          nullable: true
+          format: uri
+          description: Facebook profile URL
+        pitchbook:
+          type: string
+          nullable: true
+          format: uri
+          description: PitchBook profile URL
+        crunchbase:
+          type: string
+          nullable: true
+          format: uri
+          description: Crunchbase profile URL
+        cbinsights:
+          type: string
+          nullable: true
+          format: uri
+          description: CB Insights profile URL
+        bloomberg:
+          type: string
+          nullable: true
+          format: uri
+          description: Bloomberg profile URL
+        address:
+          type: string
+          nullable: true
+          description: Company address
+        num_funding_rounds:
+          type: integer
+          nullable: true
+          description: Number of funding rounds
+          example: 11
+        num_investors:
+          type: integer
+          nullable: true
+          description: Number of investors
+          example: 14
+        total_raised:
+          type: number
+          nullable: true
+          description: Total amount raised (USD $M)
+          example: 2834.94
+        latest_valuation_usd:
+          type: number
+          nullable: true
+          description: Latest valuation in USD (millions)
+          example: 31000
+        latest_valuation_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date of latest valuation
+          example: "2017-03-09T00:00:00.000Z"
+        industries:
+          type: array
+          description: Industries the company operates in
+          items:
+            type: object
+            properties:
+              permalink:
+                type: string
+                description: Industry permalink
+                example: "artificial-intelligence"
+              name:
+                type: string
+                description: Industry name
+                example: "Artificial Intelligence"
+        locations:
+          type: array
+          description: Company locations
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Location name
+                example: "San Francisco"
+              permalink:
+                type: string
+                description: Location permalink
+                example: "san-francisco"
+              type:
+                type: string
+                description: Type of location
+                enum: ['REGION', 'COUNTRY', 'STATE', 'CITY']
+                example: "CITY"
+
+    CompanySearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the company
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        guru_permalink:
+          type: string
+          nullable: true
+          description: Fundable permalink for the company
+          example: "acme-corporation"
+        name:
+          type: string
+          description: Company name
+          example: "Acme Corporation"
+        short_description:
+          type: string
+          nullable: true
+          description: Brief description of the company
+          example: "AI-powered solutions for modern enterprises"
+        image:
+          type: string
+          nullable: true
+          format: uri
+          description: Company logo URL
+        relevance_score:
+          type: number
+          description: Search relevance score (0-1)
+          example: 0.95
+        domain:
+          type: string
+          nullable: true
+          description: Company website domain
+          example: "acme.com"
+        website:
+          type: string
+          nullable: true
+          format: uri
+          description: Company website URL
+
+    AuthError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['AUTH_ERROR', 'INVALID_API_KEY', 'INACTIVE_API_KEY']
+              example: 'AUTH_ERROR'
+            message:
+              type: string
+              example: "API key not provided"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+                  example: "Please provide your API key in the Authorization header"
+                format:
+                  type: string
+                  example: "Bearer vg_your_api_key_here"
+      required:
+        - error
+
+    RateLimitError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'RATE_LIMIT_EXCEEDED'
+            message:
+              type: string
+              example: "Monthly request limit exceeded"
+            details:
+              type: object
+              properties:
+                monthly_limit:
+                  type: integer
+                  example: 1000
+                current_usage:
+                  type: integer
+                  example: 1000
+                remaining_requests:
+                  type: integer
+                  example: 0
+      required:
+        - error
+
+    ServerError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INTERNAL_SERVER_ERROR'
+            message:
+              type: string
+              example: "An unexpected error occurred"
+            details:
+              type: string
+              nullable: true
+              description: Error details (only in development mode)
+      required:
+        - error
+
+    NotFoundError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['COMPANY_NOT_FOUND']
+              example: 'COMPANY_NOT_FOUND'
+            message:
+              type: string
+              example: "Company not found"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+                  example: "Please check the company ID or permalink and try again"
+      required:
+        - error
+
+tags:
+  - name: companies
+    description: Company data and search operations
