@@ -43,21 +43,31 @@ description: "Understand credit costs per endpoint and how pricing works"
 
 ## How Credits Work
 
-Every API response includes a `meta` object with a `remaining_requests` field that shows how many credits you have left:
+Paid endpoints return a `meta` object with credit usage details:
 
 ```json
 {
   "meta": {
-    "remaining_requests": 42,
-    "total_results": 10,
-    "page": 1
+    "limit": 25,
+    "offset": 0,
+    "credits_used": 25,
+    "credit_source": "monthly",
+    "monthly_credits_remaining": 175,
+    "purchased_credits_remaining": 50
   },
   "data": [...]
 }
 ```
 
+| Field | Description |
+|-------|-------------|
+| `credits_used` | Number of credits consumed by this request |
+| `credit_source` | Whether credits came from `monthly` plan or `purchased` balance |
+| `monthly_credits_remaining` | Remaining credits from your plan |
+| `purchased_credits_remaining` | Remaining individually purchased credits |
+
 - **1 credit = 1 row** returned by a paid endpoint. A request that returns 25 rows costs 25 credits.
-- **Search endpoints** (`/company/search`, `/investor/search`, `/location/search`) are always free.
+- **Search endpoints** (`/company/search`, `/investor/search`, `/location/search`) are always free and don't return credit fields.
 - Credits come included with your plan. If you don't want a recurring plan, you can buy credits individually for as low as **$0.05 per credit**.
 
 ## Getting Started
