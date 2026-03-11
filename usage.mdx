@@ -1,0 +1,65 @@
+---
+title: "Usage & Pricing"
+description: "Understand credit costs per endpoint and how pricing works"
+---
+
+## Pricing Tiers
+
+<Tabs>
+  <Tab title="Free">
+    These endpoints cost **0 credits** per request.
+
+    | Endpoint | Description |
+    |----------|-------------|
+    | `GET /company/search` | Search companies by name |
+    | `GET /investor/search` | Search investors by name |
+    | `GET /location/search` | Search locations |
+  </Tab>
+  <Tab title="1 Credit / Row">
+    These endpoints cost **1 credit per row** returned.
+
+    | Endpoint | Description |
+    |----------|-------------|
+    | `GET /companies` | List companies with filters |
+    | `GET /company` | Get a single company |
+    | `GET /deals` | List deals with filters |
+    | `GET /deals/{id}` | Get a single deal |
+    | `GET /investors` | List investors with filters |
+    | `GET /investor` | Get a single investor |
+    | `GET /people` | List people with filters |
+    | `GET /people/{identifier}` | Get a single person |
+  </Tab>
+  <Tab title="Enterprise">
+    These endpoints require an **Enterprise** plan.
+
+    | Endpoint | Description |
+    |----------|-------------|
+    | `GET /alerts` | Real-time funding alerts |
+    | `GET /alerts/configurations` | Manage alert configurations |
+
+    Contact [jacob@tryfundable.ai](mailto:jacob@tryfundable.ai) to learn more about Enterprise access.
+  </Tab>
+</Tabs>
+
+## How Credits Work
+
+Every API response includes a `meta` object with a `remaining_requests` field that shows how many credits you have left:
+
+```json
+{
+  "meta": {
+    "remaining_requests": 42,
+    "total_results": 10,
+    "page": 1
+  },
+  "data": [...]
+}
+```
+
+- **1 credit = 1 row** returned by a paid endpoint. A request that returns 25 rows costs 25 credits.
+- **Search endpoints** (`/company/search`, `/investor/search`, `/location/search`) are always free.
+- Credits come included with your plan. If you don't want a recurring plan, you can buy credits individually for as low as **$0.05 per credit**.
+
+## Getting Started
+
+Your first **50 credits are free** — no credit card required. Grab your API key [here](https://www.tryfundable.ai/api-access/) and start making requests immediately.

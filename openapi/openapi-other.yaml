@@ -1,0 +1,342 @@
+openapi: 3.0.3
+info:
+  title: Fundable Other APIs
+  description: |
+    API for accessing additional data including location search and other utility endpoints.
+    
+    ## Authentication
+    All API requests require authentication using an API key in the Authorization header.
+    
+    ## Rate Limits
+    API usage is tracked and may be subject to monthly limits depending on your API key tier.
+    
+    ## Location Search
+    The location search API supports fuzzy matching across different location types:
+    - Cities (e.g., "San Francisco")
+    - States/Provinces (e.g., "California")
+    - Countries (e.g., "United States")
+    - Regions (e.g., "San Francisco Bay Area")
+    
+  version: 1.0.0
+  contact:
+    name: Fundable API Support
+    url: jacob@tryfundable.ai
+  license:
+    name: Proprietary
+    url: https://www.tryfundable.ai/terms/privacy/
+
+servers:
+  - url: https://tryfundable.ai/api/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /location/search:
+    get:
+      summary: Search locations by name and optionally filter by type
+      description: |
+        Search for locations (cities, states, countries, regions) by name with fuzzy matching.
+        Optionally filter results by specific location type using the 'type' or 'location_type' parameter.
+      operationId: searchLocations
+      parameters:
+        - name: q
+          in: query
+          description: General search query for location name
+          required: false
+          schema:
+            type: string
+            example: "san francisco"
+        - name: query
+          in: query
+          description: Alias for 'q' parameter
+          required: false
+          schema:
+            type: string
+            example: "san francisco"
+        - name: type
+          in: query
+          description: Filter by specific location type
+          required: false
+          schema:
+            type: string
+            enum: ['CITY', 'STATE', 'REGION', 'COUNTRY']
+            example: "CITY"
+        - name: location_type
+          in: query
+          description: Alias for 'type' parameter
+          required: false
+          schema:
+            type: string
+            enum: ['CITY', 'STATE', 'REGION', 'COUNTRY']
+            example: "CITY"
+
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      locations:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LocationSearchResult'
+                      totalCount:
+                        type: integer
+                        description: Number of locations returned
+                        example: 3
+                required:
+                  - success
+                  - data
+              examples:
+                all_types:
+                  summary: Search without type filter
+                  description: Returns all location types matching the search term
+                  value:
+                    success: true
+                    data:
+                      locations:
+                        - permalink: "san-francisco"
+                          name: "San Francisco"
+                          location_type: "CITY"
+                        - permalink: "san-francisco-bay-area"
+                          name: "San Francisco Bay Area"
+                          location_type: "REGION"
+                        - permalink: "california"
+                          name: "California"
+                          location_type: "STATE"
+                      totalCount: 3
+                cities_only:
+                  summary: Search filtered by CITY type
+                  description: Returns only cities matching the search term
+                  value:
+                    success: true
+                    data:
+                      locations:
+                        - permalink: "san-francisco"
+                          name: "San Francisco"
+                          location_type: "CITY"
+                        - permalink: "san-jose"
+                          name: "San Jose"
+                          location_type: "CITY"
+                      totalCount: 2
+
+        '400':
+          description: Search parameter validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        enum: ['MISSING_SEARCH_PARAMS', 'MULTIPLE_SEARCH_PARAMS', 'EMPTY_SEARCH_TERM', 'INVALID_LOCATION_TYPE', 'MULTIPLE_LOCATION_TYPE_PARAMS']
+                        example: "MISSING_SEARCH_PARAMS"
+                      message:
+                        type: string
+                        example: "At least one search parameter is required"
+                      details:
+                        type: object
+                        properties:
+                          help:
+                            type: string
+                            example: "Provide one of: q, query, name, or domain parameters"
+                examples:
+                  missing_params:
+                    value:
+                      success: false
+                      error:
+                        code: "MISSING_SEARCH_PARAMS"
+                        message: "At least one search parameter is required"
+                        details:
+                          help: "Provide one of: q, query, name, or domain parameters"
+                      statusCode: 400
+                  multiple_params:
+                    value:
+                      success: false
+                      error:
+                        code: "MULTIPLE_SEARCH_PARAMS"
+                        message: "Only one search parameter is allowed at a time"
+                        details:
+                          help: "You provided: q, query. Please use only one of: q, query, name, or domain parameters"
+                      statusCode: 400
+                  empty_term:
+                    value:
+                      success: false
+                      error:
+                        code: "EMPTY_SEARCH_TERM"
+                        message: "Search term cannot be empty"
+                        details:
+                          help: "Search term cannot be empty or whitespace only"
+                      statusCode: 400
+                  invalid_location_type:
+                    value:
+                      success: false
+                      error:
+                        code: "INVALID_LOCATION_TYPE"
+                        message: "Invalid location type. Must be one of: CITY, STATE, REGION, COUNTRY"
+                        details:
+                          help: "Provided type: 'INVALID'. Valid types are: CITY, STATE, REGION, COUNTRY"
+                      statusCode: 400
+                  multiple_location_type_params:
+                    value:
+                      success: false
+                      error:
+                        code: "MULTIPLE_LOCATION_TYPE_PARAMS"
+                        message: "Cannot specify both type and location_type parameters"
+                        details:
+                          help: "Use either type or location_type parameter, not both"
+                      statusCode: 400
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: |
+        API key authentication using Bearer token format.
+        Format: `Authorization: Bearer vg_your_api_key_here`
+        
+        API keys follow the pattern: `vg_[12_hex_chars]_[32_base64url_chars]`
+        
+  schemas:
+    LocationSearchResult:
+      type: object
+      properties:
+        permalink:
+          type: string
+          description: Location permalink identifier
+          example: "san-francisco"
+        name:
+          type: string
+          description: Location name
+          example: "San Francisco"
+        location_type:
+          type: string
+          description: Type of location
+          enum: ['REGION', 'COUNTRY', 'STATE', 'CITY']
+          example: "CITY"
+
+    AuthError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['AUTH_ERROR', 'INVALID_API_KEY', 'INACTIVE_API_KEY']
+              example: 'AUTH_ERROR'
+            message:
+              type: string
+              example: "API key not provided"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+                  example: "Please provide your API key in the Authorization header"
+                format:
+                  type: string
+                  example: "Bearer vg_your_api_key_here"
+                example:
+                  type: object
+                  properties:
+                    header:
+                      type: string
+                      example: "Authorization: Bearer vg_your_api_key_here"
+                    curl:
+                      type: string
+                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' https://tryfundable.ai/api/v1/location/search?q=san+francisco"
+                documentation:
+                  type: string
+                  example: "Visit our documentation for more information about authentication"
+      required:
+        - error
+
+    RateLimitError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'RATE_LIMIT_EXCEEDED'
+            message:
+              type: string
+              example: "Monthly request limit exceeded"
+            details:
+              type: object
+              properties:
+                monthly_limit:
+                  type: integer
+                  example: 1000
+                current_usage:
+                  type: integer
+                  example: 1000
+                remaining_requests:
+                  type: integer
+                  example: 0
+                requested_limit:
+                  type: integer
+                  example: 10
+      required:
+        - error
+
+    ServerError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INTERNAL_SERVER_ERROR'
+            message:
+              type: string
+              example: "An unexpected error occurred"
+            details:
+              type: string
+              nullable: true
+              description: Error details (only in development mode)
+      required:
+        - error
+
+tags:
+  - name: locations
+    description: Location search and utility operations

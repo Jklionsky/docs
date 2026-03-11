@@ -1,0 +1,1157 @@
+openapi: 3.0.3
+info:
+  title: Fundable Investors API
+  description: |
+    API for accessing investor data including search and detailed investor information with statistics.
+    
+    ## Authentication
+    All API requests require authentication using an API key in the Authorization header.
+    
+    ## Rate Limits
+    API usage is tracked and may be subject to monthly limits depending on your API key tier.
+    
+    ## Investor Identifiers
+    Investors can be identified using:
+    - UUID format (e.g., "550e8400-e29b-41d4-a716-446655440000")
+    - Permalink format (e.g., "acme-ventures")
+    - Domain (e.g., "sequoiacap.com")
+    - LinkedIn URL (e.g., "https://www.linkedin.com/company/sequoia-capital")
+
+    The `/investor` endpoint supports flexible lookup via query parameters (id, permalink, domain, linkedin, url).
+
+    ## Investor List Endpoint (/investors)
+    The `/investors` endpoint supports two categories of filters:
+
+    ### Investor Filters (filter on the investor entity itself)
+    - `investorLocations` — Investor HQ location (permalinks)
+    - `investorEmployeeCount` — Investor firm employee count ranges
+    - `investorDomains` — Batch lookup by investor domain (max 100)
+    - `investorLinkedins` — Batch lookup by investor LinkedIn slug (max 100)
+    - `investorIds` — Filter by specific investor UUIDs
+
+    ### Portfolio Filters (filter by who they've invested in)
+    - `industries`, `superCategories`, `locations` — Portfolio company attributes
+    - `employeeCount`, `ipoStatus` — Portfolio company characteristics
+    - `dealSizeMin`, `dealSizeMax`, `dealStartDate`, `dealEndDate` — Deal characteristics
+    - `financingTypes` — Deal round types
+    - `companyIds`, `domains`, `companyLinkedins` — Specific portfolio companies (max 100 for domains/companyLinkedins)
+    - `companyFoundedStart`, `companyFoundedEnd` — Portfolio company founding date range
+    - `minMatchingDeals` — Minimum deals matching above criteria
+    - `onlyLeadDeals` — Only count deals where investor was lead
+
+    When portfolio filters are active, each investor in the response includes `filtered_deal_count`, `filtered_lead_count`, and `matching_deal_ids` showing which deals matched.
+
+    ## Parameter Validation
+    The /investors endpoint enforces strict parameter validation:
+    - **Unknown Parameters**: Any parameter not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
+    - **Enum Values**: Parameters like `financingTypes`, `sortBy`, `employeeCount`, `investorEmployeeCount`, and `ipoStatus` only accept exact enum values
+    - **Data Types**: Numeric parameters must be valid numbers, dates must be valid ISO 8601 format
+    - **Array Parameters**: Cannot be empty strings; use comma-separated values or omit entirely
+    - **Batch Limits**: `domains`, `companyLinkedins`, `investorDomains`, `investorLinkedins` are limited to 100 items each
+
+  version: 1.0.0
+  contact:
+    name: Fundable API Support
+    url: jacob@tryfundable.ai
+  license:
+    name: Proprietary
+    url: https://www.tryfundable.ai/terms/privacy/
+
+servers:
+  - url: https://tryfundable.ai/api/v1
+    description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /investors:
+    get:
+      summary: List and filter investors
+      description: |
+        Retrieve a paginated list of investors with optional filtering.
+
+        Filters are split into two categories:
+        1. **Investor Filters** — filter on the investor entity itself (location, size, domain, etc.)
+        2. **Portfolio Filters** — filter by the companies they've invested in (industry, deal size, round type, etc.)
+
+        When portfolio filters are active, each investor in the response includes `filtered_deal_count`, `filtered_lead_count`, and `matching_deal_ids`.
+
+        All array parameters use comma-separated values.
+      operationId: listInvestors
+      parameters:
+        # --- Pagination ---
+        - name: page
+          in: query
+          description: "Page number (0-based). Used with pageSize to calculate offset."
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: pageSize
+          in: query
+          description: "Number of results per page. Maximum 100."
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 25
+        - name: sortBy
+          in: query
+          description: |
+            Sort order for results. Default: "Most Recent Deal".
+
+            - **Most Recent Deal** — Date of most recent investment (newest first)
+            - **Recent Deals** — Number of deals in last 12 months (highest first)
+            - **Deals Led LTM** — Number of lead deals in last 12 months (highest first)
+            - **Total Deals** — Total all-time deal count (highest first)
+            - **Matching Deals** — Number of deals matching portfolio filters (highest first). Only meaningful when portfolio filters are active; without them, equivalent to Total Deals.
+          required: false
+          schema:
+            type: string
+            enum:
+              - Most Recent Deal
+              - Recent Deals
+              - Deals Led LTM
+              - Total Deals
+              - Matching Deals
+            default: Most Recent Deal
+          example: "Most Recent Deal"
+
+        # --- Investor Filters ---
+        - name: investorLocations
+          in: query
+          description: |
+            **Investor Filter.** Filter by investor HQ location permalinks (comma-separated).
+            Example: `investorLocations=san-francisco,new-york`
+          required: false
+          schema:
+            type: string
+          example: "san-francisco,new-york"
+        - name: investorEmployeeCount
+          in: query
+          description: |
+            **Investor Filter.** Filter by investor firm employee count ranges (comma-separated).
+          required: false
+          schema:
+            type: string
+            enum:
+              - "1-10"
+              - "11-50"
+              - "51-100"
+              - "101-250"
+              - "251-500"
+              - "501-1000"
+              - "1001-5000"
+              - "5001-10000"
+              - "10001+"
+          example: "11-50,51-100"
+        - name: investorDomains
+          in: query
+          description: |
+            **Investor Filter.** Batch lookup investors by domain (comma-separated, max 100).
+            Example: `investorDomains=sequoiacap.com,a16z.com`
+          required: false
+          schema:
+            type: string
+          example: "sequoiacap.com,a16z.com"
+        - name: investorLinkedins
+          in: query
+          description: |
+            **Investor Filter.** Batch lookup investors by LinkedIn slug (comma-separated, max 100).
+            Example: `investorLinkedins=sequoia-capital,andreessen-horowitz`
+          required: false
+          schema:
+            type: string
+          example: "sequoia-capital,andreessen-horowitz"
+        - name: investorIds
+          in: query
+          description: |
+            **Investor Filter.** Filter by specific investor UUIDs (comma-separated).
+          required: false
+          schema:
+            type: string
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+        # --- Portfolio Filters ---
+        - name: industries
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by portfolio company industry permalinks (comma-separated).
+            Example: `industries=artificial-intelligence,machine-learning`
+          required: false
+          schema:
+            type: string
+          example: "artificial-intelligence"
+        - name: superCategories
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by broad industry super-categories (comma-separated).
+            Example: `superCategories=technology,healthcare`
+          required: false
+          schema:
+            type: string
+          example: "technology"
+        - name: locations
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by portfolio company location permalinks (comma-separated).
+          required: false
+          schema:
+            type: string
+          example: "san-francisco"
+        - name: employeeCount
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by portfolio company employee count ranges (comma-separated).
+          required: false
+          schema:
+            type: string
+            enum:
+              - "1-10"
+              - "11-50"
+              - "51-100"
+              - "101-250"
+              - "251-500"
+              - "501-1000"
+              - "1001-5000"
+              - "5001-10000"
+              - "10001+"
+          example: "1-10,11-50"
+        - name: ipoStatus
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by portfolio company IPO status (comma-separated).
+          required: false
+          schema:
+            type: string
+            enum:
+              - public
+              - private
+          example: "private"
+        - name: dealSizeMin
+          in: query
+          description: |
+            **Portfolio Filter.** Minimum deal size in USD.
+          required: false
+          schema:
+            type: number
+            minimum: 0
+          example: 1000000
+        - name: dealSizeMax
+          in: query
+          description: |
+            **Portfolio Filter.** Maximum deal size in USD.
+          required: false
+          schema:
+            type: number
+            minimum: 0
+          example: 50000000
+        - name: dealStartDate
+          in: query
+          description: |
+            **Portfolio Filter.** Filter deals on or after this date (ISO 8601).
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2023-01-01"
+        - name: dealEndDate
+          in: query
+          description: |
+            **Portfolio Filter.** Filter deals on or before this date (ISO 8601).
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2024-12-31"
+        - name: financingTypes
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by deal round types (comma-separated).
+            Valid values include: SERIES_A, SERIES_B, SERIES_C, SERIES_D, SEED, PRE_SEED, ANGEL, GRANT, CONVERTIBLE_NOTE, VENTURE_ROUND, UNDISCLOSED, CORPORATE_ROUND, DEBT_FINANCING, EQUITY_CROWDFUNDING, INITIAL_COIN_OFFERING, NON_EQUITY_ASSISTANCE, POST_IPO_DEBT, POST_IPO_EQUITY, POST_IPO_SECONDARY, PRIVATE_EQUITY, PRODUCT_CROWDFUNDING, SECONDARY_MARKET, SERIES_E, SERIES_F, SERIES_G, SERIES_H, SERIES_I, SERIES_J, SERIES_UNKNOWN
+          required: false
+          schema:
+            type: string
+          example: "SERIES_A,SERIES_B"
+        - name: companyIds
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by specific portfolio company UUIDs (comma-separated).
+          required: false
+          schema:
+            type: string
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: domains
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by portfolio company domains (comma-separated, max 100).
+            Returns investors who have invested in companies matching these domains.
+            When active, response includes `matching_deal_ids`.
+          required: false
+          schema:
+            type: string
+          example: "stripe.com,openai.com"
+        - name: companyLinkedins
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by portfolio company LinkedIn slugs (comma-separated, max 100).
+            Returns investors who have invested in companies matching these LinkedIn profiles.
+            When active, response includes `matching_deal_ids`.
+          required: false
+          schema:
+            type: string
+          example: "stripe,openai"
+        - name: companyFoundedStart
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by portfolio company founding date start (ISO 8601).
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2020-01-01"
+        - name: companyFoundedEnd
+          in: query
+          description: |
+            **Portfolio Filter.** Filter by portfolio company founding date end (ISO 8601).
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2024-12-31"
+        - name: minMatchingDeals
+          in: query
+          description: |
+            **Portfolio Filter.** Minimum number of deals matching the above portfolio filter criteria.
+            Only returns investors with at least this many matching deals.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          example: 3
+        - name: onlyLeadDeals
+          in: query
+          description: |
+            **Portfolio Filter.** When true, only count deals where the investor was the lead investor.
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+
+      responses:
+        '200':
+          description: Successful response with paginated investor list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      investors:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InvestorListItem'
+                      totalCount:
+                        type: integer
+                        description: Total number of investors matching filters
+                        example: 142
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        example: 25
+                      offset:
+                        type: integer
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        example: 990
+                required:
+                  - success
+                  - data
+                  - meta
+        '400':
+          description: Validation error (invalid values)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParameterValidationError'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '422':
+          description: Unknown parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParameterValidationError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 3600
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+  /investor:
+    get:
+      summary: Get investor by ID, permalink, domain, or LinkedIn
+      description: |
+        Retrieve detailed investor information using a flexible identifier.
+        Provide exactly one of the query parameters to look up an investor.
+        The `url` parameter auto-detects the identifier type (LinkedIn URL, domain, UUID, or permalink).
+      operationId: getInvestorByIdentifier
+      parameters:
+        - name: id
+          in: query
+          description: Investor UUID
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: permalink
+          in: query
+          description: Investor permalink
+          required: false
+          schema:
+            type: string
+          example: "sequoia-capital"
+        - name: domain
+          in: query
+          description: Investor website domain
+          required: false
+          schema:
+            type: string
+          example: "sequoiacap.com"
+        - name: linkedin
+          in: query
+          description: |
+            Investor LinkedIn company URL.
+            Must be in format: `https://www.linkedin.com/company/{slug}`
+          required: false
+          schema:
+            type: string
+            format: uri
+          example: "https://www.linkedin.com/company/sequoia-capital"
+        - name: url
+          in: query
+          description: |
+            Generic URL or identifier. Auto-detects the type:
+            - LinkedIn company URL → linkedin lookup
+            - Domain or website URL → domain lookup
+            - UUID → id lookup
+            - Other string → permalink lookup
+          required: false
+          schema:
+            type: string
+          example: "https://sequoiacap.com"
+      responses:
+        '200':
+          description: Successful response with investor data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      investor:
+                        $ref: '#/components/schemas/InvestorListItem'
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        example: 1
+                      offset:
+                        type: integer
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        example: 990
+                required:
+                  - success
+                  - data
+                  - meta
+        '400':
+          description: Validation error (missing or invalid identifier)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParameterValidationError'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '404':
+          description: Investor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 3600
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+  /investor/search:
+    get:
+      summary: Search investors by name, domain, LinkedIn, or Crunchbase
+      description: Search for investors using name, domain, LinkedIn URL, or Crunchbase URL with fuzzy matching and relevance scoring
+      operationId: searchInvestors
+      parameters:
+        - name: q
+          in: query
+          description: General search query (searches across name and domain)
+          required: false
+          schema:
+            type: string
+            example: "acme ventures"
+        - name: query
+          in: query
+          description: Alias for 'q' parameter
+          required: false
+          schema:
+            type: string
+            example: "acme ventures"
+        - name: name
+          in: query
+          description: Search specifically by investor name
+          required: false
+          schema:
+            type: string
+            example: "Acme Ventures"
+        - name: domain
+          in: query
+          description: Search specifically by investor domain
+          required: false
+          schema:
+            type: string
+            example: "acmeventures.com"
+        - name: linkedin
+          in: query
+          description: Search by LinkedIn company URL. The slug will be extracted and used as the search term.
+          required: false
+          schema:
+            type: string
+            format: uri
+            example: "https://www.linkedin.com/company/sequoia-capital"
+        - name: crunchbase
+          in: query
+          description: Search by Crunchbase organization URL. The permalink will be extracted and used as the search term.
+          required: false
+          schema:
+            type: string
+            format: uri
+            example: "https://www.crunchbase.com/organization/sequoia-capital"
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      investors:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InvestorSearchResult'
+                      totalCount:
+                        type: integer
+                        description: Number of investors returned
+                        example: 8
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        example: 1
+                      offset:
+                        type: integer
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        example: 990
+                required:
+                  - success
+                  - data
+                  - meta
+              example:
+                success: true
+                data:
+                  investors:
+                    - id: "770e8400-e29b-41d4-a716-446655440000"
+                      guru_permalink: "acme-ventures"
+                      name: "Acme Ventures"
+                      description: "Early-stage venture capital firm focused on AI startups"
+                      image: "https://example.com/acme-ventures-logo.png"
+                      relevance_score: 0.92
+                      domain: "acmeventures.com"
+                      website: "https://acmeventures.com"
+                    - id: "880e8400-e29b-41d4-a716-446655440001"
+                      guru_permalink: "acme-capital"
+                      name: "Acme Capital"
+                      description: "Growth-stage investment firm"
+                      image: "https://example.com/acme-capital-logo.png"
+                      relevance_score: 0.85
+                      domain: "acmecap.com"
+                      website: "https://acmecap.com"
+                  totalCount: 2
+                meta:
+                  limit: 1
+                  offset: 0
+                  remaining_requests: 990
+        '400':
+          description: Missing search parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "MISSING_SEARCH_PARAMS"
+                      message:
+                        type: string
+                        example: "At least one search parameter is required"
+                      details:
+                        type: object
+                        properties:
+                          help:
+                            type: string
+                            example: "Provide one of: q, query, name, domain, linkedin, or crunchbase parameters"
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: |
+        API key authentication using Bearer token format.
+        Format: `Authorization: Bearer vg_your_api_key_here`
+        
+        API keys follow the pattern: `vg_[12_hex_chars]_[32_base64url_chars]`
+        
+  schemas:
+    InvestorListItem:
+      type: object
+      description: Investor returned from the /investors list endpoint
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the investor
+        name:
+          type: string
+          description: Investor name
+        guru_permalink:
+          type: string
+          description: Fundable permalink for the investor
+        domain:
+          type: string
+          nullable: true
+          description: Investor domain
+        website:
+          type: string
+          nullable: true
+          format: uri
+          description: Investor website URL
+        linkedin:
+          type: string
+          nullable: true
+          format: uri
+          description: Investor LinkedIn URL
+        pitchbook:
+          type: string
+          nullable: true
+          format: uri
+          description: Investor PitchBook URL
+        crunchbase:
+          type: string
+          nullable: true
+          format: uri
+          description: Investor Crunchbase URL
+        description:
+          type: string
+          nullable: true
+          description: Description of the investor
+        legal_name:
+          type: string
+          nullable: true
+          description: Legal name of the investor
+        num_employees:
+          type: string
+          nullable: true
+          description: Employee count range
+          example: "101-250"
+        founded_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date the investor was founded
+        investment_stage:
+          type: string
+          nullable: true
+          description: Investment stage focus
+          example: "Series A"
+        contact_email:
+          type: string
+          nullable: true
+          format: email
+          description: Contact email (when available)
+        contact_phone:
+          type: string
+          nullable: true
+          description: Contact phone number (when available)
+        location:
+          $ref: '#/components/schemas/LocationInfo'
+        # Stats
+        total_deal_count:
+          type: integer
+          description: Total number of deals
+        lead_deal_count:
+          type: integer
+          description: Number of deals where investor was lead
+        lead_deal_count_last_12_months:
+          type: integer
+          description: Lead deals in the last 12 months
+        recent_deal_count:
+          type: integer
+          description: Deals in the last 12 months
+        most_recent_deal_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date of the most recent deal
+        # Aggregated data
+        top_industries:
+          type: array
+          description: Top industries invested in
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              permalink:
+                type: string
+              count:
+                type: integer
+        top_locations:
+          type: array
+          description: Top portfolio company locations
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              full_name:
+                type: string
+              permalink:
+                type: string
+              type:
+                type: string
+              count:
+                type: integer
+        top_round_types:
+          type: array
+          description: Most common round types
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              count:
+                type: integer
+        last_three_deals:
+          type: array
+          description: The investor's 3 most recent deals
+          items:
+            $ref: '#/components/schemas/InvestorDeal'
+        key_people_count:
+          type: integer
+          description: Total number of key people at the firm
+        key_people:
+          type: array
+          description: Key people at the investor firm
+          items:
+            $ref: '#/components/schemas/KeyPerson'
+        # Portfolio filter results
+        filtered_deal_count:
+          type: integer
+          nullable: true
+          description: Number of deals matching portfolio filters (null when no portfolio filters active)
+        filtered_lead_count:
+          type: integer
+          nullable: true
+          description: Number of lead deals matching portfolio filters (null when no portfolio filters active)
+        matching_deal_ids:
+          type: array
+          nullable: true
+          description: Up to 3 most recent deal UUIDs matching portfolio filters (null when no portfolio filters active)
+          items:
+            type: string
+            format: uuid
+      required:
+        - id
+        - name
+        - guru_permalink
+        - total_deal_count
+        - lead_deal_count
+        - recent_deal_count
+
+    InvestorDeal:
+      type: object
+      description: A deal associated with an investor
+      properties:
+        deal_id:
+          type: string
+          format: uuid
+        company_name:
+          type: string
+        company_guru_permalink:
+          type: string
+          nullable: true
+        company_domain:
+          type: string
+          nullable: true
+        round_type:
+          type: string
+          nullable: true
+        deal_size:
+          type: number
+          nullable: true
+          description: Deal size in USD
+        deal_date:
+          type: string
+          format: date-time
+          nullable: true
+        extension:
+          type: boolean
+          nullable: true
+        intermediate:
+          type: string
+          nullable: true
+        pre:
+          type: boolean
+          nullable: true
+
+    KeyPerson:
+      type: object
+      description: A key person at the investor firm
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+          nullable: true
+        linkedin_url:
+          type: string
+          nullable: true
+          format: uri
+        email:
+          type: string
+          nullable: true
+          format: email
+          description: Email (when available)
+        phone:
+          type: string
+          nullable: true
+          description: Phone number (when available)
+
+    LocationInfo:
+      type: object
+      description: Investor location details
+      properties:
+        region:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            permalink:
+              type: string
+        country:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            permalink:
+              type: string
+        state:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            permalink:
+              type: string
+        city:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            permalink:
+              type: string
+
+    ParameterValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid request parameters"
+            details:
+              type: object
+              properties:
+                errors:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                      value:
+                        type: string
+                        nullable: true
+                      message:
+                        type: string
+                      code:
+                        type: string
+                      validOptions:
+                        type: array
+                        items:
+                          type: string
+                help:
+                  type: string
+      required:
+        - success
+        - error
+
+    InvestorSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the investor
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        guru_permalink:
+          type: string
+          nullable: true
+          description: Fundable permalink for the investor
+          example: "acme-ventures"
+        name:
+          type: string
+          description: Investor name
+          example: "Acme Ventures"
+        description:
+          type: string
+          nullable: true
+          description: Brief description of the investor
+          example: "Early-stage venture capital firm focused on AI startups"
+        image:
+          type: string
+          nullable: true
+          format: uri
+          description: Investor logo URL
+        relevance_score:
+          type: number
+          description: Search relevance score (0-1)
+          example: 0.92
+        domain:
+          type: string
+          nullable: true
+          description: Investor website domain
+          example: "acmeventures.com"
+        website:
+          type: string
+          nullable: true
+          format: uri
+          description: Investor website URL
+
+    AuthError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['AUTH_ERROR', 'INVALID_API_KEY', 'INACTIVE_API_KEY']
+              example: 'AUTH_ERROR'
+            message:
+              type: string
+              example: "API key not provided"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+                  example: "Please provide your API key in the Authorization header"
+                format:
+                  type: string
+                  example: "Bearer vg_your_api_key_here"
+      required:
+        - error
+
+    RateLimitError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'RATE_LIMIT_EXCEEDED'
+            message:
+              type: string
+              example: "Monthly request limit exceeded"
+            details:
+              type: object
+              properties:
+                monthly_limit:
+                  type: integer
+                  example: 1000
+                current_usage:
+                  type: integer
+                  example: 1000
+                remaining_requests:
+                  type: integer
+                  example: 0
+      required:
+        - error
+
+    ServerError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INTERNAL_SERVER_ERROR'
+            message:
+              type: string
+              example: "An unexpected error occurred"
+            details:
+              type: string
+              nullable: true
+              description: Error details (only in development mode)
+      required:
+        - error
+
+    NotFoundError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['INVESTOR_NOT_FOUND']
+              example: 'INVESTOR_NOT_FOUND'
+            message:
+              type: string
+              example: "Investor not found"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+                  example: "Please check the investor ID or permalink and try again"
+      required:
+        - error
+
+tags:
+  - name: investors
+    description: Investor data and search operations

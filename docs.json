@@ -1,122 +1,142 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Fundable",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#000000",
+    "light": "#EFEFEF",
+    "dark": "#000000"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/logo/Mobius.webp",
+  "logo": {
+    "light": "/logo/fundable_w_name.png",
+    "dark": "/logo/fundable_w_name_white.png"
+  },
+  "openapi": [
+    "/openapi/openapi-deals.yaml",
+    "/openapi/openapi-companies.yaml",
+    "/openapi/openapi-investors.yaml",
+    "/openapi/openapi-alerts.yaml",
+    "/openapi/openapi-people.yaml",
+    "/openapi/openapi-other.yaml"
+  ],
+  "api": {
+    "auth": {
+      "method": "bearer",
+      "name": "Authorization"
+    },
+    "baseUrl": "https://tryfundable.ai/api/v1"
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
               "index",
-              "quickstart",
-              "development"
+              "authentication",
+              "usage"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Guides",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "guides/industry-filters",
+              "guides/industry-super-categories",
+              "guides/industries-business-tech",
+              "guides/industries-commerce-consumer",
+              "guides/industries-media-content",
+              "guides/industries-science-industry"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
             "pages": [
               "api-reference/introduction"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Deals",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/deals/list",
+              "api-reference/deals/get"
+            ]
+          },
+          {
+            "group": "Companies",
+            "pages": [
+              "api-reference/companies/list",
+              "api-reference/companies/get",
+              "api-reference/companies/search"
+            ]
+          },
+          {
+            "group": "Investors",
+            "pages": [
+              "api-reference/investors/list",
+              "api-reference/investors/get",
+              "api-reference/investors/search"
+            ]
+          },
+          {
+            "group": "People",
+            "pages": [
+              "api-reference/people/list",
+              "api-reference/people/get"
+            ]
+          },
+          {
+            "group": "Alerts",
+            "pages": [
+              "api-reference/alerts/list",
+              "api-reference/alerts/configurations"
+            ]
+          },
+          {
+            "group": "Locations",
+            "pages": [
+              "api-reference/locations/search"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    ]
   },
   "navbar": {
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:jacob@tryfundable.ai"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "href": "https://tryfundable.ai"
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "linkedin": "https://www.linkedin.com/company/fundable-ai/"
     }
   }
 }

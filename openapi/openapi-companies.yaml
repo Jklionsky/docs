@@ -1,0 +1,1138 @@
+openapi: 3.0.3
+info:
+  title: Fundable Companies API
+  description: |
+    API for accessing company data including search, detailed company information, and filtered company discovery.
+
+    ## Authentication
+    All API requests require authentication using an API key in the Authorization header.
+
+    ## Rate Limits
+    API usage is tracked and may be subject to monthly limits depending on your API key tier.
+
+    ## Company Identifiers
+    Companies can be identified using query parameters with any of the following formats:
+    - `id` - UUID format (e.g., "?id=550e8400-e29b-41d4-a716-446655440000")
+    - `permalink` - Permalink format (e.g., "?permalink=acme-corporation")
+    - `domain` - Domain (e.g., "?domain=stripe.com")
+    - `url` - Full URL (e.g., "?url=https://stripe.com")
+    - `linkedin` - LinkedIn URL (e.g., "?linkedin=https://www.linkedin.com/company/stripe")
+    - `crunchbase` - Crunchbase URL (e.g., "?crunchbase=https://www.crunchbase.com/organization/stripe")
+
+    ## Parameter Validation (for /companies endpoint)
+    The /companies endpoint enforces strict parameter validation:
+    - **Unknown Parameters**: Any parameter not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
+    - **Enum Values**: Parameters like `financingTypes`, `sortBy`, `employeeCount`, and `ipoStatus` only accept exact enum values
+    - **Data Types**: Numeric parameters must be valid numbers, dates must be valid ISO 8601 format
+    - **Array Parameters**: Cannot be empty strings; use comma-separated values or omit entirely
+
+    ## Semantic Search
+    The /companies endpoint supports AI-powered semantic search via the `searchQuery` parameter.
+    When provided, it uses natural language understanding to find companies matching your description,
+    returning results with a `similarity` score (0-1). Semantic search can be combined with filters.
+
+  version: 1.0.0
+  contact:
+    name: Fundable API Support
+    url: jacob@tryfundable.ai
+  license:
+    name: Proprietary
+    url: https://www.tryfundable.ai/terms/privacy/
+
+servers:
+  - url: https://tryfundable.ai/api/v1
+    description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /company:
+    get:
+      summary: Get company details and recent funding by identifier
+      description: |
+        Retrieve detailed company information using any supported identifier format.
+        The API intelligently detects the identifier type and queries accordingly.
+
+        Provide ONE of the following query parameters to identify the company:
+        - `id` - Company UUID
+        - `permalink` - Company permalink/slug
+        - `domain` - Company domain (e.g., "stripe.com")
+        - `url` - Full website URL (e.g., "https://stripe.com")
+        - `linkedin` - LinkedIn company URL
+        - `crunchbase` - Crunchbase organization URL
+
+        The response includes the company's latest funding round details with participating investors.
+      operationId: getCompany
+      parameters:
+        - name: id
+          in: query
+          description: Company UUID
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: permalink
+          in: query
+          description: Company permalink
+          required: false
+          schema:
+            type: string
+          example: "acme-corporation"
+        - name: domain
+          in: query
+          description: Company domain
+          required: false
+          schema:
+            type: string
+          example: "stripe.com"
+        - name: linkedin
+          in: query
+          description: LinkedIn company URL
+          required: false
+          schema:
+            type: string
+            format: uri
+          example: "https://www.linkedin.com/company/stripe"
+        - name: crunchbase
+          in: query
+          description: Crunchbase organization URL
+          required: false
+          schema:
+            type: string
+            format: uri
+          example: "https://www.crunchbase.com/organization/stripe"
+        - name: url
+          in: query
+          description: Full website URL
+          required: false
+          schema:
+            type: string
+            format: uri
+          example: "https://stripe.com"
+      responses:
+        '200':
+          description: Successful response with company data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      company:
+                        $ref: '#/components/schemas/CompanyDetails'
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        example: 1
+                      offset:
+                        type: integer
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        example: 990
+                required:
+                  - success
+                  - data
+                  - meta
+        '400':
+          description: Bad request - missing identifier or invalid format
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Missing identifier error
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: 'MISSING_IDENTIFIER'
+                      message:
+                        type: string
+                        example: "Company identifier is required"
+                      details:
+                        type: object
+                        properties:
+                          help:
+                            type: string
+                            example: "Provide an identifier using one of the query parameters: id, permalink, domain, linkedin, crunchbase, or url"
+                          examples:
+                            type: object
+                            properties:
+                              byDomain:
+                                type: string
+                                example: "/api/v1/company?domain=stripe.com"
+                              byUrl:
+                                type: string
+                                example: "/api/v1/company?url=https://stripe.com"
+                              byLinkedIn:
+                                type: string
+                                example: "/api/v1/company?linkedin=https://www.linkedin.com/company/stripe"
+                              byPermalink:
+                                type: string
+                                example: "/api/v1/company?permalink=stripe"
+                              byId:
+                                type: string
+                                example: "/api/v1/company?id=550e8400-e29b-41d4-a716-446655440000"
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 3600
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+  /company/search:
+    get:
+      summary: Search companies by name, domain, LinkedIn, or Crunchbase
+      description: Search for companies using name, domain, LinkedIn URL, or Crunchbase URL with fuzzy matching and relevance scoring
+      operationId: searchCompanies
+      parameters:
+        - name: q
+          in: query
+          description: General search query (searches across name and domain)
+          required: false
+          schema:
+            type: string
+            example: "acme"
+        - name: query
+          in: query
+          description: Alias for 'q' parameter
+          required: false
+          schema:
+            type: string
+            example: "acme"
+        - name: name
+          in: query
+          description: Search specifically by company name
+          required: false
+          schema:
+            type: string
+            example: "Acme Corporation"
+        - name: domain
+          in: query
+          description: Search specifically by company domain
+          required: false
+          schema:
+            type: string
+            example: "acme.com"
+        - name: linkedin
+          in: query
+          description: Search by LinkedIn company URL. The slug will be extracted and used as the search term.
+          required: false
+          schema:
+            type: string
+            format: uri
+            example: "https://www.linkedin.com/company/stripe"
+        - name: crunchbase
+          in: query
+          description: Search by Crunchbase organization URL. The permalink will be extracted and used as the search term.
+          required: false
+          schema:
+            type: string
+            format: uri
+            example: "https://www.crunchbase.com/organization/stripe"
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      companies:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CompanySearchResult'
+                      totalCount:
+                        type: integer
+                        description: Number of companies returned
+                        example: 15
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        example: 1
+                      offset:
+                        type: integer
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        example: 990
+                required:
+                  - success
+                  - data
+                  - meta
+        '400':
+          description: Missing search parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "MISSING_SEARCH_PARAMS"
+                      message:
+                        type: string
+                        example: "At least one search parameter is required"
+                      details:
+                        type: object
+                        properties:
+                          help:
+                            type: string
+                            example: "Provide one of: q, query, name, domain, linkedin, or crunchbase parameters"
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+  /companies:
+    get:
+      summary: Search and filter companies with recent funding details
+      description: |
+        Retrieve companies with advanced filtering, pagination, sorting, and optional AI-powered semantic search.
+
+        ## Filter-only mode
+        Use filter parameters to discover companies by industry, location, funding stage, size, and more.
+
+        ## Semantic search mode
+        Add the `searchQuery` parameter to use AI-powered natural language search. This finds companies
+        matching your description (e.g., "AI healthcare diagnostics startups") and returns results with
+        a `similarity` score. Semantic search can be combined with filters for more precise results.
+
+        ## Parameter Format
+        Most filter parameters use comma-separated values for multiple selections:
+        - `financingTypes=SERIES_A,SEED,SERIES_B`
+        - `industries=artificial-intelligence,fintech,healthcare`
+        - `locations=san-francisco,california,north-america`
+      operationId: getCompanies
+      parameters:
+        # Pagination
+        - name: page
+          in: query
+          description: Page number (0-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: pageSize
+          in: query
+          description: Number of results per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sortBy
+          in: query
+          description: |
+            Sort order for results. When `searchQuery` is provided, results are
+            automatically sorted by relevance and this parameter is ignored.
+          required: false
+          schema:
+            type: string
+            enum:
+              - 'Most Recent Raise'
+              - 'Oldest Raise'
+              - 'Most Recent Founded'
+              - 'Oldest Founded'
+              - 'Largest Valuation'
+              - 'Smallest Valuation'
+              - 'Largest Total Raise'
+              - 'Smallest Total Raise'
+              - 'Most Funding Rounds'
+              - 'Most Investors'
+            default: 'Most Recent Raise'
+
+        # Semantic search
+        - name: searchQuery
+          in: query
+          description: |
+            Natural language search query for AI-powered company discovery.
+            When provided, results include a `similarity` score (0-1) indicating relevance
+            and are automatically sorted by relevance (the `sortBy` parameter is ignored).
+            Results below 5% relevance (0.05) are automatically filtered out.
+            Can be combined with filter parameters for more precise results.
+          required: false
+          schema:
+            type: string
+          example: "AI healthcare diagnostics startups"
+        - name: minRelevance
+          in: query
+          description: |
+            Minimum relevance threshold for semantic search results (0-1).
+            Only applies when `searchQuery` is provided.
+            Results below 5% (0.05) are already filtered out automatically.
+            Use 0.5 or higher for high quality, closely matching results.
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+          example: 0.5
+
+        # Latest deal filters
+        - name: dealStartDate
+          in: query
+          description: Filter companies whose latest deal is after this date (ISO 8601 format)
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: "2024-01-01T00:00:00Z"
+        - name: dealEndDate
+          in: query
+          description: Filter companies whose latest deal is before this date (ISO 8601 format)
+          required: false
+          schema:
+            type: string
+            format: date-time
+            example: "2024-12-31T23:59:59Z"
+        - name: dealSizeMin
+          in: query
+          description: Minimum latest deal size filter (USD $M)
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            example: 1
+        - name: dealSizeMax
+          in: query
+          description: Maximum latest deal size filter (USD $M)
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            example: 100
+        - name: financingTypes
+          in: query
+          description: |
+            Filter by latest deal financing types (comma-separated).
+            Only exact enum values are accepted.
+            Valid values include: SERIES_A, SERIES_B, SERIES_C, SERIES_D, SERIES_E, SERIES_F, SERIES_G, SERIES_H, SERIES_I, SERIES_J, SERIES_K, SERIES_M, SEED, SAFE, CONVERTIBLE_NOTE, EQUITY, PREFERRED, SECONDARY_MARKET, DEBT_FINANCING, GRANT, NON_EQUITY_ASSISTANCE, CROWDFUNDING, INITIAL_COIN_OFFERING, FUNDING_ROUND, HYBRID, HYBRID_SEED, HYBRID_SERIES_A, HYBRID_SERIES_B, HYBRID_SERIES_C, HYBRID_SERIES_D, HYBRID_SERIES_E, HYBRID_SERIES_F, HYBRID_SERIES_G, HYBRID_SERIES_H, HYBRID_SERIES_I, HYBRID_SERIES_J, HYBRID_SERIES_K, HYBRID_SERIES_M
+          required: false
+          schema:
+            type: string
+            example: "SERIES_A,SEED,SERIES_B"
+
+        # Company filters
+        - name: totalRaisedMin
+          in: query
+          description: Minimum total amount raised (USD $M)
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            example: 10
+        - name: totalRaisedMax
+          in: query
+          description: Maximum total amount raised (USD $M)
+          required: false
+          schema:
+            type: number
+            minimum: 0
+            example: 500
+        - name: companyFoundedStart
+          in: query
+          description: Filter companies founded after this date (ISO 8601 format)
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: companyFoundedEnd
+          in: query
+          description: Filter companies founded before this date (ISO 8601 format)
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: employeeCount
+          in: query
+          description: |
+            Filter by company size ranges (comma-separated).
+            Valid values: 1-10, 11-50, 51-100, 101-250, 251-500, 501-1000, 1001-5000, 5001-10000, 10001+
+          required: false
+          schema:
+            type: string
+            example: "1-10,11-50,51-100"
+        - name: ipoStatus
+          in: query
+          description: |
+            Filter by IPO status (comma-separated).
+            Valid values: public, private
+          required: false
+          schema:
+            type: string
+            example: "private"
+
+        # Industry & location filters
+        - name: industries
+          in: query
+          description: Filter by industry permalinks (comma-separated). Please refer to "Industry Filters Overview" for industry / supercategory permalinks.
+          required: false
+          schema:
+            type: string
+            example: "artificial-intelligence,fintech,healthcare"
+        - name: superCategories
+          in: query
+          description: Filter by super category permalinks (comma-separated). Please refer to "Industry Filters Overview" for industry / supercategory permalinks.
+          required: false
+          schema:
+            type: string
+            example: "technology,healthcare,financial-services"
+        - name: locations
+          in: query
+          description: Filter by location permalinks (comma-separated). Supports all location types including cities, states, regions, and countries. Please refer to /location/search endpoint to identify location permalinks.
+          required: false
+          schema:
+            type: string
+            example: "san-francisco,california,north-america,united-states"
+
+        # ID filters
+        - name: investorIds
+          in: query
+          description: Filter by specific investor IDs (comma-separated UUIDs)
+          required: false
+          schema:
+            type: string
+            example: "c5a3f6ac-f6c9-4686-aa6e-12aeb7419b82,c6bc63af-cb37-453d-9c20-35f56fb87ee9"
+        - name: companyIds
+          in: query
+          description: Filter by specific company IDs (comma-separated UUIDs)
+          required: false
+          schema:
+            type: string
+            example: "97ae048e-77bc-471b-821a-f9decb373689,9058e182-75e5-4f11-ae9f-06291de8aaff"
+
+        # Batch lookup filters
+        - name: domains
+          in: query
+          description: |
+            Filter by company domains (comma-separated, max 100).
+            Can be combined with other filters. If both `domains` and `linkedins` are provided,
+            companies matching either will be included.
+          required: false
+          schema:
+            type: string
+            example: "stripe.com,airbnb.com,notion.so"
+        - name: linkedins
+          in: query
+          description: |
+            Filter by LinkedIn company slugs (comma-separated, max 100).
+            Use just the slug, not the full URL (e.g., "stripe" not "https://linkedin.com/company/stripe").
+            Can be combined with other filters. If both `domains` and `linkedins` are provided,
+            companies matching either will be included.
+          required: false
+          schema:
+            type: string
+            example: "stripe,airbnb,notion-so"
+
+      responses:
+        '200':
+          description: Successful response with companies data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      companies:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CompanyListItem'
+                      totalCount:
+                        type: integer
+                        description: Total number of companies matching the filter criteria
+                        example: 1547
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        description: Number of results per page (pageSize parameter)
+                        example: 10
+                      offset:
+                        type: integer
+                        description: Number of results skipped (page * pageSize)
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        description: Remaining API requests for the current month (null if unlimited)
+                        example: 990
+                required:
+                  - success
+                  - data
+                  - meta
+        '400':
+          description: Bad Request - Invalid parameter types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '422':
+          description: Unprocessable Entity - Unknown parameter provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 3600
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: |
+        API key authentication using Bearer token format.
+        Format: `Authorization: Bearer vg_your_api_key_here`
+
+        API keys follow the pattern: `vg_[12_hex_chars]_[32_base64url_chars]`
+
+  schemas:
+    CompanyDetails:
+      type: object
+      description: Full company details returned by the /company endpoint
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the company
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          nullable: true
+          description: Company name
+          example: "Acme Corporation"
+        legal_name:
+          type: string
+          nullable: true
+          description: Legal name of the company
+          example: "Acme Corporation Inc."
+        guru_permalink:
+          type: string
+          nullable: true
+          description: Fundable permalink for the company
+          example: "acme-corporation"
+        domain:
+          type: string
+          nullable: true
+          description: Company website domain
+          example: "acme.com"
+        region:
+          type: string
+          nullable: true
+          description: Company region
+          example: "San Francisco Bay Area"
+        short_description:
+          type: string
+          nullable: true
+          description: Brief description of the company
+        long_description:
+          type: string
+          nullable: true
+          description: Full description of the company. Available on /company endpoint; may be null on /companies list endpoint.
+        num_employees:
+          type: string
+          nullable: true
+          description: Number of employees range
+          example: "11-50"
+        linkedin:
+          type: string
+          nullable: true
+          format: uri
+          description: LinkedIn profile URL
+        twitter:
+          type: string
+          nullable: true
+          format: uri
+          description: Twitter profile URL
+        facebook:
+          type: string
+          nullable: true
+          format: uri
+          description: Facebook profile URL
+        pitchbook:
+          type: string
+          nullable: true
+          format: uri
+          description: PitchBook profile URL
+        crunchbase:
+          type: string
+          nullable: true
+          format: uri
+          description: Crunchbase profile URL
+        address:
+          type: string
+          nullable: true
+          description: Company address
+        founded_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date the company was founded
+          example: "2015-03-01T00:00:00.000Z"
+        ipo_status:
+          type: string
+          nullable: true
+          description: IPO status of the company
+          enum: ['public', 'private']
+          example: "private"
+        num_funding_rounds:
+          type: integer
+          nullable: true
+          description: Number of funding rounds
+          example: 11
+        num_investors:
+          type: integer
+          nullable: true
+          description: Number of investors
+          example: 14
+        total_raised:
+          type: number
+          nullable: true
+          description: Total amount raised (USD $M)
+          example: 2834.94
+        latest_valuation_usd:
+          type: number
+          nullable: true
+          description: Latest valuation in USD (millions)
+          example: 31000
+        latest_valuation_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date of latest valuation
+          example: "2017-03-09T00:00:00.000Z"
+        industries:
+          type: array
+          description: Industries the company operates in
+          items:
+            type: object
+            properties:
+              permalink:
+                type: string
+                description: Industry permalink
+                example: "artificial-intelligence"
+              name:
+                type: string
+                description: Industry name
+                example: "Artificial Intelligence"
+        location:
+          type: object
+          description: Company location hierarchy
+          properties:
+            region:
+              $ref: '#/components/schemas/LocationInfo'
+            country:
+              $ref: '#/components/schemas/LocationInfo'
+            state:
+              $ref: '#/components/schemas/LocationInfo'
+            city:
+              $ref: '#/components/schemas/LocationInfo'
+        latest_deal:
+          $ref: '#/components/schemas/LatestDeal'
+        similarity:
+          type: number
+          nullable: true
+          description: Semantic similarity score (0-1). Only present when using searchQuery parameter.
+          example: null
+
+    CompanyListItem:
+      type: object
+      description: Company object returned by the /companies list endpoint. Same shape as CompanyDetails.
+      allOf:
+        - $ref: '#/components/schemas/CompanyDetails'
+
+    LatestDeal:
+      type: object
+      nullable: true
+      description: Details of the company's most recent funding round
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Unique identifier for the deal
+        type:
+          type: string
+          nullable: true
+          description: Type of funding round
+          enum: [
+            'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E', 'SERIES_F',
+            'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_M',
+            'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED', 'SECONDARY_MARKET',
+            'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE', 'CROWDFUNDING',
+            'INITIAL_COIN_OFFERING', 'FUNDING_ROUND', 'HYBRID', 'HYBRID_SEED',
+            'HYBRID_SERIES_A', 'HYBRID_SERIES_B', 'HYBRID_SERIES_C', 'HYBRID_SERIES_D',
+            'HYBRID_SERIES_E', 'HYBRID_SERIES_F', 'HYBRID_SERIES_G', 'HYBRID_SERIES_H',
+            'HYBRID_SERIES_I', 'HYBRID_SERIES_J', 'HYBRID_SERIES_K', 'HYBRID_SERIES_M'
+          ]
+          example: "SERIES_B"
+        size:
+          type: number
+          nullable: true
+          description: Total amount raised in the round (USD $M)
+          example: 25
+        date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date of the funding round
+          example: "2024-01-15T00:00:00Z"
+        extension:
+          type: boolean
+          nullable: true
+          description: Whether this is an extension round
+          example: false
+        pre:
+          type: boolean
+          nullable: true
+          description: Whether this is a pre-round (e.g., Pre-Series A)
+          example: false
+        intermediate:
+          type: string
+          nullable: true
+          description: Intermediate round designation
+          enum: ['PLUS', 'NONE', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT']
+          example: "NONE"
+        description:
+          type: object
+          nullable: true
+          properties:
+            short_description:
+              type: string
+              nullable: true
+              description: Brief description of the deal
+            long_description:
+              type: string
+              nullable: true
+              description: Detailed description of the deal
+        investors:
+          type: array
+          description: Investors participating in this deal
+          items:
+            $ref: '#/components/schemas/CompanyInvestor'
+
+    CompanyInvestor:
+      type: object
+      description: An investor participating in a company's latest deal
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the investor
+        name:
+          type: string
+          description: Investor name
+          example: "Sequoia Capital"
+        guru_permalink:
+          type: string
+          nullable: true
+          description: Fundable permalink for the investor
+          example: "sequoia-capital"
+        lead_investor:
+          type: boolean
+          nullable: true
+          description: Whether this investor led the round
+          example: true
+        angel_investor:
+          type: boolean
+          nullable: true
+          description: Whether this is an angel investor
+          example: false
+      required:
+        - id
+        - name
+
+    LocationInfo:
+      type: object
+      nullable: true
+      properties:
+        name:
+          type: string
+          description: Location name
+          example: "San Francisco"
+        permalink:
+          type: string
+          description: Location permalink
+          example: "san-francisco"
+
+    CompanySearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the company
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        guru_permalink:
+          type: string
+          nullable: true
+          description: Fundable permalink for the company
+          example: "acme-corporation"
+        name:
+          type: string
+          description: Company name
+          example: "Acme Corporation"
+        short_description:
+          type: string
+          nullable: true
+          description: Brief description of the company
+          example: "AI-powered solutions for modern enterprises"
+        relevance_score:
+          type: number
+          description: Search relevance score (0-1)
+          example: 0.95
+        domain:
+          type: string
+          nullable: true
+          description: Company website domain
+          example: "acme.com"
+        website:
+          type: string
+          nullable: true
+          format: uri
+          description: Company website URL
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['VALIDATION_ERROR']
+              example: 'VALIDATION_ERROR'
+            message:
+              type: string
+              example: "Invalid request parameters"
+            details:
+              type: object
+              properties:
+                errors:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        description: The parameter name that failed validation
+                        example: "financingTypes"
+                      value:
+                        type: string
+                        description: The invalid value provided
+                        example: "series-a"
+                      message:
+                        type: string
+                        description: Human-readable error message
+                        example: "Invalid financing type(s): series-a. Valid options are: SERIES_A, SERIES_B, SEED, ..."
+                      code:
+                        type: string
+                        description: Machine-readable error code
+                        example: "INVALID_FINANCING_TYPE"
+                      validOptions:
+                        type: array
+                        items:
+                          type: string
+                        description: List of valid values for enum parameters
+                        example: ["SERIES_A", "SERIES_B", "SEED"]
+                help:
+                  type: string
+                  example: "Please check your request parameters and ensure they meet the required format and constraints."
+      required:
+        - error
+
+    AuthError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['AUTH_ERROR', 'INVALID_API_KEY', 'INACTIVE_API_KEY']
+              example: 'AUTH_ERROR'
+            message:
+              type: string
+              example: "API key not provided"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+                  example: "Please provide your API key in the Authorization header"
+                format:
+                  type: string
+                  example: "Bearer vg_your_api_key_here"
+      required:
+        - error
+
+    RateLimitError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'RATE_LIMIT_EXCEEDED'
+            message:
+              type: string
+              example: "Monthly request limit exceeded"
+            details:
+              type: object
+              properties:
+                monthly_limit:
+                  type: integer
+                  example: 1000
+                current_usage:
+                  type: integer
+                  example: 1000
+                remaining_requests:
+                  type: integer
+                  example: 0
+      required:
+        - error
+
+    ServerError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INTERNAL_SERVER_ERROR'
+            message:
+              type: string
+              example: "An unexpected error occurred"
+            details:
+              type: string
+              nullable: true
+              description: Error details (only in development mode)
+      required:
+        - error
+
+    NotFoundError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['COMPANY_NOT_FOUND']
+              example: 'COMPANY_NOT_FOUND'
+            message:
+              type: string
+              example: "Company not found"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+                  example: "Please check the company identifier (ID, permalink, domain, LinkedIn URL, or Crunchbase URL) and try again"
+      required:
+        - error
+
+tags:
+  - name: companies
+    description: Company data, search, and discovery operations

@@ -1,0 +1,33 @@
+---
+title: "Authentication"
+description: "How to authenticate with the Fundable API"
+---
+
+## API Key Authentication
+
+All Fundable API requests require authentication via a Bearer token in the `Authorization` header.
+
+```bash
+Authorization: Bearer vg_xxxxxxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### Getting Your API Key
+
+API keys are available through your Fundable account. Get your key [here](https://www.tryfundable.ai/api-access/) -- your first 50 credits are free.
+
+### Key Format
+
+API keys follow the format: `vg_[12_hex_chars]_[32_base64url_chars]`
+
+### Usage
+
+Include your API key as a Bearer token in every request:
+
+```bash
+curl -X GET "https://tryfundable.ai/api/v1/deals" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Rate Limits
+
+API usage is tracked and may be subject to monthly limits depending on your API key tier. Monitor the `remaining_requests` field in the `meta` section of responses to track your usage.

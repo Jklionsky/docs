@@ -1,0 +1,990 @@
+openapi: 3.0.3
+info:
+  title: Deal Alerts 
+  description: |
+    API for accessing saved alert data with simplified deal structures.
+    
+    ## Authentication
+    All API requests require authentication using an API key in the Authorization header.
+    
+    ## Rate Limits
+    API usage is tracked and may be subject to monthly limits depending on your API key tier.
+    
+    **Deal-Based Counting:**
+    - Each request consumes credits equal to the **total number of deals** returned across all alerts
+    - Example: Query 2 alerts → Alert 1 returns 25 deals + Alert 2 returns 22 deals = **47 credits consumed**
+    - Empty results (no deals found) still consume 1 credit minimum
+    
+    **How Rate Limiting Works:**
+    - Rate limit check occurs **after** the query executes
+    - If the request would exceed your monthly limit, it is **rejected with 429 error**
+    - No partial results are returned if limit would be exceeded
+    - Rejected requests do not consume any credits
+    
+    **Best Practices:**
+    - Monitor `remaining_requests` in the `meta` section of each response
+    - Query smaller date ranges when approaching your monthly limit
+    - Use fewer alerts per request when nearing monthly cap
+    - Check the `totalDealCount` in responses to estimate credit consumption
+    
+    ## Parameter Validation
+    This API enforces strict parameter validation:
+    - **Required Parameters**: `alertIds`, `startDate`, and `endDate` are required
+    - **Unknown Parameters**: Any parameter not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
+    - **Whitelisted Parameters Only**: Only these parameters are allowed: alertIds, startDate, endDate
+    - **Data Types**:
+      - `alertIds` must be comma-separated valid UUIDs (e.g., "uuid1,uuid2,uuid3")
+      - Date parameters must be valid ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
+    - **Business Rules**:
+      - Maximum 10 alerts per request
+      - Date ranges cannot exceed 1 year
+      - Start date must be before end date
+      - Dates cannot be in the future
+      - All date grouping is done in UTC timezone
+    
+    ## Response Structure
+    The API returns alert data with flattened deal arrays:
+    - Each alert contains a deals array with all matching deals from the date range
+    - Deals are sorted by date descending (newest first)
+    - Duplicate deals are automatically removed
+    - Each deal includes simplified company information and AI-generated reasoning
+    - Deal counts represent the total number of unique deals for each alert
+    
+    ## Use Cases
+    - Retrieve historical alert data for analysis
+    - Export alert results for reporting
+    - Integrate alert data into external systems
+    - Monitor deal flow matching specific criteria over time
+    
+  version: 1.0.0
+  contact:
+    name: Fundable API Support
+    url: jacob@tryfundable.ai
+  license:
+    name: Proprietary
+    url: https://www.tryfundable.ai/terms/privacy/
+
+servers:
+  - url: https://tryfundable.ai/api/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /alerts:
+    get:
+      summary: Get alert data with deals
+      description: |
+        Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.
+        Results include a flattened array of deals sorted by date (newest first) with duplicates removed.
+
+        **Multiple Alerts Support:**
+        - Query multiple alerts in a single request (up to 10)
+        - Each alert returns its own flattened deals array
+        - Different alerts can have different frequencies (e.g., one daily, one weekly)
+        - Total deal count across all alerts determines rate limit usage
+
+        **Important Notes:**
+        - All alertIds must belong to alerts you have access to
+        - Deals are flattened from all time periods and sorted by date DESC (newest first)
+        - Duplicate deals are automatically removed
+        - Each deal includes AI-generated reasoning for why it matched the alert criteria
+        - Deal structure is simplified with flattened company information for easier integration
+      operationId: getAlerts
+      tags:
+        - alerts
+      parameters:
+        - name: alertIds
+          in: query
+          description: |
+            Comma-separated list of alert UUIDs (up to 10 alerts per request).
+            All alerts must be associated with your API key's account.
+            Example: "uuid1,uuid2,uuid3"
+          required: true
+          schema:
+            type: string
+            example: "550e8400-e29b-41d4-a716-446655440000,660e8400-e29b-41d4-a716-446655440001"
+            
+        - name: startDate
+          in: query
+          description: |
+            Start date for the alert data range (ISO 8601 format).
+            Results will include deals from this date onwards.
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: "2024-01-01T00:00:00.000Z"
+            
+        - name: endDate
+          in: query
+          description: |
+            End date for the alert data range (ISO 8601 format).
+            Results will include deals up to and including this date.
+
+            **Note:** All dates are processed in UTC timezone. Deals are grouped into time periods based on UTC date boundaries.
+          required: true
+          schema:
+            type: string
+            format: date-time
+            example: "2024-12-31T23:59:59.999Z"
+
+      responses:
+        '200':
+          description: Successful response with alert data organized by time periods
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      alerts:
+                        type: array
+                        description: Array of alert configurations with their timeline data
+                        items:
+                          $ref: '#/components/schemas/Alert'
+                      totalDealCount:
+                        type: integer
+                        description: Total number of deals across all alerts and periods
+                        example: 47
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        description: Number of alerts queried in this request
+                        example: 2
+                      offset:
+                        type: integer
+                        description: Offset value (always 0 for alerts endpoint)
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        description: Remaining API requests for the current month (null if unlimited). Decremented by totalDealCount across all alerts.
+                        example: 953
+                required:
+                  - success
+                  - data
+                  - meta
+              examples:
+                multipleAlerts:
+                  summary: Multiple alerts with different frequencies
+                  value:
+                    success: true
+                    data:
+                      alerts:
+                        - alertId: "550e8400-e29b-41d4-a716-446655440000"
+                          alertName: "Weekly AI Funding Deals"
+                          alertFrequency: "WEEKLY"
+                          totalDealCount: 25
+                          deals:
+                            - id: "deal1"
+                              company_id: "comp1"
+                              company_name: "Acme AI Corp"
+                              round_type: "SERIES_A"
+                              total_round_raised: 25
+                              date: "2024-01-15T00:00:00.000Z"
+                              company_website: "acme.com"
+                              company_linkedin: "https://linkedin.com/company/acme"
+                              region: "North America"
+                              deal_short_description: "Series A funding round"
+                              deal_long_description: "Acme AI Corp raised $25M in Series A funding"
+                              reasoning: "Matches AI startups criteria with focus on artificial intelligence"
+                              articles:
+                                - link: "https://techcrunch.com/article1"
+                                  is_primary: true
+                                  publishedDate: "2024-01-15T00:00:00.000Z"
+                            - id: "deal3"
+                              company_id: "comp3"
+                              company_name: "ML Solutions Inc"
+                              round_type: "SERIES_B"
+                              total_round_raised: 40
+                              date: "2024-01-10T00:00:00.000Z"
+                              company_website: "mlsolutions.com"
+                              company_linkedin: null
+                              region: "Europe"
+                              deal_short_description: "Series B funding"
+                              deal_long_description: "ML Solutions raised $40M in Series B"
+                              reasoning: "Machine learning focus aligns with your alert criteria"
+                              articles: []
+                        - alertId: "660e8400-e29b-41d4-a716-446655440001"
+                          alertName: "Monthly Healthcare Seed Deals"
+                          alertFrequency: "MONTHLY"
+                          totalDealCount: 22
+                          deals:
+                            - id: "deal2"
+                              company_id: "comp2"
+                              company_name: "HealthTech Startup"
+                              round_type: "SEED"
+                              total_round_raised: 5
+                              date: "2024-01-10T00:00:00.000Z"
+                              company_website: "healthtech.io"
+                              company_linkedin: "https://linkedin.com/company/healthtech"
+                              region: "North America"
+                              deal_short_description: "Seed funding round"
+                              deal_long_description: "HealthTech Startup raised $5M in seed funding"
+                              reasoning: "Healthcare focus matches your seed round criteria"
+                              articles:
+                                - link: "https://healthcarevc.com/article"
+                                  is_primary: true
+                                  publishedDate: "2024-01-10T00:00:00.000Z"
+                      totalDealCount: 47
+                    meta:
+                      limit: 2
+                      offset: 0
+                      remaining_requests: 953
+                
+                noDealsFound:
+                  summary: Valid alert IDs but no deals in date range
+                  value:
+                    success: true
+                    data:
+                      alerts: []
+                      totalDealCount: 0
+                    meta:
+                      limit: 1
+                      offset: 0
+                      remaining_requests: 999
+                      
+        '400':
+          description: Bad Request - Invalid parameters or validation failed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationError'
+                  - $ref: '#/components/schemas/MissingParametersError'
+              examples:
+                missingParameters:
+                  summary: Missing required parameters
+                  value:
+                    success: false
+                    error:
+                      code: "MISSING_PARAMETERS"
+                      message: "Missing required parameters"
+                      details:
+                        missingParams: ["alertIds", "startDate"]
+                        help: "Please provide all required parameters: alertIds, startDate, endDate"
+                    statusCode: 400
+                invalidAlertId:
+                  summary: Invalid alert ID format
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_ALERT_ID"
+                      message: "Invalid alert ID(s): not-a-uuid, invalid-id. All alert IDs must be valid UUIDs."
+                      details:
+                        provided: "not-a-uuid,invalid-id"
+                        help: "Please provide valid UUID format for all alert IDs"
+                    statusCode: 400
+                invalidDateFormat:
+                  summary: Invalid date format
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_DATE_FORMAT"
+                      message: "Invalid date format"
+                      details:
+                        field: "startDate"
+                        provided: "2024-01-01"
+                        expected: "ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)"
+                        help: "Please provide dates in ISO 8601 format, e.g., 2024-01-01T00:00:00.000Z"
+                    statusCode: 400
+                dateRangeTooLarge:
+                  summary: Date range exceeds maximum allowed
+                  value:
+                    success: false
+                    error:
+                      code: "DATE_RANGE_TOO_LARGE"
+                      message: "Date range cannot exceed 1 year"
+                      details:
+                        providedRange: "400 days"
+                        maxRange: "365 days"
+                        help: "Please reduce the date range to 1 year or less"
+                    statusCode: 400
+
+                futureStartDate:
+                  summary: Start date in the future
+                  value:
+                    success: false
+                    error:
+                      code: "FUTURE_DATE"
+                      message: "Start date cannot be in the future"
+                      details:
+                        field: "startDate"
+                        provided: "2025-12-01T00:00:00.000Z"
+                        help: "Please provide a start date that is not in the future"
+                    statusCode: 400
+                      
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+                
+        '404':
+          description: |
+            Alert ID not found or access denied.
+            
+            **Note:** If alert IDs are valid but have no deals in the date range, the endpoint returns 200 with an empty `alerts` array.
+            404 is only returned when the alert IDs don't exist or you lack permission to access them.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "ALERT_NOT_FOUND"
+                      message:
+                        type: string
+                        example: "Alert(s) not found or you do not have permission to access them"
+                      details:
+                        type: object
+                        properties:
+                          help:
+                            type: string
+                            example: "Please verify the alert IDs belong to your account"
+                  statusCode:
+                    type: integer
+                    example: 404
+              examples:
+                alertNotFound:
+                  summary: Alert ID(s) not found or access denied
+                  value:
+                    success: false
+                    error:
+                      code: "ALERT_NOT_FOUND"
+                      message: "Alert(s) not found or you do not have permission to access them"
+                      details:
+                        help: "Please verify the alert IDs exist and belong to your account. If IDs are valid but have no deals, you'll receive a 200 response with empty alerts array."
+                    statusCode: 404
+                    
+        '422':
+          description: Unprocessable Entity - Parameter validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                unknownParameter:
+                  summary: Unknown parameter provided
+                  value:
+                    success: false
+                    error:
+                      code: "UNKNOWN_PARAMETER"
+                      message: "Invalid request parameters"
+                      details:
+                        errors:
+                          - field: "invalidParam"
+                            value: "someValue"
+                            message: "Unknown parameter: invalidParam. Allowed parameters: alertIds, startDate, endDate"
+                            code: "UNKNOWN_PARAMETER"
+                            validOptions: ["alertIds", "startDate", "endDate"]
+                        help: "Please check your request parameters and ensure they meet the required format and constraints."
+                    statusCode: 422
+                
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 3600
+                
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+  /alerts/configurations:
+    get:
+      summary: Get alert configurations for authenticated user
+      description: |
+        Retrieve all alert configurations for the authenticated user (identified by API key).
+        Returns configuration metadata including filters, frequency, and descriptions.
+        
+        **Important Notes:**
+        - This endpoint does NOT consume usage credits (actualUsageCount: 0)
+        - Returns only configuration metadata, not deal data
+        - Does not require any query parameters - user is identified by API key
+        - All configurations for the authenticated user are returned (no pagination)
+        
+        **Authentication:**
+        - User identity is automatically determined from the API key
+        - No email or user_id parameter needed
+        
+        **Use Cases:**
+        - Look up what alerts are configured for the authenticated user
+        - Retrieve alert filter settings for external integrations
+        - Audit alert configurations programmatically
+      operationId: getAlertConfigurations
+      tags:
+        - alerts
+      parameters: []
+            
+      responses:
+        '200':
+          description: Successful response with alert configurations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      configurations:
+                        type: array
+                        description: Array of alert configurations for this email
+                        items:
+                          $ref: '#/components/schemas/AlertConfiguration'
+                  meta:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                        description: Number of configurations returned
+                        example: 3
+                      offset:
+                        type: integer
+                        description: Offset value (always 0 for this endpoint)
+                        example: 0
+                      remaining_requests:
+                        type: integer
+                        nullable: true
+                        description: Remaining API requests for the current month (not affected by this endpoint)
+                        example: 1000
+                required:
+                  - success
+                  - data
+                  - meta
+              examples:
+                withConfigurations:
+                  summary: User with multiple alert configurations
+                  value:
+                    success: true
+                    data:
+                      configurations:
+                        - configuration_id: "550e8400-e29b-41d4-a716-446655440000"
+                          configuration_name: "AI Startups Series A"
+                          frequency: "WEEKLY"
+                          description: "Track AI and ML startups raising Series A funding"
+                          filters:
+                            industries: ["artificial-intelligence", "machine-learning"]
+                            financing_types: ["Series A"]
+                            deal_size_min: 1000000
+                            deal_size_max: 10000000
+                            locations: ["san-francisco-bay-area", "new-york"]
+                            investors: []
+                            companies: []
+                        - configuration_id: "660e8400-e29b-41d4-a716-446655440001"
+                          configuration_name: "Healthcare Seed Rounds"
+                          frequency: "DAILY"
+                          description: "Daily alerts for healthcare seed funding"
+                          filters:
+                            industries: ["health-care"]
+                            super_categories: ["biotechnology"]
+                            financing_types: ["Seed"]
+                            deal_size_min: 500000
+                            deal_size_max: 5000000
+                            num_employees: ["1-10", "11-50"]
+                            investors: [{"id": "sequoia-capital", "name": "Sequoia Capital"}]
+                            companies: []
+                        - configuration_id: "770e8400-e29b-41d4-a716-446655440002"
+                          configuration_name: "Fintech Tracker"
+                          frequency: "MONTHLY"
+                          description: "Monthly roundup of fintech funding activity"
+                          filters:
+                            industries: ["financial-services", "fintech"]
+                            financing_types: ["Series A", "Series B", "Series C"]
+                            locations: ["united-states"]
+                            companies: [{"id": "stripe", "name": "Stripe"}, {"id": "plaid", "name": "Plaid"}]
+                    meta:
+                      limit: 3
+                      offset: 0
+                      remaining_requests: 1000
+                
+                noConfigurations:
+                  summary: User with no configurations
+                  value:
+                    success: true
+                    data:
+                      configurations: []
+                    meta:
+                      limit: 0
+                      offset: 0
+                      remaining_requests: 1000
+                      
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+                
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 3600
+                
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: |
+        API key authentication using Bearer token format.
+        Format: `Authorization: Bearer vg_your_api_key_here`
+        
+        API keys follow the pattern: `vg_[12_hex_chars]_[32_base64url_chars]`
+        
+  schemas:
+    AlertConfiguration:
+      type: object
+      description: Alert configuration metadata including filters and settings
+      properties:
+        configuration_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the alert configuration
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        configuration_name:
+          type: string
+          description: User-defined name for the alert
+          example: "AI Startups Series A"
+        frequency:
+          type: string
+          description: How often the alert runs
+          enum: ['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY']
+          example: "WEEKLY"
+        description:
+          type: string
+          description: Alert description combining custom, alert, and semantic descriptions
+          example: "Track AI and ML startups raising Series A funding"
+        filters:
+          type: object
+          description: Alert filter criteria
+          properties:
+            industries:
+              type: array
+              items:
+                type: string
+              description: Industry permalinks to filter by
+              example: ["artificial-intelligence", "machine-learning"]
+            super_categories:
+              type: array
+              items:
+                type: string
+              description: Super category permalinks to filter by
+              example: ["software"]
+            locations:
+              type: array
+              items:
+                type: string
+              description: Location permalinks to filter by
+              example: ["san-francisco-bay-area", "new-york"]
+            financing_types:
+              type: array
+              items:
+                type: string
+              description: Types of financing rounds to include
+              example: ["Series A", "Series B"]
+            deal_size_min:
+              type: number
+              nullable: true
+              description: Minimum deal size in USD
+              example: 1000000
+            deal_size_max:
+              type: number
+              nullable: true
+              description: Maximum deal size in USD
+              example: 10000000
+            num_employees:
+              type: array
+              items:
+                type: string
+              description: Employee count ranges
+              example: ["1-10", "11-50", "51-100"]
+            investors:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Investor identifier
+                  name:
+                    type: string
+                    description: Investor name
+              description: Specific investors to filter by
+              example: [{"id": "sequoia-capital", "name": "Sequoia Capital"}]
+            companies:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Company identifier
+                  name:
+                    type: string
+                    description: Company name
+              description: Specific companies to filter by
+              example: [{"id": "stripe", "name": "Stripe"}]
+      required:
+        - configuration_id
+        - configuration_name
+        - frequency
+        - description
+        - filters
+
+    Alert:
+      type: object
+      properties:
+        alertId:
+          type: string
+          format: uuid
+          description: Unique identifier for the alert configuration
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        alertName:
+          type: string
+          description: Name of the alert configuration
+          example: "Weekly AI Funding Deals"
+        alertFrequency:
+          type: string
+          description: Frequency setting of the alert
+          enum: ['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY']
+          example: "WEEKLY"
+        totalDealCount:
+          type: integer
+          description: Total number of deals for this alert
+          example: 25
+        deals:
+          type: array
+          description: Array of deals that matched the alert criteria (flattened from all time periods, sorted by date DESC)
+          items:
+            $ref: '#/components/schemas/SimplifiedDeal'
+      required:
+        - alertId
+        - alertName
+        - alertFrequency
+        - totalDealCount
+        - deals
+
+    SimplifiedDeal:
+      type: object
+      description: |
+        Simplified deal structure optimized for API consumption.
+        Flattens company information and removes nested structures for easier integration.
+        Deals are sorted by date descending (newest first) and duplicates are removed.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the deal
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        company_id:
+          type: string
+          description: Unique identifier for the company
+          example: "abc123"
+        company_name:
+          type: string
+          nullable: true
+          description: Company name
+          example: "Acme AI Corp"
+        round_type:
+          type: string
+          nullable: true
+          description: Type of funding round
+          example: "SERIES_A"
+        date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date of the funding round (ISO 8601 format)
+          example: "2024-01-15T00:00:00.000Z"
+        total_round_raised:
+          type: number
+          nullable: true
+          description: Total amount raised in the round (USD $M)
+          example: 25
+        company_website:
+          type: string
+          nullable: true
+          description: Company website domain
+          example: "acme.com"
+        company_linkedin:
+          type: string
+          nullable: true
+          description: Company LinkedIn URL
+          example: "https://linkedin.com/company/acme"
+        region:
+          type: string
+          nullable: true
+          description: Geographic region name
+          example: "North America"
+        deal_short_description:
+          type: string
+          nullable: true
+          description: Brief description of the deal
+          example: "Series A funding round"
+        deal_long_description:
+          type: string
+          nullable: true
+          description: Detailed description of the deal
+          example: "Company raised $25M in Series A funding led by Acme Ventures"
+        reasoning:
+          type: string
+          nullable: true
+          description: AI-generated reasoning for why this deal matched the alert criteria
+          example: "This deal matches your AI startups criteria with focus on machine learning"
+        articles:
+          type: array
+          description: News articles related to this deal
+          items:
+            type: object
+            properties:
+              link:
+                type: string
+                description: URL to the article
+                example: "https://techcrunch.com/article"
+              is_primary:
+                type: boolean
+                description: Whether this is the primary article for the deal
+                example: true
+              publishedDate:
+                type: string
+                format: date-time
+                nullable: true
+                description: Article publication date (ISO 8601 format)
+                example: "2024-01-15T00:00:00.000Z"
+      required:
+        - id
+        - company_id
+        - company_name
+        - round_type
+        - date
+        - total_round_raised
+        - company_website
+        - company_linkedin
+        - region
+        - deal_short_description
+        - deal_long_description
+        - reasoning
+        - articles
+      example:
+        id: "550e8400-e29b-41d4-a716-446655440000"
+        company_id: "abc123"
+        company_name: "Acme AI Corp"
+        round_type: "SERIES_A"
+        date: "2024-01-15T00:00:00.000Z"
+        total_round_raised: 25
+        company_website: "acme.com"
+        company_linkedin: "https://linkedin.com/company/acme"
+        region: "North America"
+        deal_short_description: "Series A funding round"
+        deal_long_description: "Company raised $25M in Series A funding led by Acme Ventures"
+        reasoning: "This deal matches your AI startups criteria with focus on machine learning and enterprise software"
+        articles:
+          - link: "https://techcrunch.com/article"
+            is_primary: true
+            publishedDate: "2024-01-15T00:00:00.000Z"
+
+    AuthError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['AUTH_ERROR', 'INVALID_API_KEY', 'INACTIVE_API_KEY']
+              example: 'AUTH_ERROR'
+            message:
+              type: string
+              example: "API key not provided"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+                  example: "Please provide your API key in the Authorization header"
+                format:
+                  type: string
+                  example: "Bearer vg_your_api_key_here"
+      required:
+        - error
+
+    RateLimitError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'RATE_LIMIT_EXCEEDED'
+            message:
+              type: string
+              example: "Monthly request limit exceeded"
+            details:
+              type: object
+              properties:
+                monthly_limit:
+                  type: integer
+                  example: 1000
+                current_usage:
+                  type: integer
+                  example: 1000
+                remaining_requests:
+                  type: integer
+                  example: 0
+      required:
+        - error
+
+    ValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: ['VALIDATION_ERROR', 'UNKNOWN_PARAMETER']
+              example: 'VALIDATION_ERROR'
+            message:
+              type: string
+              example: "Invalid request parameters"
+            details:
+              type: object
+              properties:
+                errors:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        description: The parameter name that failed validation
+                        example: "alertId"
+                      value:
+                        type: string
+                        description: The invalid value provided
+                        example: "not-a-uuid"
+                      message:
+                        type: string
+                        description: Human-readable error message
+                        example: "Alert ID must be a valid UUID"
+                      code:
+                        type: string
+                        description: Machine-readable error code
+                        example: "INVALID_ALERT_ID"
+                help:
+                  type: string
+                  example: "Please check your request parameters and ensure they meet the required format and constraints."
+        statusCode:
+          type: integer
+          example: 422
+      required:
+        - success
+        - error
+
+    MissingParametersError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "MISSING_PARAMETERS"
+            message:
+              type: string
+              example: "Missing required parameters"
+            details:
+              type: object
+              properties:
+                missingParams:
+                  type: array
+                  items:
+                    type: string
+                  example: ["alertId", "startDate"]
+                help:
+                  type: string
+                  example: "Please provide all required parameters: alertId, startDate, endDate"
+        statusCode:
+          type: integer
+          example: 400
+      required:
+        - success
+        - error
+
+    ServerError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INTERNAL_SERVER_ERROR'
+            message:
+              type: string
+              example: "An unexpected error occurred"
+            details:
+              type: string
+              nullable: true
+              description: Error details (only in development mode)
+      required:
+        - error
+
+tags:
+  - name: alerts
+    description: Saved alert configurations and deal data

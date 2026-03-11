@@ -1,0 +1,41 @@
+Industry Filters Overview
+
+# Industry Filters Overview
+
+Industry filtering help users find deals in specific industries.
+
+## How Industry Filtering Works
+
+Industry filters enable deal filtering using two levels of of categorization. 'Super categories' and 'sub-categories'.
+
+<Cards columns={2}>
+  <Card title="Super-categories">
+    Super Categories are broad, high-level industry classifications, with over 50 available. They serve as the primary filters for general industry segments.
+
+    Filter using the `superCategories` variable:
+
+    ```
+    GET /api/v1/deals?superCategories=messaging-and-telecommunications,sports-8f4d
+    ```
+  </Card>
+
+  <Card title="Sub-categories">
+    Industries offer a more granular filtering. Each Super Category contains 5-25 sub-categories.
+
+    Filter using the `industries` variable:
+
+    ```
+    GET /api/v1/deals?industries=artificial-intelligence,fintech-e067
+    ```
+  </Card>
+</Cards>
+
+Note: a sub-category can appear in multiple Super Categories (e.g.,cryptocurrency appears under Financial Services and Blockchain and Cryptocurrency)
+
+### How to know which one to use?
+
+For 90% of use-cases Super Categories will do the job, however there are some exceptions. For example, if you wanted only deals related to TradFi (within the Financial Services super-category)  you are better off selecting a list of sub-categories that match your specific use case.
+
+## Important Note on Permalinks
+
+To filter by industry in your API calls, always use the exact permalink shown in the documentation (e.g., `artificial-intelligence-e551`). Note that some industries may have similar names but different permalinks (indicated by suffix codes). Using the precise permalink to ensure accurate filtering.
