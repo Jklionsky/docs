@@ -16,8 +16,8 @@ info:
     - `permalink` - Permalink format (e.g., "?permalink=acme-corporation")
     - `domain` - Domain (e.g., "?domain=stripe.com")
     - `url` - Full URL (e.g., "?url=https://stripe.com")
-    - `linkedin` - LinkedIn URL (e.g., "?linkedin=https://www.linkedin.com/company/stripe")
-    - `crunchbase` - Crunchbase URL (e.g., "?crunchbase=https://www.crunchbase.com/organization/stripe")
+    - `linkedin` - LinkedIn company slug (e.g., "?linkedin=stripe")
+    - `crunchbase` - Crunchbase organization slug (e.g., "?crunchbase=stripe")
 
     ## Parameter Validation (for /companies endpoint)
     The /companies endpoint enforces strict parameter validation:
@@ -91,20 +91,18 @@ paths:
           example: "stripe.com"
         - name: linkedin
           in: query
-          description: LinkedIn company URL
+          description: LinkedIn company slug (e.g., "stripe" from linkedin.com/company/stripe)
           required: false
           schema:
             type: string
-            format: uri
-          example: "https://www.linkedin.com/company/stripe"
+          example: "stripe"
         - name: crunchbase
           in: query
-          description: Crunchbase organization URL
+          description: Crunchbase organization slug (e.g., "stripe" from crunchbase.com/organization/stripe)
           required: false
           schema:
             type: string
-            format: uri
-          example: "https://www.crunchbase.com/organization/stripe"
+          example: "stripe"
         - name: url
           in: query
           description: Full website URL
@@ -183,7 +181,10 @@ paths:
                                 example: "/api/v1/company?url=https://stripe.com"
                               byLinkedIn:
                                 type: string
-                                example: "/api/v1/company?linkedin=https://www.linkedin.com/company/stripe"
+                                example: "/api/v1/company?linkedin=stripe"
+                              byCrunchbase:
+                                type: string
+                                example: "/api/v1/company?crunchbase=stripe"
                               byPermalink:
                                 type: string
                                 example: "/api/v1/company?permalink=stripe"
@@ -223,54 +224,17 @@ paths:
 
   /company/search:
     get:
-      summary: Search companies by name, domain, LinkedIn, or Crunchbase
-      description: Search for companies using name, domain, LinkedIn URL, or Crunchbase URL with fuzzy matching and relevance scoring
+      summary: Search companies by name
+      description: Search for companies by name with fuzzy matching and relevance scoring
       operationId: searchCompanies
       parameters:
         - name: q
           in: query
-          description: General search query (searches across name and domain)
-          required: false
+          description: Search query (searches across company name and domain)
+          required: true
           schema:
             type: string
-            example: "acme"
-        - name: query
-          in: query
-          description: Alias for 'q' parameter
-          required: false
-          schema:
-            type: string
-            example: "acme"
-        - name: name
-          in: query
-          description: Search specifically by company name
-          required: false
-          schema:
-            type: string
-            example: "Acme Corporation"
-        - name: domain
-          in: query
-          description: Search specifically by company domain
-          required: false
-          schema:
-            type: string
-            example: "acme.com"
-        - name: linkedin
-          in: query
-          description: Search by LinkedIn company URL. The slug will be extracted and used as the search term.
-          required: false
-          schema:
-            type: string
-            format: uri
-            example: "https://www.linkedin.com/company/stripe"
-        - name: crunchbase
-          in: query
-          description: Search by Crunchbase organization URL. The permalink will be extracted and used as the search term.
-          required: false
-          schema:
-            type: string
-            format: uri
-            example: "https://www.crunchbase.com/organization/stripe"
+          example: "stripe"
       responses:
         '200':
           description: Successful search results
@@ -325,13 +289,13 @@ paths:
                         example: "MISSING_SEARCH_PARAMS"
                       message:
                         type: string
-                        example: "At least one search parameter is required"
+                        example: "Search parameter q is required"
                       details:
                         type: object
                         properties:
                           help:
                             type: string
-                            example: "Provide one of: q, query, name, domain, linkedin, or crunchbase parameters"
+                            example: "Provide a q parameter, e.g. ?q=sequoia"
         '401':
           description: Authentication error
           content:
@@ -539,14 +503,14 @@ paths:
           required: false
           schema:
             type: string
-            example: "artificial-intelligence,fintech,healthcare"
+            example: "artificial-intelligence,fintech-e067,machine-learning"
         - name: superCategories
           in: query
           description: Filter by super category permalinks (comma-separated). Please refer to "Industry Filters Overview" for industry / supercategory permalinks.
           required: false
           schema:
             type: string
-            example: "technology,healthcare,financial-services"
+            example: "artificial-intelligence-e551,health-care-a53c,financial-services-d7b6"
         - name: locations
           in: query
           description: Filter by location permalinks (comma-separated). Supports all location types including cities, states, regions, and countries. Please refer to /location/search endpoint to identify location permalinks.
@@ -587,12 +551,23 @@ paths:
           description: |
             Filter by LinkedIn company slugs (comma-separated, max 100).
             Use just the slug, not the full URL (e.g., "stripe" not "https://linkedin.com/company/stripe").
-            Can be combined with other filters. If both `domains` and `linkedins` are provided,
-            companies matching either will be included.
+            Can be combined with other filters. If `domains`, `linkedins`, or `crunchbases` are provided,
+            companies matching any will be included.
           required: false
           schema:
             type: string
             example: "stripe,airbnb,notion-so"
+        - name: crunchbases
+          in: query
+          description: |
+            Filter by Crunchbase organization slugs (comma-separated, max 100).
+            Use just the slug, not the full URL (e.g., "stripe" not "https://crunchbase.com/organization/stripe").
+            Can be combined with other filters. If `domains`, `linkedins`, or `crunchbases` are provided,
+            companies matching any will be included.
+          required: false
+          schema:
+            type: string
+            example: "stripe,airbnb,notion"
 
       responses:
         '200':

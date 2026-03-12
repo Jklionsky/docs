@@ -16,6 +16,11 @@ info:
     - States/Provinces (e.g., "California")
     - Countries (e.g., "United States")
     - Regions (e.g., "San Francisco Bay Area")
+
+    ## Industry Search
+    The industry search API supports fuzzy matching across:
+    - Industries (e.g., "Artificial Intelligence")
+    - Super Categories (e.g., "Health Care")
     
   version: 1.0.0
   contact:
@@ -28,6 +33,8 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
 
 security:
   - bearerAuth: []
@@ -156,52 +163,216 @@ paths:
                           help:
                             type: string
                             example: "Provide one of: q, query, name, or domain parameters"
-                examples:
-                  missing_params:
-                    value:
-                      success: false
-                      error:
-                        code: "MISSING_SEARCH_PARAMS"
-                        message: "At least one search parameter is required"
-                        details:
-                          help: "Provide one of: q, query, name, or domain parameters"
-                      statusCode: 400
-                  multiple_params:
-                    value:
-                      success: false
-                      error:
-                        code: "MULTIPLE_SEARCH_PARAMS"
-                        message: "Only one search parameter is allowed at a time"
-                        details:
-                          help: "You provided: q, query. Please use only one of: q, query, name, or domain parameters"
-                      statusCode: 400
-                  empty_term:
-                    value:
-                      success: false
-                      error:
-                        code: "EMPTY_SEARCH_TERM"
-                        message: "Search term cannot be empty"
-                        details:
-                          help: "Search term cannot be empty or whitespace only"
-                      statusCode: 400
-                  invalid_location_type:
-                    value:
-                      success: false
-                      error:
-                        code: "INVALID_LOCATION_TYPE"
-                        message: "Invalid location type. Must be one of: CITY, STATE, REGION, COUNTRY"
-                        details:
-                          help: "Provided type: 'INVALID'. Valid types are: CITY, STATE, REGION, COUNTRY"
-                      statusCode: 400
-                  multiple_location_type_params:
-                    value:
-                      success: false
-                      error:
-                        code: "MULTIPLE_LOCATION_TYPE_PARAMS"
-                        message: "Cannot specify both type and location_type parameters"
-                        details:
-                          help: "Use either type or location_type parameter, not both"
-                      statusCode: 400
+              examples:
+                missing_params:
+                  value:
+                    success: false
+                    error:
+                      code: "MISSING_SEARCH_PARAMS"
+                      message: "At least one search parameter is required"
+                      details:
+                        help: "Provide one of: q, query, name, or domain parameters"
+                    statusCode: 400
+                multiple_params:
+                  value:
+                    success: false
+                    error:
+                      code: "MULTIPLE_SEARCH_PARAMS"
+                      message: "Only one search parameter is allowed at a time"
+                      details:
+                        help: "You provided: q, query. Please use only one of: q, query, name, or domain parameters"
+                    statusCode: 400
+                empty_term:
+                  value:
+                    success: false
+                    error:
+                      code: "EMPTY_SEARCH_TERM"
+                      message: "Search term cannot be empty"
+                      details:
+                        help: "Search term cannot be empty or whitespace only"
+                    statusCode: 400
+                invalid_location_type:
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_LOCATION_TYPE"
+                      message: "Invalid location type. Must be one of: CITY, STATE, REGION, COUNTRY"
+                      details:
+                        help: "Provided type: 'INVALID'. Valid types are: CITY, STATE, REGION, COUNTRY"
+                    statusCode: 400
+                multiple_location_type_params:
+                  value:
+                    success: false
+                    error:
+                      code: "MULTIPLE_LOCATION_TYPE_PARAMS"
+                      message: "Cannot specify both type and location_type parameters"
+                      details:
+                        help: "Use either type or location_type parameter, not both"
+                    statusCode: 400
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+  /industry/search:
+    get:
+      summary: Search industries and super categories by name
+      description: |
+        Search for industries and super categories by name with fuzzy matching.
+        Optionally filter results by specific type using the 'type' or 'industry_type' parameter.
+      operationId: searchIndustries
+      parameters:
+        - name: q
+          in: query
+          description: General search query for industry name
+          required: false
+          schema:
+            type: string
+            example: "artificial intelligence"
+        - name: query
+          in: query
+          description: Alias for 'q' parameter
+          required: false
+          schema:
+            type: string
+            example: "artificial intelligence"
+        - name: type
+          in: query
+          description: Filter by specific industry type
+          required: false
+          schema:
+            type: string
+            enum: ['INDUSTRY', 'SUPER_CATEGORY']
+            example: "INDUSTRY"
+        - name: industry_type
+          in: query
+          description: Alias for 'type' parameter
+          required: false
+          schema:
+            type: string
+            enum: ['INDUSTRY', 'SUPER_CATEGORY']
+            example: "INDUSTRY"
+
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      industries:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/IndustrySearchResult'
+                      totalCount:
+                        type: integer
+                        description: Number of industries returned
+                        example: 3
+                required:
+                  - success
+                  - data
+              examples:
+                all_types:
+                  summary: Search without type filter
+                  description: Returns both industries and super categories matching the search term
+                  value:
+                    success: true
+                    data:
+                      industries:
+                        - permalink: "artificial-intelligence"
+                          name: "Artificial Intelligence"
+                          industry_type: "INDUSTRY"
+                        - permalink: "machine-learning"
+                          name: "Machine Learning"
+                          industry_type: "INDUSTRY"
+                      totalCount: 2
+                industries_only:
+                  summary: Search filtered by INDUSTRY type
+                  description: Returns only industries matching the search term
+                  value:
+                    success: true
+                    data:
+                      industries:
+                        - permalink: "fintech"
+                          name: "FinTech"
+                          industry_type: "INDUSTRY"
+                      totalCount: 1
+
+        '400':
+          description: Search parameter validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        enum: ['MISSING_SEARCH_PARAMS', 'MULTIPLE_SEARCH_PARAMS', 'EMPTY_SEARCH_TERM', 'INVALID_INDUSTRY_TYPE', 'MULTIPLE_INDUSTRY_TYPE_PARAMS']
+                        example: "MISSING_SEARCH_PARAMS"
+                      message:
+                        type: string
+                        example: "At least one search parameter is required"
+                      details:
+                        type: object
+                        properties:
+                          help:
+                            type: string
+                            example: "Provide one of: q, query, or name parameters"
+              examples:
+                missing_params:
+                  value:
+                    success: false
+                    error:
+                      code: "MISSING_SEARCH_PARAMS"
+                      message: "At least one search parameter is required"
+                      details:
+                        help: "Provide one of: q, query, or name parameters"
+                    statusCode: 400
+                invalid_industry_type:
+                  value:
+                    success: false
+                    error:
+                      code: "INVALID_INDUSTRY_TYPE"
+                      message: "Invalid industry type. Must be one of: INDUSTRY, SUPER_CATEGORY"
+                      details:
+                        help: "Provided type: 'INVALID'. Valid types are: INDUSTRY, SUPER_CATEGORY"
+                    statusCode: 400
+                multiple_industry_type_params:
+                  value:
+                    success: false
+                    error:
+                      code: "MULTIPLE_INDUSTRY_TYPE_PARAMS"
+                      message: "Cannot specify both type and industry_type parameters"
+                      details:
+                        help: "Use either type or industry_type parameter, not both"
+                    statusCode: 400
         '401':
           description: Authentication error
           content:
@@ -251,6 +422,23 @@ components:
           enum: ['REGION', 'COUNTRY', 'STATE', 'CITY']
           example: "CITY"
 
+    IndustrySearchResult:
+      type: object
+      properties:
+        permalink:
+          type: string
+          description: Industry or super category permalink identifier
+          example: "artificial-intelligence"
+        name:
+          type: string
+          description: Industry or super category name
+          example: "Artificial Intelligence"
+        industry_type:
+          type: string
+          description: Type of result
+          enum: ['INDUSTRY', 'SUPER_CATEGORY']
+          example: "INDUSTRY"
+
     AuthError:
       type: object
       properties:
@@ -281,7 +469,7 @@ components:
                       example: "Authorization: Bearer vg_your_api_key_here"
                     curl:
                       type: string
-                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' https://tryfundable.ai/api/v1/location/search?q=san+francisco"
+                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' http://localhost:8082/api/v1/location/search?q=san+francisco"
                 documentation:
                   type: string
                   example: "Visit our documentation for more information about authentication"
@@ -340,3 +528,5 @@ components:
 tags:
   - name: locations
     description: Location search and utility operations
+  - name: industries
+    description: Industry and super category search operations

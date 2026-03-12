@@ -39,17 +39,6 @@
               "authentication",
               "usage"
             ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/industry-filters",
-              "guides/industry-super-categories",
-              "guides/industries-business-tech",
-              "guides/industries-commerce-consumer",
-              "guides/industries-media-content",
-              "guides/industries-science-industry"
-            ]
           }
         ]
       },
@@ -97,6 +86,12 @@
             "pages": [
               "api-reference/alerts/list",
               "api-reference/alerts/configurations"
+            ]
+          },
+          {
+            "group": "Industries",
+            "pages": [
+              "api-reference/industries/search"
             ]
           },
           {

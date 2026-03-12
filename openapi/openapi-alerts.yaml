@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Deal Alerts 
+  title: Deal Alerts
   description: |
     API for accessing saved alert data with simplified deal structures.
     
@@ -67,6 +67,8 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
 
 security:
   - bearerAuth: []
@@ -188,12 +190,17 @@ paths:
                             - id: "deal1"
                               company_id: "comp1"
                               company_name: "Acme AI Corp"
+                              company_guru_permalink: "acme-ai-corp"
                               round_type: "SERIES_A"
                               total_round_raised: 25
                               date: "2024-01-15T00:00:00.000Z"
                               company_website: "acme.com"
                               company_linkedin: "https://linkedin.com/company/acme"
-                              region: "North America"
+                              location:
+                                city: "San Francisco"
+                                state: "California"
+                                country: "United States"
+                                region: "North America"
                               deal_short_description: "Series A funding round"
                               deal_long_description: "Acme AI Corp raised $25M in Series A funding"
                               reasoning: "Matches AI startups criteria with focus on artificial intelligence"
@@ -204,12 +211,17 @@ paths:
                             - id: "deal3"
                               company_id: "comp3"
                               company_name: "ML Solutions Inc"
+                              company_guru_permalink: "ml-solutions-inc"
                               round_type: "SERIES_B"
                               total_round_raised: 40
                               date: "2024-01-10T00:00:00.000Z"
                               company_website: "mlsolutions.com"
                               company_linkedin: null
-                              region: "Europe"
+                              location:
+                                city: "London"
+                                state: null
+                                country: "United Kingdom"
+                                region: "Europe"
                               deal_short_description: "Series B funding"
                               deal_long_description: "ML Solutions raised $40M in Series B"
                               reasoning: "Machine learning focus aligns with your alert criteria"
@@ -222,12 +234,17 @@ paths:
                             - id: "deal2"
                               company_id: "comp2"
                               company_name: "HealthTech Startup"
+                              company_guru_permalink: "healthtech-startup"
                               round_type: "SEED"
                               total_round_raised: 5
                               date: "2024-01-10T00:00:00.000Z"
                               company_website: "healthtech.io"
                               company_linkedin: "https://linkedin.com/company/healthtech"
-                              region: "North America"
+                              location:
+                                city: "Boston"
+                                state: "Massachusetts"
+                                country: "United States"
+                                region: "North America"
                               deal_short_description: "Seed funding round"
                               deal_long_description: "HealthTech Startup raised $5M in seed funding"
                               reasoning: "Healthcare focus matches your seed round criteria"
@@ -733,6 +750,11 @@ components:
           nullable: true
           description: Company name
           example: "Acme AI Corp"
+        company_guru_permalink:
+          type: string
+          nullable: true
+          description: Fundable permalink for the company
+          example: "acme-ai-corp"
         round_type:
           type: string
           nullable: true
@@ -759,11 +781,30 @@ components:
           nullable: true
           description: Company LinkedIn URL
           example: "https://linkedin.com/company/acme"
-        region:
-          type: string
-          nullable: true
-          description: Geographic region name
-          example: "North America"
+        location:
+          type: object
+          description: Company location details
+          properties:
+            city:
+              type: string
+              nullable: true
+              description: City name
+              example: "San Francisco"
+            state:
+              type: string
+              nullable: true
+              description: State/province name
+              example: "California"
+            country:
+              type: string
+              nullable: true
+              description: Country name
+              example: "United States"
+            region:
+              type: string
+              nullable: true
+              description: Geographic region name
+              example: "North America"
         deal_short_description:
           type: string
           nullable: true
@@ -803,12 +844,13 @@ components:
         - id
         - company_id
         - company_name
+        - company_guru_permalink
         - round_type
         - date
         - total_round_raised
         - company_website
         - company_linkedin
-        - region
+        - location
         - deal_short_description
         - deal_long_description
         - reasoning
@@ -817,12 +859,17 @@ components:
         id: "550e8400-e29b-41d4-a716-446655440000"
         company_id: "abc123"
         company_name: "Acme AI Corp"
+        company_guru_permalink: "acme-ai-corp"
         round_type: "SERIES_A"
         date: "2024-01-15T00:00:00.000Z"
         total_round_raised: 25
         company_website: "acme.com"
         company_linkedin: "https://linkedin.com/company/acme"
-        region: "North America"
+        location:
+          city: "San Francisco"
+          state: "California"
+          country: "United States"
+          region: "North America"
         deal_short_description: "Series A funding round"
         deal_long_description: "Company raised $25M in Series A funding led by Acme Ventures"
         reasoning: "This deal matches your AI startups criteria with focus on machine learning and enterprise software"

@@ -52,6 +52,8 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
 
 security:
   - bearerAuth: []
@@ -161,14 +163,14 @@ paths:
           required: false
           schema:
             type: string
-            example: "artificial-intelligence,fintech,healthcare"
+            example: "artificial-intelligence,fintech-e067,machine-learning"
         - name: superCategories
           in: query
           description: Filter by super category permalinks (comma-separated). Please refer to "Industry Filters Overview" for industry / supercategory permalinks.
           required: false
           schema:
             type: string
-            example: "technology,healthcare,financial-services"
+            example: "artificial-intelligence-e551,health-care-a53c,financial-services-d7b6"
         - name: locations
           in: query
           description: Filter by location permalinks (comma-separated). Supports all location types including cities, states, regions, and countries. Please refer to /location/search endpoint to identify location permalinks.
