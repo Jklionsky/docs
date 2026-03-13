@@ -3,45 +3,35 @@ info:
   title: Fundable Deals API
   description: |
     API for accessing venture capital deals data with advanced filtering capabilities.
-    
+
     ## Authentication
     All API requests require authentication using an API key in the Authorization header.
-    
+
     ## Rate Limits
     API usage is tracked and may be subject to monthly limits depending on your API key tier.
-    
+
+    ## Request Body Structure
+    Send a JSON body with up to 4 filter sections plus pagination/sort at the top level:
+    - `identifiers` - Look up specific deals by UUID
+    - `deal` - Filter by deal attributes (financing type, size, date, extension/pre flags)
+    - `company` - Filter by company attributes (location, industry, size, IPO status)
+    - `investors` - Filter by investor participation
+
     ## Parameter Validation
     This API enforces strict parameter validation:
-    - **Unknown Parameters**: Any parameter not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
-    - **Whitelisted Parameters Only**: Only these parameters are allowed: page, pageSize, sortBy, dealSizeMin, dealSizeMax, dealStartDate, dealEndDate, financingTypes, industries, locations, employeeCount, superCategories, ipoStatus, investorIds, companyIds, companyFoundedStart, companyFoundedEnd, domains, linkedins
-    - **Enum Values**: Parameters like `financingTypes`, `sortBy`, `employeeCount`, and `ipoStatus` only accept exact enum values
+    - **Unknown Fields**: Any field not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
+    - **Enum Values**: Parameters like `financing_types`, `sort_by`, `employee_count`, and `ipo_status` only accept exact enum values
     - **Data Types**: Numeric parameters must be valid numbers, dates must be valid ISO 8601 format
-    - **Array Parameters**: Cannot be empty strings; use comma-separated values or omit entirely
-    - **Business Rules**: Date ranges cannot exceed 10 years, deal sizes cannot exceed $100B, pagination cannot exceed 50,000 total items
-    
-    ## Parameter Format
-    Most filter parameters use comma-separated values for multiple selections:
-    - `financingTypes=SERIES_A,SEED,SERIES_B`
-    - `industries=artificial-intelligence,fintech,healthcare`
-    - `locations=san-francisco,california,north-america` (supports cities, states, regions, countries)
-    
+    - **Array Parameters**: Cannot be empty arrays; provide values or omit entirely
+
     ## Validation Errors
     Invalid parameters return detailed error responses with:
-    - Specific error codes (e.g., `INVALID_ROUND_TYPE`, `UNKNOWN_PARAMETER`)
+    - Specific error codes (e.g., `INVALID_FINANCING_TYPE`, `UNKNOWN_PARAMETER`)
     - Clear error messages explaining what's wrong
     - Valid options for enum parameters
     - Help text and documentation links
-    
-    ## Filtering
-    The API supports complex filtering across multiple dimensions including:
-    - Financing types and rounds (strict enum validation)
-    - Company attributes (size, location, industry, IPO status)  
-    - Deal characteristics (size ranges, date ranges)
-    - Investor participation
-    - Geographic filtering by locations (cities, states, regions, countries)
-    - Industry and super-category filtering
-    
-  version: 1.0.0
+
+  version: 2.0.0
   contact:
     name: Fundable API Support
     url: jacob@tryfundable.ai
@@ -60,183 +50,181 @@ security:
 
 paths:
   /deals:
-    get:
+    post:
       summary: Search and filter funding rounds by company, investor, and round details
-      description: Retrieve venture capital deals with optional filtering, pagination, and sorting
-      operationId: getDeals
-      parameters:
-        # Pagination
-        - name: page
-          in: query
-          description: Page number (0-based)
-          required: false
-          schema:
-            type: integer
-            minimum: 0
-            default: 0
-        - name: pageSize
-          in: query
-          description: Number of results per page
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-        - name: sortBy
-          in: query
-          description: Sort order for results
-          required: false
-          schema:
-            type: string
-            enum: ['Most Recent', 'Largest Raise', 'Smallest Raise', 'Oldest']
-            default: 'Most Recent'
-            
-        # Date filters
-        - name: dealStartDate
-          in: query
-          description: Filter deals after this date (ISO 8601 format)
-          required: false
-          schema:
-            type: string
-            format: date-time
-            example: "2024-01-01T00:00:00Z"
-        - name: dealEndDate
-          in: query
-          description: Filter deals before this date (ISO 8601 format)
-          required: false
-          schema:
-            type: string
-            format: date-time
-            example: "2024-12-31T23:59:59Z"
-        - name: companyFoundedStart
-          in: query
-          description: Filter companies founded after this date (ISO 8601 format)
-          required: false
-          schema:
-            type: string
-            format: date-time
-        - name: companyFoundedEnd
-          in: query
-          description: Filter companies founded before this date (ISO 8601 format)
-          required: false
-          schema:
-            type: string
-            format: date-time
+      description: |
+        Retrieve venture capital deals with advanced filtering, pagination, and sorting.
 
-            
-        # Company filters
-        - name: companyIds
-          in: query
-          description: Filter by specific company IDs (comma-separated)
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              format: uuid
-            example: ["97ae048e-77bc-471b-821a-f9decb373689", "9058e182-75e5-4f11-ae9f-06291de8aaff"]
-        - name: domains
-          in: query
-          description: |
-            Filter deals by company domains (comma-separated, max 100).
-            Can be combined with other filters. If both `domains` and `linkedins` are provided,
-            deals from companies matching either will be included.
-          required: false
-          schema:
-            type: string
-            example: "stripe.com,airbnb.com,notion.so"
-        - name: linkedins
-          in: query
-          description: |
-            Filter deals by LinkedIn company slugs (comma-separated, max 100).
-            Use just the slug, not the full URL (e.g., "stripe" not "https://linkedin.com/company/stripe").
-            Can be combined with other filters. If both `domains` and `linkedins` are provided,
-            deals from companies matching either will be included.
-          required: false
-          schema:
-            type: string
-            example: "stripe,airbnb,notion-so"
-        - name: industries
-          in: query
-          description: Filter by industry permalinks (comma-separated). Please refer to "Industry Filters Overview" for industry / supercategory permalinks.
-          required: false
-          schema:
-            type: string
-            example: "artificial-intelligence,fintech-e067,machine-learning"
-        - name: superCategories
-          in: query
-          description: Filter by super category permalinks (comma-separated). Please refer to "Industry Filters Overview" for industry / supercategory permalinks.
-          required: false
-          schema:
-            type: string
-            example: "artificial-intelligence-e551,health-care-a53c,financial-services-d7b6"
-        - name: locations
-          in: query
-          description: Filter by location permalinks (comma-separated). Supports all location types including cities, states, regions, and countries. Please refer to /location/search endpoint to identify location permalinks.
-          required: false
-          schema:
-            type: string
-            example: "san-francisco,california,north-america,united-states"
-        - name: employeeCount
-          in: query
-          description: |
-            Filter by company size ranges (comma-separated).
-            Valid values: 1-10, 11-50, 51-100, 101-250, 251-500, 501-1000, 1001-5000, 5001-10000, 10001+
-          required: false
-          schema:
-            type: string
-            example: "1-10,11-50,51-100"
-        - name: ipoStatus
-          in: query
-          description: |
-            Filter by IPO status (comma-separated).
-            Valid values: public, private
-          required: false
-          schema:
-            type: string
-            example: "public,private"
-            
-        # Deal filters  
-        - name: financingTypes
-          in: query
-          description: |
-            Filter by financing types (comma-separated).
-            Only exact enum values are accepted. Invalid values will result in validation errors.
-            Valid values include: SERIES_A, SERIES_B, SERIES_C, SERIES_D, SERIES_E, SERIES_F, SERIES_G, SERIES_H, SERIES_I, SERIES_J, SERIES_K, SERIES_M, SEED, SAFE, CONVERTIBLE_NOTE, EQUITY, PREFERRED, SECONDARY_MARKET, DEBT_FINANCING, GRANT, NON_EQUITY_ASSISTANCE, CROWDFUNDING, INITIAL_COIN_OFFERING, FUNDING_ROUND, HYBRID, HYBRID_SEED, HYBRID_SERIES_A, HYBRID_SERIES_B, HYBRID_SERIES_C, HYBRID_SERIES_D, HYBRID_SERIES_E, HYBRID_SERIES_F, HYBRID_SERIES_G, HYBRID_SERIES_H, HYBRID_SERIES_I, HYBRID_SERIES_J, HYBRID_SERIES_K, HYBRID_SERIES_M
-          required: false
-          schema:
-            type: string
-            example: "SERIES_A,SEED,SERIES_B"
-        - name: dealSizeMax
-          in: query
-          description: Maximum deal size filter (USD $M)
-          required: false
-          schema:
-            type: number
-            minimum: 0
-            example: 5
-        - name: dealSizeMin
-          in: query
-          description: Minimum deal size filter (USD $M)
-          required: false
-          schema:
-            type: number
-            minimum: 0
-            example: 100
-            
-        # Investor filters
-        - name: investorIds
-          in: query
-          description: Filter by specific investor IDs (comma-separated)
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              format: uuid
-            example: ["c5a3f6ac-f6c9-4686-aa6e-12aeb7419b82", "c6bc63af-cb37-453d-9c20-35f56fb87ee9"]
-            
+        ## Request Body Structure
+        Send a JSON body with up to 4 filter sections plus pagination/sort at the top level:
+        - `identifiers` - Look up specific deals by UUID
+        - `deal` - Filter by deal attributes (financing type, size, date)
+        - `company` - Filter by company attributes (location, industry, size)
+        - `investors` - Filter by investor participation
+      operationId: searchDeals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                identifiers:
+                  type: object
+                  description: Look up specific deals by identifier
+                  properties:
+                    deal_ids:
+                      type: array
+                      description: Deal UUIDs
+                      items:
+                        type: string
+                        format: uuid
+                      example: ["550e8400-e29b-41d4-a716-446655440000"]
+                deal:
+                  type: object
+                  description: Deal attribute filters
+                  properties:
+                    financing_types:
+                      type: array
+                      description: Financing type enums
+                      items:
+                        type: string
+                        enum: [
+                          'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E', 'SERIES_F',
+                          'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_L',
+                          'SERIES_M', 'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED',
+                          'SECONDARY_MARKET', 'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE',
+                          'CROWDFUNDING', 'INITIAL_COIN_OFFERING', 'FUNDING_ROUND'
+                        ]
+                      example: ["SERIES_A", "SEED"]
+                    size_min:
+                      type: number
+                      minimum: 0
+                      description: Minimum deal size (USD $M)
+                      example: 1
+                    size_max:
+                      type: number
+                      minimum: 0
+                      description: Maximum deal size (USD $M)
+                      example: 100
+                    date_start:
+                      type: string
+                      format: date
+                      description: Filter deals after this date (ISO 8601)
+                      example: "2024-01-01"
+                    date_end:
+                      type: string
+                      format: date
+                      description: Filter deals before this date (ISO 8601)
+                      example: "2024-12-31"
+                    extension:
+                      type: boolean
+                      description: Filter for extension rounds only
+                      example: false
+                    pre:
+                      type: boolean
+                      description: Filter for pre-rounds only (e.g., Pre-Series A)
+                      example: false
+                company:
+                  type: object
+                  description: Company attribute filters
+                  properties:
+                    locations:
+                      type: array
+                      description: Location permalinks. Use /location/search to find permalinks.
+                      items:
+                        type: string
+                      example: ["san-francisco", "california"]
+                    industries:
+                      type: array
+                      description: Industry permalinks
+                      items:
+                        type: string
+                      example: ["artificial-intelligence", "fintech-e067"]
+                    super_categories:
+                      type: array
+                      description: Super category permalinks (automatically includes related industries)
+                      items:
+                        type: string
+                      example: ["artificial-intelligence-e551"]
+                    employee_count:
+                      type: array
+                      description: "Employee count ranges. Valid: 1-10, 11-50, 51-100, 101-250, 251-500, 501-1000, 1001-5000, 5001-10000, 10001+"
+                      items:
+                        type: string
+                        enum: ['1-10', '11-50', '51-100', '101-250', '251-500', '501-1000', '1001-5000', '5001-10000', '10001+']
+                      example: ["1-10", "11-50"]
+                    total_raised_min:
+                      type: number
+                      minimum: 0
+                      description: Minimum total raised (USD $M)
+                      example: 10
+                    total_raised_max:
+                      type: number
+                      minimum: 0
+                      description: Maximum total raised (USD $M)
+                      example: 500
+                    ipo_status:
+                      type: array
+                      description: "IPO status filter. Valid: public, private"
+                      items:
+                        type: string
+                        enum: ['public', 'private']
+                      example: ["private"]
+                investors:
+                  type: object
+                  description: Filter by investor participation
+                  properties:
+                    investor_ids:
+                      type: array
+                      description: Investor UUIDs
+                      items:
+                        type: string
+                        format: uuid
+                      example: ["c5a3f6ac-f6c9-4686-aa6e-12aeb7419b82"]
+                page:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  description: Page number (0-based)
+                page_size:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 10
+                  description: Number of results per page
+                sort_by:
+                  type: string
+                  enum:
+                    - 'most_recent_deal'
+                    - 'oldest_deal'
+                    - 'largest_raise'
+                    - 'smallest_raise'
+                  default: 'most_recent_deal'
+                  description: Sort order for results
+            examples:
+              filter_by_financing:
+                summary: Filter by financing type
+                value:
+                  deal:
+                    financing_types: ["SERIES_A", "SERIES_B"]
+                  page_size: 10
+              filter_by_company:
+                summary: Filter by company attributes
+                value:
+                  company:
+                    industries: ["artificial-intelligence"]
+                    ipo_status: ["private"]
+                  deal:
+                    size_min: 5
+                    size_max: 100
+                  page_size: 10
+              lookup_by_ids:
+                summary: Look up specific deals
+                value:
+                  identifiers:
+                    deal_ids: ["550e8400-e29b-41d4-a716-446655440000"]
+
       responses:
         '200':
           description: Successful response with deals data
@@ -255,20 +243,20 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Deal'
-                      totalCount:
-                        type: integer
-                        description: Total number of deals matching the filter criteria
-                        example: 1547
                   meta:
                     type: object
                     properties:
+                      total_count:
+                        type: integer
+                        description: Total number of deals matching the filter criteria
+                        example: 1547
                       limit:
                         type: integer
-                        description: Number of results per page (pageSize parameter)
+                        description: Number of results per page (page_size parameter)
                         example: 10
                       offset:
                         type: integer
-                        description: Number of results skipped (page * pageSize)
+                        description: Number of results skipped (page * page_size)
                         example: 0
                       remaining_requests:
                         type: integer
@@ -280,7 +268,7 @@ paths:
                   - data
                   - meta
         '400':
-          description: Bad Request - Invalid parameter types
+          description: Bad Request - Invalid parameter types or malformed JSON
           content:
             application/json:
               schema:
@@ -399,7 +387,7 @@ paths:
                                 type: array
                                 items:
                                   type: string
-                                example: ["page", "sortBy"]
+                                example: ["page", "sort_by"]
                               help:
                                 type: string
                                 example: "This endpoint only accepts a deal ID in the path. Remove all query parameters."
@@ -459,6 +447,85 @@ paths:
               schema:
                 $ref: '#/components/schemas/ServerError'
 
+  /deals/{id}/investors:
+    get:
+      summary: Get investors for a specific deal
+      description: Retrieve detailed investor information for a single deal, including lead status, personnel, and investor profile links.
+      operationId: getDealInvestors
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier for the deal (UUID format)
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Successful response with deal investors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      investors:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DealInvestor'
+                required:
+                  - success
+                  - data
+        '400':
+          description: Bad Request - Invalid deal ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '404':
+          description: Deal not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        example: "DEAL_NOT_FOUND"
+                      message:
+                        type: string
+                        example: "Deal not found"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -468,9 +535,9 @@ components:
       description: |
         API key authentication using Bearer token format.
         Format: `Authorization: Bearer vg_your_api_key_here`
-        
+
         API keys follow the pattern: `vg_[12_hex_chars]_[32_base64url_chars]`
-        
+
   schemas:
     Deal:
       type: object
@@ -486,13 +553,10 @@ components:
           description: Type of funding round
           enum: [
             'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E', 'SERIES_F',
-            'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_M',
-            'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED', 'SECONDARY_MARKET',
-            'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE', 'CROWDFUNDING',
-            'INITIAL_COIN_OFFERING', 'FUNDING_ROUND', 'HYBRID', 'HYBRID_SEED',
-            'HYBRID_SERIES_A', 'HYBRID_SERIES_B', 'HYBRID_SERIES_C', 'HYBRID_SERIES_D',
-            'HYBRID_SERIES_E', 'HYBRID_SERIES_F', 'HYBRID_SERIES_G', 'HYBRID_SERIES_H',
-            'HYBRID_SERIES_I', 'HYBRID_SERIES_J', 'HYBRID_SERIES_K', 'HYBRID_SERIES_M'
+            'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_L',
+            'SERIES_M', 'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED',
+            'SECONDARY_MARKET', 'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE',
+            'CROWDFUNDING', 'INITIAL_COIN_OFFERING', 'FUNDING_ROUND'
           ]
           example: "SERIES_A"
         extension:
@@ -534,127 +598,32 @@ components:
               type: string
               nullable: true
               description: Detailed description of the deal
-        articles:
-          type: array
-          description: News articles related to this deal, including both primary and secondary sources
-          items:
-            type: object
-            properties:
-              link:
-                type: string
-                format: uri
-                description: URL to the article
-                example: "https://techcrunch.com/2024/01/15/acme-corp-raises-25m"
-              is_primary:
-                type: boolean
-                description: |
-                  Whether this article is from the primary deal record (true). Non-primary articles are from the same deal, but from a different source.
-                  Non-primary articles might have information that is not present / different from the primary article.
-                example: true
-              publishedDate:
-                type: string
-                format: date-time
-                nullable: true
-                description: Date when the article was published
-                example: "2024-01-14T18:30:00Z"
-            required:
-              - link
-              - is_primary
-        company:
-          $ref: '#/components/schemas/Company'
-        deal_investors:
-          type: array
-          description: Investors participating in this deal
-          items:
-            $ref: '#/components/schemas/DealInvestor'
-        financings:
-          type: array
-          description: Detailed financing information for deals that have multiple financing types (e.g. Hybrid)
-          items:
-            $ref: '#/components/schemas/Financing'
-        valuations:
-          type: array
-          description: Valuation information for this deal
-          items:
-            $ref: '#/components/schemas/Valuation'
-      required:
-        - id
-        - articles
-        - deal_investors
-        - financings
-        - valuations
-
-    Company:
-      type: object
-      properties:
-        id:
+        company_id:
           type: string
+          format: uuid
           description: Unique identifier for the company
           example: "550e8400-e29b-41d4-a716-446655440001"
-        name:
-          type: string
-          nullable: true
-          description: Company name
-          example: "Acme Corporation"
-        legal_name:
-          type: string
-          nullable: true
-          description: Legal name of the company
-          example: "Acme Corporation Inc."
-        guru_permalink:
-          type: string
-          nullable: true
-          description: Fundable permalink for the company
-          example: "acme-corporation"
-        domain:
-          type: string
-          nullable: true
-          description: Company website domain
-          example: "acme.com"
-        region:
-          type: string
-          nullable: true
-          description: Company region
-          example: "San Francisco Bay Area"
-        industries:
+        investor_ids:
           type: array
-          description: Industries the company operates in
+          description: UUIDs of investors participating in this deal
           items:
-            type: object
-            properties:
-              permalink:
-                type: string
-                description: Industry permalink
-                example: "artificial-intelligence"
-              name:
-                type: string
-                description: Industry name
-                example: "Artificial Intelligence"
-        location:
-          type: object
-          description: Company location hierarchy
-          properties:
-            region:
-              $ref: '#/components/schemas/LocationInfo'
-            country:
-              $ref: '#/components/schemas/LocationInfo'
-            state:
-              $ref: '#/components/schemas/LocationInfo'
-            city:
-              $ref: '#/components/schemas/LocationInfo'
-
-    LocationInfo:
-      type: object
-      nullable: true
-      properties:
-        name:
-          type: string
-          description: Location name
-          example: "San Francisco"
-        permalink:
-          type: string
-          description: Location permalink
-          example: "san-francisco"
+            type: string
+            format: uuid
+          example: ["c5a3f6ac-f6c9-4686-aa6e-12aeb7419b82"]
+        financings:
+          type: array
+          description: Detailed financing information for deals that have multiple financing types
+          items:
+            $ref: '#/components/schemas/Financing'
+        valuation:
+          nullable: true
+          description: Valuation information for this deal
+          $ref: '#/components/schemas/Valuation'
+      required:
+        - id
+        - company_id
+        - investor_ids
+        - financings
 
     DealInvestor:
       type: object
@@ -662,11 +631,12 @@ components:
         id:
           type: string
           format: uuid
-          description: Unique identifier for this investor participation
+          description: Unique identifier for the investor
+          example: "c5a3f6ac-f6c9-4686-aa6e-12aeb7419b82"
         name:
           type: string
           description: Investor name
-          example: "Acme Ventures"
+          example: "Sequoia Capital"
         lead_investor:
           type: boolean
           nullable: true
@@ -679,20 +649,37 @@ components:
           example: false
         personnel:
           type: array
-          description: Personnel associated with the investment
+          description: Key personnel involved in the deal
           items:
             type: string
+          example: ["John Smith"]
         financing_type:
           type: string
           nullable: true
-          description: Type of financing this investor provided
+          description: The financing type this investor participated in
+          example: "SERIES_A"
         is_debt_investor:
           type: boolean
           description: Whether this investor provided debt financing
+          example: false
+        domain:
+          type: string
+          nullable: true
+          description: Investor's website domain
+          example: "sequoiacap.com"
+        linkedin:
+          type: string
+          nullable: true
+          description: Investor's LinkedIn URL
+          example: "https://linkedin.com/company/sequoia-capital"
+        crunchbase:
+          type: string
+          nullable: true
+          description: Investor's Crunchbase URL
+          example: "https://crunchbase.com/organization/sequoia-capital"
       required:
         - id
         - name
-        - personnel
         - is_debt_investor
 
     Financing:
@@ -708,9 +695,9 @@ components:
           enum: [
             'SEED', 'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E',
             'SERIES_F', 'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K',
-            'SERIES_M', 'CONVERTIBLE_NOTE', 'CROWDFUNDING', 'DEBT_FINANCING', 'EQUITY',
-            'FUNDING_ROUND', 'GRANT', 'INITIAL_COIN_OFFERING', 'NON_EQUITY_ASSISTANCE',
-            'PREFERRED', 'SAFE', 'SECONDARY_MARKET'
+            'SERIES_L', 'SERIES_M', 'CONVERTIBLE_NOTE', 'CROWDFUNDING', 'DEBT_FINANCING',
+            'EQUITY', 'FUNDING_ROUND', 'GRANT', 'INITIAL_COIN_OFFERING',
+            'NON_EQUITY_ASSISTANCE', 'PREFERRED', 'SAFE', 'SECONDARY_MARKET'
           ]
           example: "SERIES_A"
         size_usd:
@@ -734,6 +721,7 @@ components:
 
     Valuation:
       type: object
+      nullable: true
       properties:
         valuation_currency:
           type: string
@@ -839,7 +827,7 @@ components:
                       field:
                         type: string
                         description: The parameter name that failed validation
-                        example: "financingTypes"
+                        example: "deal.financing_types"
                       value:
                         type: string
                         description: The invalid value provided
@@ -847,11 +835,11 @@ components:
                       message:
                         type: string
                         description: Human-readable error message
-                        example: "Invalid round type(s): series-a. Valid options are: SERIES_A, SERIES_B, SEED, ..."
+                        example: "Invalid financing type(s): series-a. Valid options are: SERIES_A, SERIES_B, SEED, ..."
                       code:
                         type: string
                         description: Machine-readable error code
-                        example: "INVALID_ROUND_TYPE"
+                        example: "INVALID_FINANCING_TYPE"
                       validOptions:
                         type: array
                         items:

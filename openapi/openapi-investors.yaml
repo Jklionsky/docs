@@ -16,38 +16,41 @@ info:
     - Permalink format (e.g., "acme-ventures")
     - Domain (e.g., "sequoiacap.com")
     - LinkedIn slug (e.g., "sequoia-capital")
+    - Crunchbase slug (e.g., "sequoia-capital")
 
-    The `/investor` endpoint supports flexible lookup via query parameters (id, permalink, domain, linkedin, url).
+    The `/investor` endpoint supports flexible lookup via query parameters (id, permalink, domain, linkedin, crunchbase, url).
 
     ## Investor List Endpoint (/investors)
-    The `/investors` endpoint supports two categories of filters:
+    The `/investors` endpoint accepts a POST request with a structured JSON body organized into three filter sections:
 
-    ### Investor Filters (filter on the investor entity itself)
-    - `investorLocations` — Investor HQ location (permalinks)
-    - `investorEmployeeCount` — Investor firm employee count ranges
-    - `investorDomains` — Batch lookup by investor domain (max 100)
-    - `investorLinkedins` — Batch lookup by investor LinkedIn slug (max 100)
-    - `investorIds` — Filter by specific investor UUIDs
+    ### `identifiers` — Investor lookup filters
+    - `ids` — Investor UUIDs
+    - `domains` — Investor domains (max 100)
+    - `linkedin_urls` — Investor LinkedIn slugs or URLs (max 100)
+    - `crunchbase_urls` — Investor Crunchbase slugs or URLs (max 100)
 
-    ### Portfolio Filters (filter by who they've invested in)
-    - `industries`, `superCategories`, `locations` — Portfolio company attributes
-    - `employeeCount`, `ipoStatus` — Portfolio company characteristics
-    - `dealSizeMin`, `dealSizeMax`, `dealStartDate`, `dealEndDate` — Deal characteristics
-    - `financingTypes` — Deal round types
-    - `companyIds`, `domains`, `companyLinkedins`, `companyCrunchbases` — Specific portfolio companies (max 100 for domains/companyLinkedins/companyCrunchbases)
-    - `companyFoundedStart`, `companyFoundedEnd` — Portfolio company founding date range
-    - `minMatchingDeals` — Minimum deals matching above criteria
-    - `onlyLeadDeals` — Only count deals where investor was lead
+    ### `investor` — Entity-level filters
+    - `locations` — Investor HQ location (permalinks)
+    - `employee_count` — Investor firm employee count ranges
 
-    When portfolio filters are active, each investor in the response includes `filtered_deal_count`, `filtered_lead_count`, and `matching_deal_ids` showing which deals matched.
+    ### `company_investments` — Portfolio filters
+    - `company_ids` — Specific portfolio companies (by UUID)
+    - `industries`, `super_categories`, `locations` — Portfolio company attributes
+    - `employee_count`, `ipo_status` — Portfolio company characteristics
+    - `total_raised_min`, `total_raised_max` — Portfolio company total raised range
+    - `financing_types`, `deal_size_min`, `deal_size_max`, `deal_start_date`, `deal_end_date` — Deal characteristics
+    - `only_lead_deals` — Only count deals where investor was lead
+    - `min_matching_deals` — Minimum deals matching above criteria
 
-    ## Parameter Validation
-    The /investors endpoint enforces strict parameter validation:
-    - **Unknown Parameters**: Any parameter not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
-    - **Enum Values**: Parameters like `financingTypes`, `sortBy`, `employeeCount`, `investorEmployeeCount`, and `ipoStatus` only accept exact enum values
-    - **Data Types**: Numeric parameters must be valid numbers, dates must be valid ISO 8601 format
-    - **Array Parameters**: Cannot be empty strings; use comma-separated values or omit entirely
-    - **Batch Limits**: `domains`, `companyLinkedins`, `companyCrunchbases`, `investorDomains`, `investorLinkedins`, `investorCrunchbases` are limited to 100 items each
+    When portfolio filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.
+
+    ## Request Validation
+    The /investors endpoint enforces strict validation on the JSON body:
+    - **Unknown Fields**: Any field not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
+    - **Enum Values**: Fields like `financing_types`, `sort_by`, `employee_count`, and `ipo_status` only accept exact enum values
+    - **Data Types**: Array fields must be arrays (not comma-separated strings), numeric fields must be numbers
+    - **Empty Arrays**: Cannot be empty — omit the field instead
+    - **Batch Limits**: Identifier batch lookups are limited to 100 items each
 
   version: 1.0.0
   contact:
@@ -68,303 +71,38 @@ security:
 
 paths:
   /investors:
-    get:
+    post:
       summary: List and filter investors
       description: |
         Retrieve a paginated list of investors with optional filtering.
 
-        Filters are split into two categories:
-        1. **Investor Filters** — filter on the investor entity itself (location, size, domain, etc.)
-        2. **Portfolio Filters** — filter by the companies they've invested in (industry, deal size, round type, etc.)
+        Send a JSON body with filters organized into three sections:
+        1. **identifiers** — lookup by investor ID, domain, LinkedIn, or Crunchbase
+        2. **investor** — filter on the investor entity itself (location, employee count)
+        3. **company_investments** — filter by portfolio (industries, deal characteristics, etc.)
 
-        When portfolio filters are active, each investor in the response includes `filtered_deal_count`, `filtered_lead_count`, and `matching_deal_ids`.
+        When company_investments filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.
 
-        All array parameters use comma-separated values.
+        All filter fields that accept multiple values use JSON arrays (not comma-separated strings).
       operationId: listInvestors
-      parameters:
-        # --- Pagination ---
-        - name: page
-          in: query
-          description: "Page number (0-based). Used with pageSize to calculate offset."
-          required: false
-          schema:
-            type: integer
-            minimum: 0
-            default: 0
-          example: 0
-        - name: pageSize
-          in: query
-          description: "Number of results per page. Maximum 100."
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-          example: 25
-        - name: sortBy
-          in: query
-          description: |
-            Sort order for results. Default: "Most Recent Deal".
-
-            - **Most Recent Deal** — Date of most recent investment (newest first)
-            - **Recent Deals** — Number of deals in last 12 months (highest first)
-            - **Deals Led LTM** — Number of lead deals in last 12 months (highest first)
-            - **Total Deals** — Total all-time deal count (highest first)
-            - **Matching Deals** — Number of deals matching portfolio filters (highest first). Only meaningful when portfolio filters are active; without them, equivalent to Total Deals.
-          required: false
-          schema:
-            type: string
-            enum:
-              - Most Recent Deal
-              - Recent Deals
-              - Deals Led LTM
-              - Total Deals
-              - Matching Deals
-            default: Most Recent Deal
-          example: "Most Recent Deal"
-
-        # --- Investor Filters ---
-        - name: investorLocations
-          in: query
-          description: |
-            **Investor Filter.** Filter by investor HQ location permalinks (comma-separated).
-            Example: `investorLocations=san-francisco,new-york`
-          required: false
-          schema:
-            type: string
-          example: "san-francisco,new-york"
-        - name: investorEmployeeCount
-          in: query
-          description: |
-            **Investor Filter.** Filter by investor firm employee count ranges (comma-separated).
-          required: false
-          schema:
-            type: string
-            enum:
-              - "1-10"
-              - "11-50"
-              - "51-100"
-              - "101-250"
-              - "251-500"
-              - "501-1000"
-              - "1001-5000"
-              - "5001-10000"
-              - "10001+"
-          example: "11-50,51-100"
-        - name: investorDomains
-          in: query
-          description: |
-            **Investor Filter.** Batch lookup investors by domain (comma-separated, max 100).
-            Example: `investorDomains=sequoiacap.com,a16z.com`
-          required: false
-          schema:
-            type: string
-          example: "sequoiacap.com,a16z.com"
-        - name: investorLinkedins
-          in: query
-          description: |
-            **Investor Filter.** Batch lookup investors by LinkedIn slug (comma-separated, max 100).
-            Example: `investorLinkedins=sequoia-capital,andreessen-horowitz`
-          required: false
-          schema:
-            type: string
-          example: "sequoia-capital,andreessen-horowitz"
-        - name: investorCrunchbases
-          in: query
-          description: |
-            **Investor Filter.** Batch lookup investors by Crunchbase slug (comma-separated, max 100).
-            Example: `investorCrunchbases=sequoia-capital,andreessen-horowitz`
-          required: false
-          schema:
-            type: string
-          example: "sequoia-capital,andreessen-horowitz"
-        - name: investorIds
-          in: query
-          description: |
-            **Investor Filter.** Filter by specific investor UUIDs (comma-separated).
-          required: false
-          schema:
-            type: string
-          example: "550e8400-e29b-41d4-a716-446655440000"
-
-        # --- Portfolio Filters ---
-        - name: industries
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company industry permalinks (comma-separated).
-            Example: `industries=artificial-intelligence,machine-learning`
-          required: false
-          schema:
-            type: string
-          example: "artificial-intelligence"
-        - name: superCategories
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by broad industry super-categories (comma-separated).
-            Example: `superCategories=artificial-intelligence-e551,health-care-a53c`
-          required: false
-          schema:
-            type: string
-          example: "artificial-intelligence-e551,financial-services-d7b6"
-        - name: locations
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company location permalinks (comma-separated).
-          required: false
-          schema:
-            type: string
-          example: "san-francisco"
-        - name: employeeCount
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company employee count ranges (comma-separated).
-          required: false
-          schema:
-            type: string
-            enum:
-              - "1-10"
-              - "11-50"
-              - "51-100"
-              - "101-250"
-              - "251-500"
-              - "501-1000"
-              - "1001-5000"
-              - "5001-10000"
-              - "10001+"
-          example: "1-10,11-50"
-        - name: ipoStatus
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company IPO status (comma-separated).
-          required: false
-          schema:
-            type: string
-            enum:
-              - public
-              - private
-          example: "private"
-        - name: dealSizeMin
-          in: query
-          description: |
-            **Portfolio Filter.** Minimum deal size in USD.
-          required: false
-          schema:
-            type: number
-            minimum: 0
-          example: 1000000
-        - name: dealSizeMax
-          in: query
-          description: |
-            **Portfolio Filter.** Maximum deal size in USD.
-          required: false
-          schema:
-            type: number
-            minimum: 0
-          example: 50000000
-        - name: dealStartDate
-          in: query
-          description: |
-            **Portfolio Filter.** Filter deals on or after this date (ISO 8601).
-          required: false
-          schema:
-            type: string
-            format: date
-          example: "2023-01-01"
-        - name: dealEndDate
-          in: query
-          description: |
-            **Portfolio Filter.** Filter deals on or before this date (ISO 8601).
-          required: false
-          schema:
-            type: string
-            format: date
-          example: "2024-12-31"
-        - name: financingTypes
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by deal round types (comma-separated).
-            Valid values include: SERIES_A, SERIES_B, SERIES_C, SERIES_D, SEED, PRE_SEED, ANGEL, GRANT, CONVERTIBLE_NOTE, VENTURE_ROUND, UNDISCLOSED, CORPORATE_ROUND, DEBT_FINANCING, EQUITY_CROWDFUNDING, INITIAL_COIN_OFFERING, NON_EQUITY_ASSISTANCE, POST_IPO_DEBT, POST_IPO_EQUITY, POST_IPO_SECONDARY, PRIVATE_EQUITY, PRODUCT_CROWDFUNDING, SECONDARY_MARKET, SERIES_E, SERIES_F, SERIES_G, SERIES_H, SERIES_I, SERIES_J, SERIES_UNKNOWN
-          required: false
-          schema:
-            type: string
-          example: "SERIES_A,SERIES_B"
-        - name: companyIds
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by specific portfolio company UUIDs (comma-separated).
-          required: false
-          schema:
-            type: string
-          example: "550e8400-e29b-41d4-a716-446655440000"
-        - name: domains
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company domains (comma-separated, max 100).
-            Returns investors who have invested in companies matching these domains.
-            When active, response includes `matching_deal_ids`.
-          required: false
-          schema:
-            type: string
-          example: "stripe.com,openai.com"
-        - name: companyLinkedins
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company LinkedIn slugs (comma-separated, max 100).
-            Returns investors who have invested in companies matching these LinkedIn profiles.
-            When active, response includes `matching_deal_ids`.
-          required: false
-          schema:
-            type: string
-          example: "stripe,openai"
-        - name: companyCrunchbases
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company Crunchbase slugs (comma-separated, max 100).
-            Returns investors who have invested in companies matching these Crunchbase profiles.
-            When active, response includes `matching_deal_ids`.
-          required: false
-          schema:
-            type: string
-          example: "stripe,openai"
-        - name: companyFoundedStart
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company founding date start (ISO 8601).
-          required: false
-          schema:
-            type: string
-            format: date
-          example: "2020-01-01"
-        - name: companyFoundedEnd
-          in: query
-          description: |
-            **Portfolio Filter.** Filter by portfolio company founding date end (ISO 8601).
-          required: false
-          schema:
-            type: string
-            format: date
-          example: "2024-12-31"
-        - name: minMatchingDeals
-          in: query
-          description: |
-            **Portfolio Filter.** Minimum number of deals matching the above portfolio filter criteria.
-            Only returns investors with at least this many matching deals.
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-          example: 3
-        - name: onlyLeadDeals
-          in: query
-          description: |
-            **Portfolio Filter.** When true, only count deals where the investor was the lead investor.
-          required: false
-          schema:
-            type: boolean
-            default: false
-          example: true
-
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvestorsPostBody'
+            example:
+              identifiers:
+                domains: ["sequoiacap.com"]
+              investor:
+                locations: ["san-francisco"]
+              company_investments:
+                industries: ["artificial-intelligence"]
+                financing_types: ["SERIES_A", "SERIES_B"]
+                deal_start_date: "2023-01-01"
+              page: 0
+              page_size: 25
+              sort_by: "most_recent_deal"
       responses:
         '200':
           description: Successful response with paginated investor list
@@ -383,13 +121,13 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/InvestorListItem'
-                      totalCount:
-                        type: integer
-                        description: Total number of investors matching filters
-                        example: 142
                   meta:
                     type: object
                     properties:
+                      total_count:
+                        type: integer
+                        description: Total number of investors matching filters
+                        example: 142
                       limit:
                         type: integer
                         example: 25
@@ -480,6 +218,14 @@ paths:
           schema:
             type: string
           example: "sequoia-capital"
+        - name: crunchbase
+          in: query
+          description: |
+            Investor Crunchbase organization slug (e.g., "sequoia-capital" from crunchbase.com/organization/sequoia-capital).
+          required: false
+          schema:
+            type: string
+          example: "sequoia-capital"
         - name: url
           in: query
           description: |
@@ -564,17 +310,56 @@ paths:
 
   /investor/search:
     get:
-      summary: Search investors by name
-      description: Search for investors by name with fuzzy matching and relevance scoring
+      summary: Search investors by name, domain, LinkedIn, or Crunchbase
+      description: |
+        Search for investors using one of four mutually exclusive search types.
+        Provide exactly one parameter — sending zero or multiple returns a 400 error.
+
+        | Parameter | Behavior | Example |
+        |-----------|----------|---------|
+        | `name` | Fuzzy name search with relevance scoring | `?name=sequoia` |
+        | `domain` | Exact match on investor domain | `?domain=sequoiacap.com` |
+        | `linkedin` | Match by full LinkedIn company URL | `?linkedin=https://linkedin.com/company/sequoia-capital` |
+        | `crunchbase` | Match by full Crunchbase organization URL | `?crunchbase=https://crunchbase.com/organization/sequoia-capital` |
+
+        **LinkedIn and Crunchbase require full URLs** — bare slugs are rejected with a 400 error.
+        URLs are validated and normalized to slugs for database lookup.
+
+        Identifier lookups (`domain`, `linkedin`, `crunchbase`) return `relevance_score: 1`.
       operationId: searchInvestors
       parameters:
-        - name: q
+        - name: name
           in: query
-          description: Search query (searches across investor name and domain)
-          required: true
+          description: Investor name (fuzzy search with relevance scoring)
+          required: false
           schema:
             type: string
           example: "sequoia"
+        - name: domain
+          in: query
+          description: Investor website domain (exact match)
+          required: false
+          schema:
+            type: string
+          example: "sequoiacap.com"
+        - name: linkedin
+          in: query
+          description: |
+            Full LinkedIn company URL (e.g., https://linkedin.com/company/sequoia-capital).
+            Bare slugs like "sequoia-capital" are rejected — a full URL is required.
+          required: false
+          schema:
+            type: string
+          example: "https://linkedin.com/company/sequoia-capital"
+        - name: crunchbase
+          in: query
+          description: |
+            Full Crunchbase organization URL (e.g., https://crunchbase.com/organization/sequoia-capital).
+            Bare slugs like "sequoia-capital" are rejected — a full URL is required.
+          required: false
+          schema:
+            type: string
+          example: "https://crunchbase.com/organization/sequoia-capital"
       responses:
         '200':
           description: Successful search results
@@ -593,13 +378,13 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/InvestorSearchResult'
-                      totalCount:
-                        type: integer
-                        description: Number of investors returned
-                        example: 8
                   meta:
                     type: object
                     properties:
+                      total_count:
+                        type: integer
+                        description: Number of investors returned
+                        example: 8
                       limit:
                         type: integer
                         example: 1
@@ -634,33 +419,58 @@ paths:
                       relevance_score: 0.85
                       domain: "acmecap.com"
                       website: "https://acmecap.com"
-                  totalCount: 2
                 meta:
+                  total_count: 2
                   limit: 1
                   offset: 0
                   remaining_requests: 990
         '400':
-          description: Missing search parameters
+          description: Validation error
           content:
             application/json:
               schema:
                 type: object
                 properties:
+                  success:
+                    type: boolean
+                    example: false
                   error:
                     type: object
                     properties:
                       code:
                         type: string
+                        enum:
+                          - MISSING_SEARCH_PARAMS
+                          - MULTIPLE_SEARCH_PARAMS
+                          - EMPTY_SEARCH_TERM
+                          - INVALID_DOMAIN
+                          - INVALID_LINKEDIN_URL
+                          - INVALID_CRUNCHBASE_URL
                         example: "MISSING_SEARCH_PARAMS"
                       message:
                         type: string
-                        example: "Search parameter q is required"
+                        example: "At least one search parameter is required"
                       details:
                         type: object
                         properties:
                           help:
                             type: string
-                            example: "Provide a q parameter, e.g. ?q=sequoia"
+                            example: "Provide one of: name, domain, linkedin, or crunchbase. Example: ?name=sequoia or ?domain=sequoiacap.com"
+                          provided:
+                            type: string
+                            nullable: true
+                          examples:
+                            type: object
+                            nullable: true
+                            properties:
+                              valid:
+                                type: array
+                                items:
+                                  type: string
+                              invalid:
+                                type: array
+                                items:
+                                  type: string
         '401':
           description: Authentication error
           content:
@@ -744,11 +554,6 @@ components:
           nullable: true
           description: Employee count range
           example: "101-250"
-        founded_date:
-          type: string
-          format: date-time
-          nullable: true
-          description: Date the investor was founded
         investment_stage:
           type: string
           nullable: true
@@ -822,11 +627,6 @@ components:
                 type: string
               count:
                 type: integer
-        last_three_deals:
-          type: array
-          description: The investor's 3 most recent deals
-          items:
-            $ref: '#/components/schemas/InvestorDeal'
         key_people_count:
           type: integer
           description: Total number of key people at the firm
@@ -844,13 +644,6 @@ components:
           type: integer
           nullable: true
           description: Number of lead deals matching portfolio filters (null when no portfolio filters active)
-        matching_deal_ids:
-          type: array
-          nullable: true
-          description: Up to 3 most recent deal UUIDs matching portfolio filters (null when no portfolio filters active)
-          items:
-            type: string
-            format: uuid
       required:
         - id
         - name
@@ -859,41 +652,146 @@ components:
         - lead_deal_count
         - recent_deal_count
 
-    InvestorDeal:
+    InvestorsPostBody:
       type: object
-      description: A deal associated with an investor
+      description: Request body for the POST /investors endpoint
       properties:
-        deal_id:
+        identifiers:
+          type: object
+          description: Investor lookup filters (OR'd together)
+          properties:
+            ids:
+              type: array
+              items:
+                type: string
+                format: uuid
+              description: Investor UUIDs
+            domains:
+              type: array
+              items:
+                type: string
+              description: Investor domains (max 100)
+            linkedin_urls:
+              type: array
+              items:
+                type: string
+              description: Investor LinkedIn slugs or full URLs (max 100). Auto-normalized.
+            crunchbase_urls:
+              type: array
+              items:
+                type: string
+              description: Investor Crunchbase slugs or full URLs (max 100). Auto-normalized.
+        investor:
+          type: object
+          description: Investor entity-level filters
+          properties:
+            locations:
+              type: array
+              items:
+                type: string
+              description: Investor HQ location permalinks
+            employee_count:
+              type: array
+              items:
+                type: string
+                enum: ["1-10", "11-50", "51-100", "101-250", "251-500", "501-1000", "1001-5000", "5001-10000", "10001+"]
+              description: Investor firm employee count ranges
+        company_investments:
+          type: object
+          description: Portfolio filters (filter by companies the investor has invested in)
+          properties:
+            company_ids:
+              type: array
+              items:
+                type: string
+                format: uuid
+              description: Portfolio company UUIDs
+            industries:
+              type: array
+              items:
+                type: string
+              description: Portfolio company industry permalinks
+            super_categories:
+              type: array
+              items:
+                type: string
+              description: Broad industry super-category permalinks
+            locations:
+              type: array
+              items:
+                type: string
+              description: Portfolio company location permalinks
+            employee_count:
+              type: array
+              items:
+                type: string
+                enum: ["1-10", "11-50", "51-100", "101-250", "251-500", "501-1000", "1001-5000", "5001-10000", "10001+"]
+              description: Portfolio company employee count ranges
+            ipo_status:
+              type: array
+              items:
+                type: string
+                enum: ["public", "private"]
+              description: Portfolio company IPO status
+            total_raised_min:
+              type: number
+              minimum: 0
+              description: Minimum total raised by portfolio companies (USD)
+            total_raised_max:
+              type: number
+              minimum: 0
+              description: Maximum total raised by portfolio companies (USD)
+            financing_types:
+              type: array
+              items:
+                type: string
+              description: Deal round types (e.g. SERIES_A, SEED, SERIES_B)
+            deal_size_min:
+              type: number
+              minimum: 0
+              description: Minimum deal size (USD)
+            deal_size_max:
+              type: number
+              minimum: 0
+              description: Maximum deal size (USD)
+            deal_start_date:
+              type: string
+              format: date
+              description: Filter deals on or after this date (ISO 8601)
+            deal_end_date:
+              type: string
+              format: date
+              description: Filter deals on or before this date (ISO 8601)
+            only_lead_deals:
+              type: boolean
+              default: false
+              description: When true, only count deals where investor was lead
+            min_matching_deals:
+              type: integer
+              minimum: 1
+              description: Minimum number of deals matching the portfolio filters
+        page:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Page number (0-based)
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+          description: Number of results per page (max 100)
+        sort_by:
           type: string
-          format: uuid
-        company_name:
-          type: string
-        company_guru_permalink:
-          type: string
-          nullable: true
-        company_domain:
-          type: string
-          nullable: true
-        round_type:
-          type: string
-          nullable: true
-        deal_size:
-          type: number
-          nullable: true
-          description: Deal size in USD
-        deal_date:
-          type: string
-          format: date-time
-          nullable: true
-        extension:
-          type: boolean
-          nullable: true
-        intermediate:
-          type: string
-          nullable: true
-        pre:
-          type: boolean
-          nullable: true
+          enum: ["most_recent_deal", "recent_deals", "deals_led_ltm", "total_deals", "matching_deals"]
+          default: "most_recent_deal"
+          description: |
+            Sort order for results.
+            - **most_recent_deal** — Date of most recent investment (newest first)
+            - **recent_deals** — Deals in last 12 months (highest first)
+            - **deals_led_ltm** — Lead deals in last 12 months (highest first)
+            - **total_deals** — All-time deal count (highest first)
+            - **matching_deals** — Deals matching portfolio filters (highest first)
 
     KeyPerson:
       type: object
@@ -928,32 +826,40 @@ components:
           properties:
             name:
               type: string
+              example: "North America"
             permalink:
               type: string
+              example: "north-america"
         country:
           type: object
           nullable: true
           properties:
             name:
               type: string
+              example: "United States"
             permalink:
               type: string
+              example: "united-states"
         state:
           type: object
           nullable: true
           properties:
             name:
               type: string
+              example: "California"
             permalink:
               type: string
+              example: "california"
         city:
           type: object
           nullable: true
           properties:
             name:
               type: string
+              example: "San Francisco"
             permalink:
               type: string
+              example: "san-francisco"
 
     ParameterValidationError:
       type: object
