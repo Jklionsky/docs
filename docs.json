@@ -17,7 +17,6 @@
     "/openapi/openapi-companies.yaml",
     "/openapi/openapi-investors.yaml",
     "/openapi/openapi-alerts.yaml",
-    "/openapi/openapi-people.yaml",
     "/openapi/openapi-other.yaml"
   ],
   "api": {
@@ -72,13 +71,6 @@
               "api-reference/investors/list",
               "api-reference/investors/get",
               "api-reference/investors/search"
-            ]
-          },
-          {
-            "group": "People",
-            "pages": [
-              "api-reference/people/list",
-              "api-reference/people/get"
             ]
           },
           {
