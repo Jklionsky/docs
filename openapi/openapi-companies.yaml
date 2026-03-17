@@ -107,7 +107,6 @@ paths:
           required: false
           schema:
             type: string
-            format: uri
           example: "https://stripe.com"
       responses:
         '200':
