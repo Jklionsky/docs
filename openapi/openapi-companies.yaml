@@ -607,14 +607,6 @@ paths:
         - `company` - Filter by company attributes (search, location, industry, size, etc.)
         - `latest_deal` - Filter by latest funding round attributes (type, size, date, investors)
         - `investors` - Filter by investors across all rounds
-
-        ## Semantic search
-        Set `company.search_query` for AI-powered natural language search. Results include a
-        `similarity` score (0-1) and are automatically sorted by relevance.
-
-        ## Investor filtering
-        - `latest_deal.investor_ids` filters companies whose *latest deal* included these investors
-        - `investors.investor_ids` filters companies where these investors participated in *any round*
       operationId: searchCompanies
       requestBody:
         required: true

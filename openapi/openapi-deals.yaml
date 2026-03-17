@@ -388,9 +388,39 @@ paths:
                     properties:
                       deal:
                         $ref: '#/components/schemas/Deal'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 0
+                      page_size:
+                        type: integer
+                        example: 1
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 1
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining monthly credits (only included for non-API tier keys)
+                        example: 990
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
+                  - meta
         '400':
           description: Bad Request - Invalid deal ID format or unsupported query parameters
           content:
@@ -539,9 +569,39 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/DealInvestor'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 0
+                      page_size:
+                        type: integer
+                        example: 1
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 1
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining monthly credits (only included for non-API tier keys)
+                        example: 990
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
+                  - meta
         '400':
           description: Bad Request - Invalid deal ID format
           content:
@@ -657,7 +717,7 @@ components:
           type: number
           nullable: true
           description: Total amount raised in the round (USD)
-          example: 25
+          example: 25000000
         deal_descriptions:
           type: object
           nullable: true
