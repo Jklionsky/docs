@@ -14,8 +14,7 @@ info:
     Companies can be identified using query parameters with any of the following formats:
     - `id` - UUID format (e.g., "?id=550e8400-e29b-41d4-a716-446655440000")
     - `permalink` - Permalink format (e.g., "?permalink=acme-corporation")
-    - `domain` - Domain (e.g., "?domain=stripe.com")
-    - `url` - Full URL (e.g., "?url=https://stripe.com")
+    - `domain` - Domain or full URL (e.g., "?domain=stripe.com" or "?domain=https://stripe.com")
     - `linkedin` - LinkedIn company URL (e.g., "?linkedin=https://linkedin.com/company/stripe")
     - `crunchbase` - Crunchbase organization URL (e.g., "?crunchbase=https://crunchbase.com/organization/stripe")
 
@@ -57,8 +56,7 @@ paths:
         Provide ONE of the following query parameters to identify the company:
         - `id` - Company UUID
         - `permalink` - Company permalink/slug
-        - `domain` - Company domain (e.g., "stripe.com")
-        - `url` - Full website URL (e.g., "https://stripe.com")
+        - `domain` - Company domain or full URL (e.g., "stripe.com" or "https://stripe.com")
         - `linkedin` - LinkedIn company URL
         - `crunchbase` - Crunchbase organization URL
 
@@ -82,7 +80,7 @@ paths:
           example: "acme-corporation"
         - name: domain
           in: query
-          description: Company domain
+          description: Company domain or full URL (e.g., "stripe.com" or "https://stripe.com") — URLs are automatically parsed to extract the domain
           required: false
           schema:
             type: string
@@ -101,13 +99,6 @@ paths:
           schema:
             type: string
           example: "https://crunchbase.com/organization/stripe"
-        - name: url
-          in: query
-          description: Full website URL
-          required: false
-          schema:
-            type: string
-          example: "https://stripe.com"
       responses:
         '200':
           description: Successful response with company data
@@ -182,16 +173,13 @@ paths:
                         properties:
                           help:
                             type: string
-                            example: "Provide an identifier using one of the query parameters: id, permalink, domain, linkedin, crunchbase, or url"
+                            example: "Provide an identifier using one of the query parameters: id, permalink, domain, linkedin, or crunchbase"
                           examples:
                             type: object
                             properties:
                               byDomain:
                                 type: string
                                 example: "/api/v1/company?domain=stripe.com"
-                              byUrl:
-                                type: string
-                                example: "/api/v1/company?url=https://stripe.com"
                               byLinkedIn:
                                 type: string
                                 example: "/api/v1/company?linkedin=https://linkedin.com/company/stripe"
@@ -261,21 +249,21 @@ paths:
           example: "550e8400-e29b-41d4-a716-446655440000"
         - name: domain
           in: query
-          description: Company domain (e.g., "stripe.com")
+          description: Company domain or full URL (e.g., "stripe.com" or "https://stripe.com") — URLs are automatically parsed to extract the domain
           required: false
           schema:
             type: string
           example: "stripe.com"
         - name: linkedin
           in: query
-          description: LinkedIn company URL (full URL required)
+          description: LinkedIn company URL (full URL required, e.g., "https://linkedin.com/company/stripe")
           required: false
           schema:
             type: string
           example: "https://linkedin.com/company/stripe"
         - name: crunchbase
           in: query
-          description: Crunchbase organization URL (full URL required)
+          description: Crunchbase organization URL (full URL required, e.g., "https://crunchbase.com/organization/stripe")
           required: false
           schema:
             type: string
@@ -388,6 +376,12 @@ paths:
                           help:
                             type: string
                             example: "Provide one of: domain, linkedin, or crunchbase. Example: ?domain=stripe.com"
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
         '404':
           description: No company found matching the provided identifier
           content:
@@ -418,12 +412,6 @@ paths:
                           identifier_value:
                             type: string
                             example: "nonexistent.com"
-        '401':
-          description: Authentication error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthError'
         '402':
           description: Insufficient credits to complete request
           content:
@@ -436,6 +424,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
         '500':
           description: Internal server error
           content:
@@ -593,6 +587,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
         '500':
           description: Internal server error
           content:

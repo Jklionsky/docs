@@ -2,23 +2,29 @@ openapi: 3.0.3
 info:
   title: Fundable Investors API
   description: |
-    API for accessing investor data including search and detailed investor information with statistics.
-    
+    API for accessing investor data including search, detailed investor information, and filtered investor discovery.
+
     ## Authentication
     All API requests require authentication using an API key in the Authorization header.
-    
+
     ## Rate Limits
     API usage is tracked and may be subject to monthly limits depending on your API key tier.
-    
-    ## Investor Identifiers
-    Investors can be identified using:
-    - UUID format (e.g., "550e8400-e29b-41d4-a716-446655440000")
-    - Permalink format (e.g., "acme-ventures")
-    - Domain (e.g., "sequoiacap.com")
-    - LinkedIn URL (e.g., "https://linkedin.com/company/sequoia-capital")
-    - Crunchbase URL (e.g., "https://crunchbase.com/organization/sequoia-capital")
 
-    The `/investor` endpoint supports flexible lookup via query parameters (id, permalink, domain, linkedin, crunchbase, url).
+    ## Investor Identifiers
+    Investors can be identified using query parameters with any of the following formats:
+    - `id` - UUID format (e.g., "?id=550e8400-e29b-41d4-a716-446655440000")
+    - `permalink` - Permalink format (e.g., "?permalink=sequoia-capital")
+    - `domain` - Domain or full URL (e.g., "?domain=sequoiacap.com" or "?domain=https://sequoiacap.com")
+    - `linkedin` - LinkedIn company URL (e.g., "?linkedin=https://linkedin.com/company/sequoia-capital")
+    - `crunchbase` - Crunchbase organization URL (e.g., "?crunchbase=https://crunchbase.com/organization/sequoia-capital")
+
+    ## Parameter Validation (for /investors endpoint)
+    The /investors endpoint (POST) enforces strict validation on the JSON request body:
+    - **Unknown Fields**: Any field not in the allowed set will result in a `422 UNKNOWN_PARAMETER` error
+    - **Enum Values**: Fields like `financing_types`, `sort_by`, `employee_count`, and `ipo_status` only accept exact enum values
+    - **Data Types**: Array fields must be arrays (not comma-separated strings), numeric fields must be numbers
+    - **Array Fields**: Cannot be empty arrays; provide values or omit the field entirely
+    - **Batch Limits**: Identifier batch lookups are limited to 100 items each
 
     ## Investor List Endpoint (/investors)
     The `/investors` endpoint accepts a POST request with a structured JSON body organized into three filter sections:
@@ -43,14 +49,6 @@ info:
     - `min_matching_deals` — Minimum deals matching above criteria
 
     When portfolio filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.
-
-    ## Request Validation
-    The /investors endpoint enforces strict validation on the JSON body:
-    - **Unknown Fields**: Any field not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
-    - **Enum Values**: Fields like `financing_types`, `sort_by`, `employee_count`, and `ipo_status` only accept exact enum values
-    - **Data Types**: Array fields must be arrays (not comma-separated strings), numeric fields must be numbers
-    - **Empty Arrays**: Cannot be empty — omit the field instead
-    - **Batch Limits**: Identifier batch lookups are limited to 100 items each
 
   version: 1.0.0
   contact:
@@ -203,11 +201,19 @@ paths:
 
   /investor:
     get:
-      summary: Get investor by ID, permalink, domain, or LinkedIn
+      summary: Get investor details and statistics by identifier
       description: |
-        Retrieve detailed investor information using a flexible identifier.
-        Provide exactly one of the query parameters to look up an investor.
-        The `url` parameter auto-detects the identifier type (LinkedIn URL, domain, UUID, or permalink).
+        Retrieve detailed investor information using any supported identifier format.
+        The API intelligently detects the identifier type and queries accordingly.
+
+        Provide ONE of the following query parameters to identify the investor:
+        - `id` - Investor UUID
+        - `permalink` - Investor permalink/slug
+        - `domain` - Investor domain or full URL (e.g., "sequoiacap.com" or "https://sequoiacap.com")
+        - `linkedin` - LinkedIn company URL
+        - `crunchbase` - Crunchbase organization URL
+
+        The response includes the investor's statistics, portfolio summary, and profile links.
       operationId: getInvestorByIdentifier
       parameters:
         - name: id
@@ -227,39 +233,25 @@ paths:
           example: "sequoia-capital"
         - name: domain
           in: query
-          description: Investor website domain
+          description: Investor domain or full URL (e.g., "sequoiacap.com" or "https://sequoiacap.com") — URLs are automatically parsed to extract the domain
           required: false
           schema:
             type: string
           example: "sequoiacap.com"
         - name: linkedin
           in: query
-          description: |
-            Investor LinkedIn company URL (e.g., "https://linkedin.com/company/sequoia-capital").
+          description: LinkedIn company URL (e.g., "https://linkedin.com/company/sequoia-capital")
           required: false
           schema:
             type: string
           example: "https://linkedin.com/company/sequoia-capital"
         - name: crunchbase
           in: query
-          description: |
-            Investor Crunchbase organization URL (e.g., "https://crunchbase.com/organization/sequoia-capital").
+          description: Crunchbase organization URL (e.g., "https://crunchbase.com/organization/sequoia-capital")
           required: false
           schema:
             type: string
           example: "https://crunchbase.com/organization/sequoia-capital"
-        - name: url
-          in: query
-          description: |
-            Generic URL or identifier. Auto-detects the type:
-            - LinkedIn company URL → linkedin lookup
-            - Domain or website URL → domain lookup
-            - UUID → id lookup
-            - Other string → permalink lookup
-          required: false
-          schema:
-            type: string
-          example: "https://sequoiacap.com"
       responses:
         '200':
           description: Successful response with investor data
@@ -373,25 +365,21 @@ paths:
           example: "550e8400-e29b-41d4-a716-446655440000"
         - name: domain
           in: query
-          description: Investor website domain (e.g., "sequoiacap.com")
+          description: Investor domain or full URL (e.g., "sequoiacap.com" or "https://sequoiacap.com") — URLs are automatically parsed to extract the domain
           required: false
           schema:
             type: string
           example: "sequoiacap.com"
         - name: linkedin
           in: query
-          description: |
-            Full LinkedIn company URL (e.g., https://linkedin.com/company/sequoia-capital).
-            Bare slugs are rejected — a full URL is required.
+          description: LinkedIn company URL (full URL required, e.g., "https://linkedin.com/company/sequoia-capital")
           required: false
           schema:
             type: string
           example: "https://linkedin.com/company/sequoia-capital"
         - name: crunchbase
           in: query
-          description: |
-            Full Crunchbase organization URL (e.g., https://crunchbase.com/organization/sequoia-capital).
-            Bare slugs are rejected — a full URL is required.
+          description: Crunchbase organization URL (full URL required, e.g., "https://crunchbase.com/organization/sequoia-capital")
           required: false
           schema:
             type: string
@@ -504,6 +492,12 @@ paths:
                           help:
                             type: string
                             example: "Provide one of: domain, linkedin, or crunchbase. Example: ?domain=sequoiacap.com"
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
         '404':
           description: No investor found matching the provided identifier
           content:
@@ -534,12 +528,6 @@ paths:
                           identifier_value:
                             type: string
                             example: "nonexistent.com"
-        '401':
-          description: Authentication error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthError'
         '402':
           description: Insufficient credits to complete request
           content:
@@ -552,6 +540,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
         '500':
           description: Internal server error
           content:
@@ -756,6 +750,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
         '500':
           description: Internal server error
           content:

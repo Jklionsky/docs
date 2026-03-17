@@ -643,6 +643,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Number of seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
         '500':
           description: Internal server error
           content:
