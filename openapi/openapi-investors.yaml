@@ -63,6 +63,8 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
 
 security:
   - bearerAuth: []
@@ -93,7 +95,7 @@ paths:
               identifiers:
                 domains: ["sequoiacap.com"]
               investor:
-                locations: ["san-francisco"]
+                locations: ["san-francisco-california"]
               company_investments:
                 industries: ["artificial-intelligence"]
                 financing_types:
@@ -1052,7 +1054,7 @@ components:
               example: "San Francisco"
             permalink:
               type: string
-              example: "san-francisco"
+              example: "san-francisco-california"
 
     InvestorDeal:
       type: object

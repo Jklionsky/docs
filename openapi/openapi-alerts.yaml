@@ -67,6 +67,8 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
 
 security:
   - bearerAuth: []
@@ -514,7 +516,7 @@ paths:
                             financing_types: ["Series A"]
                             deal_size_min: 1000000
                             deal_size_max: 10000000
-                            locations: ["san-francisco-bay-area", "new-york"]
+                            locations: ["san-francisco-bay-area", "new-york-new-york"]
                             investors: []
                             companies: []
                         - configuration_id: "660e8400-e29b-41d4-a716-446655440001"
@@ -638,7 +640,7 @@ components:
               items:
                 type: string
               description: Location permalinks to filter by
-              example: ["san-francisco-bay-area", "new-york"]
+              example: ["san-francisco-bay-area", "new-york-new-york"]
             financing_types:
               type: array
               items:

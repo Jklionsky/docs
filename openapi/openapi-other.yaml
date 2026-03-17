@@ -33,6 +33,8 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
+  - url: http://localhost:8082/api/v1
+    description: Development server
 
 security:
   - bearerAuth: []
@@ -107,7 +109,7 @@ paths:
                     success: true
                     data:
                       locations:
-                        - permalink: "san-francisco"
+                        - permalink: "san-francisco-california"
                           name: "San Francisco"
                           location_type: "CITY"
                         - permalink: "san-francisco-bay-area"
@@ -125,10 +127,10 @@ paths:
                     success: true
                     data:
                       locations:
-                        - permalink: "san-francisco"
+                        - permalink: "san-francisco-california"
                           name: "San Francisco"
                           location_type: "CITY"
-                        - permalink: "san-jose"
+                        - permalink: "san-jose-california"
                           name: "San Jose"
                           location_type: "CITY"
                     meta:
@@ -389,7 +391,7 @@ components:
         permalink:
           type: string
           description: Location permalink identifier
-          example: "san-francisco"
+          example: "san-francisco-california"
         name:
           type: string
           description: Location name
@@ -447,7 +449,7 @@ components:
                       example: "Authorization: Bearer vg_your_api_key_here"
                     curl:
                       type: string
-                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' https://tryfundable.ai/api/v1/location/search?name=san+francisco"
+                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' http://localhost:8082/api/v1/location/search?name=san+francisco"
                 documentation:
                   type: string
                   example: "Visit our documentation for more information about authentication"
