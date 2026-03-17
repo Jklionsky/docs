@@ -13,7 +13,6 @@ info:
     ## Company Identifiers
     Companies can be identified using query parameters with any of the following formats:
     - `id` - UUID format (e.g., "?id=550e8400-e29b-41d4-a716-446655440000")
-    - `permalink` - Permalink format (e.g., "?permalink=acme-corporation")
     - `domain` - Domain or full URL (e.g., "?domain=stripe.com" or "?domain=https://stripe.com")
     - `linkedin` - LinkedIn company URL (e.g., "?linkedin=https://linkedin.com/company/stripe")
     - `crunchbase` - Crunchbase organization URL (e.g., "?crunchbase=https://crunchbase.com/organization/stripe")
@@ -55,7 +54,6 @@ paths:
 
         Provide ONE of the following query parameters to identify the company:
         - `id` - Company UUID
-        - `permalink` - Company permalink/slug
         - `domain` - Company domain or full URL (e.g., "stripe.com" or "https://stripe.com")
         - `linkedin` - LinkedIn company URL
         - `crunchbase` - Crunchbase organization URL
@@ -71,13 +69,6 @@ paths:
             type: string
             format: uuid
           example: "550e8400-e29b-41d4-a716-446655440000"
-        - name: permalink
-          in: query
-          description: Company permalink
-          required: false
-          schema:
-            type: string
-          example: "acme-corporation"
         - name: domain
           in: query
           description: Company domain or full URL (e.g., "stripe.com" or "https://stripe.com") — URLs are automatically parsed to extract the domain
@@ -173,7 +164,7 @@ paths:
                         properties:
                           help:
                             type: string
-                            example: "Provide an identifier using one of the query parameters: id, permalink, domain, linkedin, or crunchbase"
+                            example: "Provide an identifier using one of the query parameters: id, domain, linkedin, or crunchbase"
                           examples:
                             type: object
                             properties:
@@ -186,9 +177,6 @@ paths:
                               byCrunchbase:
                                 type: string
                                 example: "/api/v1/company?crunchbase=https://crunchbase.com/organization/stripe"
-                              byPermalink:
-                                type: string
-                                example: "/api/v1/company?permalink=stripe"
                               byId:
                                 type: string
                                 example: "/api/v1/company?id=550e8400-e29b-41d4-a716-446655440000"
@@ -1523,7 +1511,7 @@ components:
               properties:
                 help:
                   type: string
-                  example: "Please check the company identifier (ID, permalink, domain, LinkedIn URL, or Crunchbase URL) and try again"
+                  example: "Please check the company identifier (ID, domain, LinkedIn URL, or Crunchbase URL) and try again"
       required:
         - error
 

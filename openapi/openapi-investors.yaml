@@ -13,7 +13,6 @@ info:
     ## Investor Identifiers
     Investors can be identified using query parameters with any of the following formats:
     - `id` - UUID format (e.g., "?id=550e8400-e29b-41d4-a716-446655440000")
-    - `permalink` - Permalink format (e.g., "?permalink=sequoia-capital")
     - `domain` - Domain or full URL (e.g., "?domain=sequoiacap.com" or "?domain=https://sequoiacap.com")
     - `linkedin` - LinkedIn company URL (e.g., "?linkedin=https://linkedin.com/company/sequoia-capital")
     - `crunchbase` - Crunchbase organization URL (e.g., "?crunchbase=https://crunchbase.com/organization/sequoia-capital")
@@ -208,7 +207,6 @@ paths:
 
         Provide ONE of the following query parameters to identify the investor:
         - `id` - Investor UUID
-        - `permalink` - Investor permalink/slug
         - `domain` - Investor domain or full URL (e.g., "sequoiacap.com" or "https://sequoiacap.com")
         - `linkedin` - LinkedIn company URL
         - `crunchbase` - Crunchbase organization URL
@@ -224,13 +222,6 @@ paths:
             type: string
             format: uuid
           example: "550e8400-e29b-41d4-a716-446655440000"
-        - name: permalink
-          in: query
-          description: Investor permalink
-          required: false
-          schema:
-            type: string
-          example: "sequoia-capital"
         - name: domain
           in: query
           description: Investor domain or full URL (e.g., "sequoiacap.com" or "https://sequoiacap.com") — URLs are automatically parsed to extract the domain
@@ -1426,7 +1417,7 @@ components:
               properties:
                 help:
                   type: string
-                  example: "Please check the investor ID or permalink and try again"
+                  example: "Please check the investor identifier (ID, domain, LinkedIn URL, or Crunchbase URL) and try again"
       required:
         - error
 
