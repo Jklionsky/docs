@@ -42,8 +42,6 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
-  - url: http://localhost:8082/api/v1
-    description: Development server
 
 security:
   - bearerAuth: []
@@ -248,12 +246,20 @@ paths:
     get:
       summary: Get deals for a company by identifier
       description: |
-        Look up a company by domain, LinkedIn, or Crunchbase identifier, then return all of its deals
+        Look up a company by ID, domain, LinkedIn, or Crunchbase identifier, then return all of its deals
         with pagination. If the identifier matches multiple companies, deals from all matches are returned.
 
         Provide exactly ONE identifier parameter plus optional pagination.
       operationId: getCompanyDeals
       parameters:
+        - name: id
+          in: query
+          description: Company UUID
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
         - name: domain
           in: query
           description: Company domain (e.g., "stripe.com")

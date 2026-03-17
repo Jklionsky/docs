@@ -63,8 +63,6 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
-  - url: http://localhost:8082/api/v1
-    description: Development server
 
 security:
   - bearerAuth: []
@@ -358,13 +356,21 @@ paths:
     get:
       summary: Get deals for an investor by identifier
       description: |
-        Look up an investor by domain, LinkedIn, or Crunchbase identifier, then return all of their deals
+        Look up an investor by ID, domain, LinkedIn, or Crunchbase identifier, then return all of their deals
         with pagination. If the identifier matches multiple investors (e.g., a16z has multiple firms),
         deals from all matches are returned together.
 
         Provide exactly ONE identifier parameter plus optional pagination.
       operationId: getInvestorDeals
       parameters:
+        - name: id
+          in: query
+          description: Investor UUID
+          required: false
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
         - name: domain
           in: query
           description: Investor website domain (e.g., "sequoiacap.com")

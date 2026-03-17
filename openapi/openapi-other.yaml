@@ -33,8 +33,6 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
-  - url: http://localhost:8082/api/v1
-    description: Development server
 
 security:
   - bearerAuth: []
@@ -469,7 +467,7 @@ components:
                       example: "Authorization: Bearer vg_your_api_key_here"
                     curl:
                       type: string
-                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' http://localhost:8082/api/v1/location/search?name=san+francisco"
+                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' https://tryfundable.ai/api/v1/location/search?name=san+francisco"
                 documentation:
                   type: string
                   example: "Visit our documentation for more information about authentication"
