@@ -894,14 +894,6 @@ components:
                 type: string
               count:
                 type: integer
-        key_people_count:
-          type: integer
-          description: Total number of key people at the firm
-        key_people:
-          type: array
-          description: Key people at the investor firm
-          items:
-            $ref: '#/components/schemas/KeyPerson'
         # Portfolio filter results
         filtered_deal_count:
           type: integer
@@ -1079,29 +1071,6 @@ components:
             - **deals_led_ltm** — Lead deals in last 12 months (highest first)
             - **total_deals** — All-time deal count (highest first)
             - **matching_deals** — Deals matching portfolio filters (highest first)
-
-    KeyPerson:
-      type: object
-      description: A key person at the investor firm
-      properties:
-        name:
-          type: string
-        title:
-          type: string
-          nullable: true
-        linkedin_url:
-          type: string
-          nullable: true
-          format: uri
-        email:
-          type: string
-          nullable: true
-          format: email
-          description: Email (when available)
-        phone:
-          type: string
-          nullable: true
-          description: Phone number (when available)
 
     LocationInfo:
       type: object
