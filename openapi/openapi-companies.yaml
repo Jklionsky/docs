@@ -136,10 +136,26 @@ paths:
                       page_size:
                         type: integer
                         example: 1
-                      remaining_requests:
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 10
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
                         type: integer
                         nullable: true
+                        description: Remaining monthly credits (only included for non-API tier keys)
                         example: 990
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
@@ -203,8 +219,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NotFoundError'
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -214,7 +236,7 @@ paths:
               description: Number of seconds to wait before retrying
               schema:
                 type: integer
-                example: 3600
+                example: 60
         '500':
           description: Internal server error
           content:
@@ -303,6 +325,26 @@ paths:
                       page_size:
                         type: integer
                         example: 10
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 10
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining monthly credits (only included for non-API tier keys)
+                        example: 990
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
@@ -377,8 +419,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthError'
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -460,6 +508,32 @@ paths:
                         type: integer
                         description: Number of companies returned
                         example: 1
+                      page:
+                        type: integer
+                        example: 0
+                      page_size:
+                        type: integer
+                        example: 1
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 0
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining monthly credits (only included for non-API tier keys)
+                        example: 990
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
@@ -502,8 +576,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthError'
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -614,13 +694,13 @@ paths:
                     total_raised_min:
                       type: number
                       minimum: 0
-                      description: Minimum total raised (USD $M)
-                      example: 10
+                      description: Minimum total raised (USD)
+                      example: 10000000
                     total_raised_max:
                       type: number
                       minimum: 0
-                      description: Maximum total raised (USD $M)
-                      example: 500
+                      description: Maximum total raised (USD)
+                      example: 500000000
                     ipo_status:
                       type: array
                       description: "IPO status filter. Valid: public, private"
@@ -663,13 +743,13 @@ paths:
                     size_min:
                       type: number
                       minimum: 0
-                      description: Minimum deal size (USD $M)
-                      example: 1
+                      description: Minimum deal size (USD)
+                      example: 1000000
                     size_max:
                       type: number
                       minimum: 0
-                      description: Maximum deal size (USD $M)
-                      example: 100
+                      description: Maximum deal size (USD)
+                      example: 100000000
                     date_start:
                       type: string
                       format: date
@@ -782,11 +862,26 @@ paths:
                         type: integer
                         description: Number of results per page
                         example: 10
-                      remaining_requests:
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 10
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
                         type: integer
                         nullable: true
-                        description: Remaining API requests for the current month (null if unlimited)
+                        description: Remaining monthly credits (only included for non-API tier keys)
                         example: 990
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
@@ -809,8 +904,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -820,7 +921,7 @@ paths:
               description: Number of seconds to wait before retrying
               schema:
                 type: integer
-                example: 3600
+                example: 60
         '500':
           description: Internal server error
           content:
@@ -936,13 +1037,13 @@ components:
         total_raised:
           type: number
           nullable: true
-          description: Total amount raised (USD $M)
-          example: 2834.94
+          description: Total amount raised (USD)
+          example: 2834940000
         latest_valuation_usd:
           type: number
           nullable: true
-          description: Latest valuation in USD (millions)
-          example: 31000
+          description: Latest valuation (USD)
+          example: 31000000000
         latest_valuation_date:
           type: string
           format: date-time
@@ -1062,11 +1163,11 @@ components:
             'HYBRID_SERIES_I', 'HYBRID_SERIES_J', 'HYBRID_SERIES_K', 'HYBRID_SERIES_M'
           ]
           example: "SERIES_B"
-        size:
+        size_native:
           type: number
           nullable: true
-          description: Total amount raised in the round (USD $M)
-          example: 25
+          description: Total amount raised in the round (native currency)
+          example: 25000000
         date:
           type: string
           format: date-time
@@ -1218,7 +1319,7 @@ components:
               size_usd:
                 type: number
                 nullable: true
-              size:
+              size_native:
                 type: number
                 nullable: true
               currency:
@@ -1231,13 +1332,10 @@ components:
             valuation_currency:
               type: string
               nullable: true
-            valuation:
-              type: number
-              nullable: true
             valuation_usd:
               type: number
               nullable: true
-            valuation_usd_millions:
+            valuation_native:
               type: number
               nullable: true
             type:
@@ -1325,6 +1423,9 @@ components:
     RateLimitError:
       type: object
       properties:
+        success:
+          type: boolean
+          example: false
         error:
           type: object
           properties:
@@ -1333,19 +1434,58 @@ components:
               example: 'RATE_LIMIT_EXCEEDED'
             message:
               type: string
-              example: "Monthly request limit exceeded"
+              example: "Rate limit exceeded. Maximum 200 requests per minute."
             details:
               type: object
               properties:
-                monthly_limit:
+                limit:
                   type: integer
-                  example: 1000
-                current_usage:
+                  description: Maximum requests allowed per window
+                  example: 200
+                window:
+                  type: string
+                  description: Rate limit window duration
+                  example: "60 seconds"
+                help:
+                  type: string
+                  example: "Please reduce your request frequency and try again."
+      required:
+        - error
+
+    InsufficientCreditsError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INSUFFICIENT_CREDITS'
+            message:
+              type: string
+              example: "Not enough credits to complete this request. Visit https://tryfundable.ai/api-access to purchase more."
+            details:
+              type: object
+              properties:
+                credits_needed:
                   type: integer
-                  example: 1000
-                remaining_requests:
+                  nullable: true
+                  description: Number of credits required (included when known post-execution)
+                  example: 25
+                monthly_credits_remaining:
                   type: integer
+                  description: Remaining monthly credits
                   example: 0
+                purchased_credits_remaining:
+                  type: integer
+                  description: Remaining purchased credits
+                  example: 0
+                help:
+                  type: string
+                  example: "Purchase additional credits at https://tryfundable.ai/api-access or upgrade your plan."
       required:
         - error
 

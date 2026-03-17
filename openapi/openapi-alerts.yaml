@@ -15,16 +15,17 @@ info:
     - Example: Query 2 alerts → Alert 1 returns 25 deals + Alert 2 returns 22 deals = **47 credits consumed**
     - Empty results (no deals found) still consume 1 credit minimum
     
-    **How Rate Limiting Works:**
-    - Rate limit check occurs **after** the query executes
-    - If the request would exceed your monthly limit, it is **rejected with 429 error**
-    - No partial results are returned if limit would be exceeded
+    **How Credits Work:**
+    - Credit check occurs **after** the query executes
+    - If the request would exceed your available credits, it is **rejected with a 402 error**
+    - No partial results are returned if credits would be exceeded
     - Rejected requests do not consume any credits
-    
+    - Per-minute rate limiting (200 req/min) returns a **429 error**
+
     **Best Practices:**
-    - Monitor `remaining_requests` in the `meta` section of each response
-    - Query smaller date ranges when approaching your monthly limit
-    - Use fewer alerts per request when nearing monthly cap
+    - Monitor `credits_used` in the `meta` section of each response
+    - Query smaller date ranges when approaching your credit limit
+    - Use fewer alerts per request when nearing your cap
     - Check the `total_count` in the `meta` section to estimate credit consumption
     
     ## Parameter Validation
@@ -166,11 +167,26 @@ paths:
                         type: integer
                         description: Number of alerts queried in this request
                         example: 2
-                      remaining_requests:
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 47
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
                         type: integer
                         nullable: true
-                        description: Remaining API requests for the current month (null if unlimited). Decremented by total_count across all alerts.
+                        description: Remaining monthly credits (only included for non-API tier keys)
                         example: 953
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
@@ -256,7 +272,7 @@ paths:
                       total_count: 47
                       page: 0
                       page_size: 2
-                      remaining_requests: 953
+                      credits_used: 47
 
                 noDealsFound:
                   summary: Valid alert IDs but no deals in date range
@@ -268,8 +284,8 @@ paths:
                       total_count: 0
                       page: 0
                       page_size: 1
-                      remaining_requests: 999
-                      
+                      credits_used: 0
+
         '400':
           description: Bad Request - Invalid parameters or validation failed
           content:
@@ -414,9 +430,9 @@ paths:
                             validOptions: ["alert_ids", "start_date", "end_date"]
                         help: "Please check your request parameters and ensure they meet the required format and constraints."
                     statusCode: 422
-                
+
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -426,8 +442,8 @@ paths:
               description: Number of seconds to wait before retrying
               schema:
                 type: integer
-                example: 3600
-                
+                example: 60
+
         '500':
           description: Internal server error
           content:
@@ -491,11 +507,26 @@ paths:
                         type: integer
                         description: Number of configurations returned
                         example: 3
-                      remaining_requests:
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 0
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
                         type: integer
                         nullable: true
-                        description: Remaining API requests for the current month (not affected by this endpoint)
+                        description: Remaining monthly credits (only included for non-API tier keys)
                         example: 1000
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
@@ -544,7 +575,7 @@ paths:
                     meta:
                       page: 0
                       page_size: 3
-                      remaining_requests: 1000
+                      credits_used: 0
 
                 noConfigurations:
                   summary: User with no configurations
@@ -555,17 +586,17 @@ paths:
                     meta:
                       page: 0
                       page_size: 0
-                      remaining_requests: 1000
-                      
+                      credits_used: 0
+
         '401':
           description: Authentication error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthError'
-                
+
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -575,8 +606,8 @@ paths:
               description: Number of seconds to wait before retrying
               schema:
                 type: integer
-                example: 3600
-                
+                example: 60
+
         '500':
           description: Internal server error
           content:
@@ -906,6 +937,9 @@ components:
     RateLimitError:
       type: object
       properties:
+        success:
+          type: boolean
+          example: false
         error:
           type: object
           properties:
@@ -914,19 +948,58 @@ components:
               example: 'RATE_LIMIT_EXCEEDED'
             message:
               type: string
-              example: "Monthly request limit exceeded"
+              example: "Rate limit exceeded. Maximum 200 requests per minute."
             details:
               type: object
               properties:
-                monthly_limit:
+                limit:
                   type: integer
-                  example: 1000
-                current_usage:
+                  description: Maximum requests allowed per window
+                  example: 200
+                window:
+                  type: string
+                  description: Rate limit window duration
+                  example: "60 seconds"
+                help:
+                  type: string
+                  example: "Please reduce your request frequency and try again."
+      required:
+        - error
+
+    InsufficientCreditsError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INSUFFICIENT_CREDITS'
+            message:
+              type: string
+              example: "Not enough credits to complete this request. Visit https://tryfundable.ai/api-access to purchase more."
+            details:
+              type: object
+              properties:
+                credits_needed:
                   type: integer
-                  example: 1000
-                remaining_requests:
+                  nullable: true
+                  description: Number of credits required (included when known post-execution)
+                  example: 25
+                monthly_credits_remaining:
                   type: integer
+                  description: Remaining monthly credits
                   example: 0
+                purchased_credits_remaining:
+                  type: integer
+                  description: Remaining purchased credits
+                  example: 0
+                help:
+                  type: string
+                  example: "Purchase additional credits at https://tryfundable.ai/api-access or upgrade your plan."
       required:
         - error
 

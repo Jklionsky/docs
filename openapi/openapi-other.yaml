@@ -97,6 +97,16 @@ paths:
                         type: integer
                         description: Number of locations returned
                         example: 3
+                      page:
+                        type: integer
+                        example: 0
+                      page_size:
+                        type: integer
+                        example: 3
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request (always 0 for search endpoints)
+                        example: 0
                 required:
                   - success
                   - data
@@ -197,7 +207,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -266,6 +276,16 @@ paths:
                         type: integer
                         description: Number of industries returned
                         example: 3
+                      page:
+                        type: integer
+                        example: 0
+                      page_size:
+                        type: integer
+                        example: 3
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request (always 0 for search endpoints)
+                        example: 0
                 required:
                   - success
                   - data
@@ -360,7 +380,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -459,6 +479,9 @@ components:
     RateLimitError:
       type: object
       properties:
+        success:
+          type: boolean
+          example: false
         error:
           type: object
           properties:
@@ -467,22 +490,58 @@ components:
               example: 'RATE_LIMIT_EXCEEDED'
             message:
               type: string
-              example: "Monthly request limit exceeded"
+              example: "Rate limit exceeded. Maximum 200 requests per minute."
             details:
               type: object
               properties:
-                monthly_limit:
+                limit:
                   type: integer
-                  example: 1000
-                current_usage:
+                  description: Maximum requests allowed per window
+                  example: 200
+                window:
+                  type: string
+                  description: Rate limit window duration
+                  example: "60 seconds"
+                help:
+                  type: string
+                  example: "Please reduce your request frequency and try again."
+      required:
+        - error
+
+    InsufficientCreditsError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INSUFFICIENT_CREDITS'
+            message:
+              type: string
+              example: "Not enough credits to complete this request. Visit https://tryfundable.ai/api-access to purchase more."
+            details:
+              type: object
+              properties:
+                credits_needed:
                   type: integer
-                  example: 1000
-                remaining_requests:
+                  nullable: true
+                  description: Number of credits required (included when known post-execution)
+                  example: 25
+                monthly_credits_remaining:
                   type: integer
+                  description: Remaining monthly credits
                   example: 0
-                requested_limit:
+                purchased_credits_remaining:
                   type: integer
-                  example: 10
+                  description: Remaining purchased credits
+                  example: 0
+                help:
+                  type: string
+                  example: "Purchase additional credits at https://tryfundable.ai/api-access or upgrade your plan."
       required:
         - error
 

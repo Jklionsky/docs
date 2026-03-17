@@ -115,13 +115,13 @@ paths:
                     size_min:
                       type: number
                       minimum: 0
-                      description: Minimum deal size (USD $M)
-                      example: 1
+                      description: Minimum deal size (USD)
+                      example: 1000000
                     size_max:
                       type: number
                       minimum: 0
-                      description: Maximum deal size (USD $M)
-                      example: 100
+                      description: Maximum deal size (USD)
+                      example: 100000000
                     date_start:
                       type: string
                       format: date
@@ -181,13 +181,13 @@ paths:
                     total_raised_min:
                       type: number
                       minimum: 0
-                      description: Minimum total raised (USD $M)
-                      example: 10
+                      description: Minimum total raised (USD)
+                      example: 10000000
                     total_raised_max:
                       type: number
                       minimum: 0
-                      description: Maximum total raised (USD $M)
-                      example: 500
+                      description: Maximum total raised (USD)
+                      example: 500000000
                     ipo_status:
                       type: array
                       description: "IPO status filter. Valid: public, private"
@@ -249,8 +249,8 @@ paths:
                     industries: ["artificial-intelligence"]
                     ipo_status: ["private"]
                   deal:
-                    size_min: 5
-                    size_max: 100
+                    size_min: 5000000
+                    size_max: 100000000
                   page_size: 10
               lookup_by_ids:
                 summary: Look up specific deals
@@ -291,11 +291,26 @@ paths:
                         type: integer
                         description: Number of results per page
                         example: 10
-                      remaining_requests:
+                      credits_used:
+                        type: integer
+                        description: Number of credits consumed by this request
+                        example: 10
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                        description: Source of credits used (only included for non-API tier keys)
+                        example: "monthly"
+                      monthly_credits_remaining:
                         type: integer
                         nullable: true
-                        description: Remaining API requests for the current month (null if unlimited)
+                        description: Remaining monthly credits (only included for non-API tier keys)
                         example: 990
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+                        description: Remaining purchased credits (only included for non-API tier keys)
+                        example: 500
                 required:
                   - success
                   - data
@@ -318,8 +333,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -329,7 +350,7 @@ paths:
               description: Number of seconds to wait before retrying
               schema:
                 type: integer
-                example: 3600
+                example: 60
         '500':
           description: Internal server error
           content:
@@ -461,8 +482,14 @@ paths:
                   statusCode:
                     type: integer
                     example: 404
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -472,7 +499,7 @@ paths:
               description: Number of seconds to wait before retrying
               schema:
                 type: integer
-                example: 3600
+                example: 60
         '500':
           description: Internal server error
           content:
@@ -546,8 +573,14 @@ paths:
                       message:
                         type: string
                         example: "Deal not found"
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
         '429':
-          description: Rate limit exceeded
+          description: Rate limit exceeded (per-minute)
           content:
             application/json:
               schema:
@@ -623,7 +656,7 @@ components:
         total_round_raised:
           type: number
           nullable: true
-          description: Total amount raised in the round (USD $M)
+          description: Total amount raised in the round (USD)
           example: 25
         deal_descriptions:
           type: object
@@ -658,6 +691,13 @@ components:
           nullable: true
           description: Valuation information for this deal
           $ref: '#/components/schemas/Valuation'
+        articles:
+          type: array
+          description: |
+            Related articles/sources for this deal.
+            Only included for Enterprise (API tier) users. Omitted entirely for other tiers.
+          items:
+            $ref: '#/components/schemas/DealArticle'
       required:
         - id
         - company_id
@@ -721,6 +761,27 @@ components:
         - name
         - is_debt_investor
 
+    DealArticle:
+      type: object
+      description: An article or source related to a deal (Enterprise/API tier only)
+      properties:
+        link:
+          type: string
+          nullable: true
+          description: URL of the article
+          example: "https://techcrunch.com/2024/01/15/company-raises-series-a"
+        date:
+          type: string
+          nullable: true
+          description: Date of the article
+          example: "2024-01-15"
+        is_primary:
+          type: boolean
+          description: Whether this is the primary source article for the deal
+          example: true
+      required:
+        - is_primary
+
     Financing:
       type: object
       properties:
@@ -742,13 +803,13 @@ components:
         size_usd:
           type: number
           nullable: true
-          description: Financing amount (USD $M)
-          example: 25
-        size:
+          description: Financing amount (USD)
+          example: 25000000
+        size_native:
           type: number
           nullable: true
-          description: Financing amount in original currency (USD $M)
-          example: 25
+          description: Financing amount in native currency
+          example: 25000000
         currency:
           type: string
           nullable: true
@@ -767,21 +828,16 @@ components:
           nullable: true
           description: Currency of the valuation
           example: "USD"
-        valuation:
-          type: number
-          nullable: true
-          description: Valuation amount in original currency
-          example: 100
         valuation_usd:
           type: number
           nullable: true
-          description: Valuation amount (USD $M)
-          example: 100
-        valuation_usd_millions:
+          description: Valuation amount (USD)
+          example: 100000000
+        valuation_native:
           type: number
           nullable: true
-          description: Valuation amount (USD $M)
-          example: 100
+          description: Valuation amount in native currency
+          example: 100000000
         type:
           type: string
           description: Type of valuation
@@ -818,6 +874,9 @@ components:
     RateLimitError:
       type: object
       properties:
+        success:
+          type: boolean
+          example: false
         error:
           type: object
           properties:
@@ -826,19 +885,58 @@ components:
               example: 'RATE_LIMIT_EXCEEDED'
             message:
               type: string
-              example: "Monthly request limit exceeded"
+              example: "Rate limit exceeded. Maximum 200 requests per minute."
             details:
               type: object
               properties:
-                monthly_limit:
+                limit:
                   type: integer
-                  example: 1000
-                current_usage:
+                  description: Maximum requests allowed per window
+                  example: 200
+                window:
+                  type: string
+                  description: Rate limit window duration
+                  example: "60 seconds"
+                help:
+                  type: string
+                  example: "Please reduce your request frequency and try again."
+      required:
+        - error
+
+    InsufficientCreditsError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INSUFFICIENT_CREDITS'
+            message:
+              type: string
+              example: "Not enough credits to complete this request. Visit https://tryfundable.ai/api-access to purchase more."
+            details:
+              type: object
+              properties:
+                credits_needed:
                   type: integer
-                  example: 1000
-                remaining_requests:
+                  nullable: true
+                  description: Number of credits required (included when known post-execution)
+                  example: 25
+                monthly_credits_remaining:
                   type: integer
+                  description: Remaining monthly credits
                   example: 0
+                purchased_credits_remaining:
+                  type: integer
+                  description: Remaining purchased credits
+                  example: 0
+                help:
+                  type: string
+                  example: "Purchase additional credits at https://tryfundable.ai/api-access or upgrade your plan."
       required:
         - error
 
