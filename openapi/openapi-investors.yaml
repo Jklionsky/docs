@@ -15,8 +15,8 @@ info:
     - UUID format (e.g., "550e8400-e29b-41d4-a716-446655440000")
     - Permalink format (e.g., "acme-ventures")
     - Domain (e.g., "sequoiacap.com")
-    - LinkedIn slug (e.g., "sequoia-capital")
-    - Crunchbase slug (e.g., "sequoia-capital")
+    - LinkedIn URL (e.g., "https://linkedin.com/company/sequoia-capital")
+    - Crunchbase URL (e.g., "https://crunchbase.com/organization/sequoia-capital")
 
     The `/investor` endpoint supports flexible lookup via query parameters (id, permalink, domain, linkedin, crunchbase, url).
 
@@ -63,8 +63,6 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
-  - url: http://localhost:8082/api/v1
-    description: Development server
 
 security:
   - bearerAuth: []
@@ -98,7 +96,9 @@ paths:
                 locations: ["san-francisco"]
               company_investments:
                 industries: ["artificial-intelligence"]
-                financing_types: ["SERIES_A", "SERIES_B"]
+                financing_types:
+                  - { "type": "SERIES_A" }
+                  - { "type": "SERIES_B" }
                 deal_start_date: "2023-01-01"
               page: 0
               page_size: 25
@@ -128,12 +128,12 @@ paths:
                         type: integer
                         description: Total number of investors matching filters
                         example: 142
-                      limit:
-                        type: integer
-                        example: 25
-                      offset:
+                      page:
                         type: integer
                         example: 0
+                      page_size:
+                        type: integer
+                        example: 25
                       remaining_requests:
                         type: integer
                         nullable: true
@@ -213,19 +213,19 @@ paths:
         - name: linkedin
           in: query
           description: |
-            Investor LinkedIn company slug (e.g., "sequoia-capital" from linkedin.com/company/sequoia-capital).
+            Investor LinkedIn company URL (e.g., "https://linkedin.com/company/sequoia-capital").
           required: false
           schema:
             type: string
-          example: "sequoia-capital"
+          example: "https://linkedin.com/company/sequoia-capital"
         - name: crunchbase
           in: query
           description: |
-            Investor Crunchbase organization slug (e.g., "sequoia-capital" from crunchbase.com/organization/sequoia-capital).
+            Investor Crunchbase organization URL (e.g., "https://crunchbase.com/organization/sequoia-capital").
           required: false
           schema:
             type: string
-          example: "sequoia-capital"
+          example: "https://crunchbase.com/organization/sequoia-capital"
         - name: url
           in: query
           description: |
@@ -257,12 +257,12 @@ paths:
                   meta:
                     type: object
                     properties:
-                      limit:
-                        type: integer
-                        example: 1
-                      offset:
+                      page:
                         type: integer
                         example: 0
+                      page_size:
+                        type: integer
+                        example: 1
                       remaining_requests:
                         type: integer
                         nullable: true
@@ -301,6 +301,179 @@ paths:
               schema:
                 type: integer
                 example: 3600
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+  /investor/deals:
+    get:
+      summary: Get deals for an investor by identifier
+      description: |
+        Look up an investor by domain, LinkedIn, or Crunchbase identifier, then return all of their deals
+        with pagination. If the identifier matches multiple investors (e.g., a16z has multiple firms),
+        deals from all matches are returned together.
+
+        Provide exactly ONE identifier parameter plus optional pagination.
+      operationId: getInvestorDeals
+      parameters:
+        - name: domain
+          in: query
+          description: Investor website domain (e.g., "sequoiacap.com")
+          required: false
+          schema:
+            type: string
+          example: "sequoiacap.com"
+        - name: linkedin
+          in: query
+          description: |
+            Full LinkedIn company URL (e.g., https://linkedin.com/company/sequoia-capital).
+            Bare slugs are rejected — a full URL is required.
+          required: false
+          schema:
+            type: string
+          example: "https://linkedin.com/company/sequoia-capital"
+        - name: crunchbase
+          in: query
+          description: |
+            Full Crunchbase organization URL (e.g., https://crunchbase.com/organization/sequoia-capital).
+            Bare slugs are rejected — a full URL is required.
+          required: false
+          schema:
+            type: string
+          example: "https://crunchbase.com/organization/sequoia-capital"
+        - name: page
+          in: query
+          description: Page number (0-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          example: 0
+        - name: page_size
+          in: query
+          description: Number of results per page (1-100)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 10
+      responses:
+        '200':
+          description: Successful response with deals for the investor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      deals:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InvestorDeal'
+                  meta:
+                    type: object
+                    properties:
+                      total_count:
+                        type: integer
+                        description: Total number of deals for this investor
+                        example: 247
+                      page:
+                        type: integer
+                        example: 0
+                      page_size:
+                        type: integer
+                        example: 10
+                required:
+                  - success
+                  - data
+                  - meta
+        '400':
+          description: Validation error (missing, multiple, or invalid identifier)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        enum:
+                          - MISSING_IDENTIFIER
+                          - MULTIPLE_IDENTIFIERS
+                          - INVALID_PARAMETER
+                          - INVALID_DOMAIN
+                          - INVALID_LINKEDIN_URL
+                          - INVALID_CRUNCHBASE_URL
+                          - INVALID_PAGE
+                          - INVALID_PAGE_SIZE
+                        example: "MISSING_IDENTIFIER"
+                      message:
+                        type: string
+                        example: "An identifier parameter is required"
+                      details:
+                        type: object
+                        properties:
+                          help:
+                            type: string
+                            example: "Provide one of: domain, linkedin, or crunchbase. Example: ?domain=sequoiacap.com"
+        '404':
+          description: No investor found matching the provided identifier
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                        enum:
+                          - NOT_FOUND
+                        example: "NOT_FOUND"
+                      message:
+                        type: string
+                        example: "No investor found matching the provided identifier"
+                      details:
+                        type: object
+                        properties:
+                          identifier_type:
+                            type: string
+                            example: "domain"
+                          identifier_value:
+                            type: string
+                            example: "nonexistent.com"
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
         '500':
           description: Internal server error
           content:
@@ -385,12 +558,12 @@ paths:
                         type: integer
                         description: Number of investors returned
                         example: 8
-                      limit:
-                        type: integer
-                        example: 1
-                      offset:
+                      page:
                         type: integer
                         example: 0
+                      page_size:
+                        type: integer
+                        example: 1
                       remaining_requests:
                         type: integer
                         nullable: true
@@ -421,8 +594,8 @@ paths:
                       website: "https://acmecap.com"
                 meta:
                   total_count: 2
-                  limit: 1
-                  offset: 0
+                  page: 0
+                  page_size: 1
                   remaining_requests: 990
         '400':
           description: Validation error
@@ -743,9 +916,29 @@ components:
               description: Maximum total raised by portfolio companies (USD)
             financing_types:
               type: array
+              description: "Financing types with optional modifiers (pre, extension)"
               items:
-                type: string
-              description: Deal round types (e.g. SERIES_A, SEED, SERIES_B)
+                type: object
+                required:
+                  - type
+                properties:
+                  type:
+                    type: string
+                    enum: [
+                      'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E', 'SERIES_F',
+                      'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_L',
+                      'SERIES_M', 'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED',
+                      'SECONDARY_MARKET', 'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE',
+                      'CROWDFUNDING', 'INITIAL_COIN_OFFERING', 'FUNDING_ROUND'
+                    ]
+                  pre:
+                    type: boolean
+                    default: false
+                    description: "Pre-round modifier (e.g., Pre-Seed, Pre-Series A)"
+                  extension:
+                    type: boolean
+                    default: false
+                    description: "Extension round modifier"
             deal_size_min:
               type: number
               minimum: 0
@@ -860,6 +1053,97 @@ components:
             permalink:
               type: string
               example: "san-francisco"
+
+    InvestorDeal:
+      type: object
+      description: Deal returned by the /investor/deals endpoint. Same shape as the Deal schema in the Deals API.
+      properties:
+        id:
+          type: string
+          format: uuid
+        round_type:
+          type: string
+          nullable: true
+        extension:
+          type: boolean
+          nullable: true
+        intermediate:
+          type: string
+          nullable: true
+        pre:
+          type: boolean
+          nullable: true
+        date:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        total_round_raised:
+          type: number
+          nullable: true
+        deal_descriptions:
+          type: object
+          nullable: true
+          properties:
+            short_description:
+              type: string
+              nullable: true
+            long_description:
+              type: string
+              nullable: true
+        company_id:
+          type: string
+          format: uuid
+        investor_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        financings:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              type:
+                type: string
+              size_usd:
+                type: number
+                nullable: true
+              size:
+                type: number
+                nullable: true
+              currency:
+                type: string
+                nullable: true
+        valuation:
+          type: object
+          nullable: true
+          properties:
+            valuation_currency:
+              type: string
+              nullable: true
+            valuation:
+              type: number
+              nullable: true
+            valuation_usd:
+              type: number
+              nullable: true
+            valuation_usd_millions:
+              type: number
+              nullable: true
+            type:
+              type: string
+      required:
+        - id
+        - company_id
+        - investor_ids
+        - financings
 
     ParameterValidationError:
       type: object

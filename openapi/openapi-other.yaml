@@ -33,8 +33,6 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
-  - url: http://localhost:8082/api/v1
-    description: Development server
 
 security:
   - bearerAuth: []
@@ -48,17 +46,10 @@ paths:
         Optionally filter results by specific location type using the 'type' or 'location_type' parameter.
       operationId: searchLocations
       parameters:
-        - name: q
+        - name: name
           in: query
-          description: General search query for location name
-          required: false
-          schema:
-            type: string
-            example: "san francisco"
-        - name: query
-          in: query
-          description: Alias for 'q' parameter
-          required: false
+          description: Location name to search for
+          required: true
           schema:
             type: string
             example: "san francisco"
@@ -97,13 +88,17 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/LocationSearchResult'
-                      totalCount:
+                  meta:
+                    type: object
+                    properties:
+                      total_count:
                         type: integer
                         description: Number of locations returned
                         example: 3
                 required:
                   - success
                   - data
+                  - meta
               examples:
                 all_types:
                   summary: Search without type filter
@@ -121,7 +116,8 @@ paths:
                         - permalink: "california"
                           name: "California"
                           location_type: "STATE"
-                      totalCount: 3
+                    meta:
+                      total_count: 3
                 cities_only:
                   summary: Search filtered by CITY type
                   description: Returns only cities matching the search term
@@ -135,7 +131,8 @@ paths:
                         - permalink: "san-jose"
                           name: "San Jose"
                           location_type: "CITY"
-                      totalCount: 2
+                    meta:
+                      total_count: 2
 
         '400':
           description: Search parameter validation error
@@ -152,44 +149,26 @@ paths:
                     properties:
                       code:
                         type: string
-                        enum: ['MISSING_SEARCH_PARAMS', 'MULTIPLE_SEARCH_PARAMS', 'EMPTY_SEARCH_TERM', 'INVALID_LOCATION_TYPE', 'MULTIPLE_LOCATION_TYPE_PARAMS']
+                        enum: ['MISSING_SEARCH_PARAMS', 'INVALID_LOCATION_TYPE', 'MULTIPLE_LOCATION_TYPE_PARAMS']
                         example: "MISSING_SEARCH_PARAMS"
                       message:
                         type: string
-                        example: "At least one search parameter is required"
+                        example: "The \"name\" search parameter is required"
                       details:
                         type: object
                         properties:
                           help:
                             type: string
-                            example: "Provide one of: q, query, name, or domain parameters"
+                            example: "Provide a name parameter. Example: ?name=san+francisco"
               examples:
                 missing_params:
                   value:
                     success: false
                     error:
                       code: "MISSING_SEARCH_PARAMS"
-                      message: "At least one search parameter is required"
+                      message: "The \"name\" search parameter is required"
                       details:
-                        help: "Provide one of: q, query, name, or domain parameters"
-                    statusCode: 400
-                multiple_params:
-                  value:
-                    success: false
-                    error:
-                      code: "MULTIPLE_SEARCH_PARAMS"
-                      message: "Only one search parameter is allowed at a time"
-                      details:
-                        help: "You provided: q, query. Please use only one of: q, query, name, or domain parameters"
-                    statusCode: 400
-                empty_term:
-                  value:
-                    success: false
-                    error:
-                      code: "EMPTY_SEARCH_TERM"
-                      message: "Search term cannot be empty"
-                      details:
-                        help: "Search term cannot be empty or whitespace only"
+                        help: "Provide a name parameter. Example: ?name=san+francisco"
                     statusCode: 400
                 invalid_location_type:
                   value:
@@ -236,17 +215,10 @@ paths:
         Optionally filter results by specific type using the 'type' or 'industry_type' parameter.
       operationId: searchIndustries
       parameters:
-        - name: q
+        - name: name
           in: query
-          description: General search query for industry name
-          required: false
-          schema:
-            type: string
-            example: "artificial intelligence"
-        - name: query
-          in: query
-          description: Alias for 'q' parameter
-          required: false
+          description: Industry name to search for
+          required: true
           schema:
             type: string
             example: "artificial intelligence"
@@ -285,13 +257,17 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/IndustrySearchResult'
-                      totalCount:
+                  meta:
+                    type: object
+                    properties:
+                      total_count:
                         type: integer
                         description: Number of industries returned
                         example: 3
                 required:
                   - success
                   - data
+                  - meta
               examples:
                 all_types:
                   summary: Search without type filter
@@ -306,7 +282,8 @@ paths:
                         - permalink: "machine-learning"
                           name: "Machine Learning"
                           industry_type: "INDUSTRY"
-                      totalCount: 2
+                    meta:
+                      total_count: 2
                 industries_only:
                   summary: Search filtered by INDUSTRY type
                   description: Returns only industries matching the search term
@@ -317,7 +294,8 @@ paths:
                         - permalink: "fintech"
                           name: "FinTech"
                           industry_type: "INDUSTRY"
-                      totalCount: 1
+                    meta:
+                      total_count: 1
 
         '400':
           description: Search parameter validation error
@@ -334,26 +312,26 @@ paths:
                     properties:
                       code:
                         type: string
-                        enum: ['MISSING_SEARCH_PARAMS', 'MULTIPLE_SEARCH_PARAMS', 'EMPTY_SEARCH_TERM', 'INVALID_INDUSTRY_TYPE', 'MULTIPLE_INDUSTRY_TYPE_PARAMS']
+                        enum: ['MISSING_SEARCH_PARAMS', 'INVALID_INDUSTRY_TYPE', 'MULTIPLE_INDUSTRY_TYPE_PARAMS']
                         example: "MISSING_SEARCH_PARAMS"
                       message:
                         type: string
-                        example: "At least one search parameter is required"
+                        example: "The \"name\" search parameter is required"
                       details:
                         type: object
                         properties:
                           help:
                             type: string
-                            example: "Provide one of: q, query, or name parameters"
+                            example: "Provide a name parameter. Example: ?name=artificial+intelligence"
               examples:
                 missing_params:
                   value:
                     success: false
                     error:
                       code: "MISSING_SEARCH_PARAMS"
-                      message: "At least one search parameter is required"
+                      message: "The \"name\" search parameter is required"
                       details:
-                        help: "Provide one of: q, query, or name parameters"
+                        help: "Provide a name parameter. Example: ?name=artificial+intelligence"
                     statusCode: 400
                 invalid_industry_type:
                   value:
@@ -469,7 +447,7 @@ components:
                       example: "Authorization: Bearer vg_your_api_key_here"
                     curl:
                       type: string
-                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' http://localhost:8082/api/v1/location/search?q=san+francisco"
+                      example: "curl -H 'Authorization: Bearer vg_your_api_key_here' https://tryfundable.ai/api/v1/location/search?name=san+francisco"
                 documentation:
                   type: string
                   example: "Visit our documentation for more information about authentication"

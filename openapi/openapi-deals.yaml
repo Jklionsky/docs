@@ -13,7 +13,7 @@ info:
     ## Request Body Structure
     Send a JSON body with up to 4 filter sections plus pagination/sort at the top level:
     - `identifiers` - Look up specific deals by UUID
-    - `deal` - Filter by deal attributes (financing type, size, date, extension/pre flags)
+    - `deal` - Filter by deal attributes (financing type with pre/extension modifiers, size, date)
     - `company` - Filter by company attributes (location, industry, size, IPO status)
     - `investors` - Filter by investor participation
 
@@ -42,8 +42,6 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
-  - url: http://localhost:8082/api/v1
-    description: Development server
 
 security:
   - bearerAuth: []
@@ -86,17 +84,32 @@ paths:
                   properties:
                     financing_types:
                       type: array
-                      description: Financing type enums
+                      description: "Financing types with optional modifiers (pre, extension)"
                       items:
-                        type: string
-                        enum: [
-                          'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E', 'SERIES_F',
-                          'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_L',
-                          'SERIES_M', 'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED',
-                          'SECONDARY_MARKET', 'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE',
-                          'CROWDFUNDING', 'INITIAL_COIN_OFFERING', 'FUNDING_ROUND'
-                        ]
-                      example: ["SERIES_A", "SEED"]
+                        type: object
+                        required:
+                          - type
+                        properties:
+                          type:
+                            type: string
+                            enum: [
+                              'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E', 'SERIES_F',
+                              'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_L',
+                              'SERIES_M', 'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED',
+                              'SECONDARY_MARKET', 'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE',
+                              'CROWDFUNDING', 'INITIAL_COIN_OFFERING', 'FUNDING_ROUND'
+                            ]
+                          pre:
+                            type: boolean
+                            default: false
+                            description: "Pre-round modifier (e.g., Pre-Seed, Pre-Series A)"
+                          extension:
+                            type: boolean
+                            default: false
+                            description: "Extension round modifier"
+                      example:
+                        - { "type": "SEED", "pre": true }
+                        - { "type": "SERIES_A" }
                     size_min:
                       type: number
                       minimum: 0
@@ -110,25 +123,34 @@ paths:
                     date_start:
                       type: string
                       format: date
-                      description: Filter deals after this date (ISO 8601)
+                      description: Filter deals announced after this date (ISO 8601)
                       example: "2024-01-01"
                     date_end:
                       type: string
                       format: date
-                      description: Filter deals before this date (ISO 8601)
+                      description: Filter deals announced before this date (ISO 8601)
                       example: "2024-12-31"
-                    extension:
-                      type: boolean
-                      description: Filter for extension rounds only
-                      example: false
-                    pre:
-                      type: boolean
-                      description: Filter for pre-rounds only (e.g., Pre-Series A)
-                      example: false
+                    created_start:
+                      type: string
+                      format: date
+                      description: Filter deals added to the system after this date (ISO 8601)
+                      example: "2024-01-01"
+                    created_end:
+                      type: string
+                      format: date
+                      description: Filter deals added to the system before this date (ISO 8601)
+                      example: "2024-12-31"
                 company:
                   type: object
                   description: Company attribute filters
                   properties:
+                    company_ids:
+                      type: array
+                      description: Company UUIDs - filter deals by specific companies
+                      items:
+                        type: string
+                        format: uuid
+                      example: ["550e8400-e29b-41d4-a716-446655440001"]
                     locations:
                       type: array
                       description: Location permalinks. Use /location/search to find permalinks.
@@ -207,7 +229,16 @@ paths:
                 summary: Filter by financing type
                 value:
                   deal:
-                    financing_types: ["SERIES_A", "SERIES_B"]
+                    financing_types:
+                      - { "type": "SERIES_A" }
+                      - { "type": "SERIES_B" }
+                  page_size: 10
+              filter_pre_seed:
+                summary: Filter for pre-seed deals
+                value:
+                  deal:
+                    financing_types:
+                      - { "type": "SEED", "pre": true }
                   page_size: 10
               filter_by_company:
                 summary: Filter by company attributes
@@ -250,14 +281,14 @@ paths:
                         type: integer
                         description: Total number of deals matching the filter criteria
                         example: 1547
-                      limit:
+                      page:
                         type: integer
-                        description: Number of results per page (page_size parameter)
-                        example: 10
-                      offset:
-                        type: integer
-                        description: Number of results skipped (page * page_size)
+                        description: Current page number (0-based)
                         example: 0
+                      page_size:
+                        type: integer
+                        description: Number of results per page
+                        example: 10
                       remaining_requests:
                         type: integer
                         nullable: true
@@ -579,8 +610,14 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: Date of the funding round
+          description: Announcement date of the funding round
           example: "2024-01-15T00:00:00Z"
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date the deal was added to the system
+          example: "2024-01-16T12:30:00Z"
         total_round_raised:
           type: number
           nullable: true

@@ -25,15 +25,15 @@ info:
     - Monitor `remaining_requests` in the `meta` section of each response
     - Query smaller date ranges when approaching your monthly limit
     - Use fewer alerts per request when nearing monthly cap
-    - Check the `totalDealCount` in responses to estimate credit consumption
+    - Check the `total_count` in the `meta` section to estimate credit consumption
     
     ## Parameter Validation
     This API enforces strict parameter validation:
-    - **Required Parameters**: `alertIds`, `startDate`, and `endDate` are required
+    - **Required Parameters**: `alert_ids`, `start_date`, and `end_date` are required
     - **Unknown Parameters**: Any parameter not in the allowed list will result in a `422 UNKNOWN_PARAMETER` error
-    - **Whitelisted Parameters Only**: Only these parameters are allowed: alertIds, startDate, endDate
+    - **Whitelisted Parameters Only**: Only these parameters are allowed: alert_ids, start_date, end_date
     - **Data Types**:
-      - `alertIds` must be comma-separated valid UUIDs (e.g., "uuid1,uuid2,uuid3")
+      - `alert_ids` must be comma-separated valid UUIDs (e.g., "uuid1,uuid2,uuid3")
       - Date parameters must be valid ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
     - **Business Rules**:
       - Maximum 10 alerts per request
@@ -67,8 +67,6 @@ info:
 servers:
   - url: https://tryfundable.ai/api/v1
     description: Production server
-  - url: http://localhost:8082/api/v1
-    description: Development server
 
 security:
   - bearerAuth: []
@@ -88,7 +86,7 @@ paths:
         - Total deal count across all alerts determines rate limit usage
 
         **Important Notes:**
-        - All alertIds must belong to alerts you have access to
+        - All alert_ids must belong to alerts you have access to
         - Deals are flattened from all time periods and sorted by date DESC (newest first)
         - Duplicate deals are automatically removed
         - Each deal includes AI-generated reasoning for why it matched the alert criteria
@@ -97,7 +95,7 @@ paths:
       tags:
         - alerts
       parameters:
-        - name: alertIds
+        - name: alert_ids
           in: query
           description: |
             Comma-separated list of alert UUIDs (up to 10 alerts per request).
@@ -108,7 +106,7 @@ paths:
             type: string
             example: "550e8400-e29b-41d4-a716-446655440000,660e8400-e29b-41d4-a716-446655440001"
             
-        - name: startDate
+        - name: start_date
           in: query
           description: |
             Start date for the alert data range (ISO 8601 format).
@@ -119,7 +117,7 @@ paths:
             format: date-time
             example: "2024-01-01T00:00:00.000Z"
             
-        - name: endDate
+        - name: end_date
           in: query
           description: |
             End date for the alert data range (ISO 8601 format).
@@ -151,25 +149,25 @@ paths:
                         description: Array of alert configurations with their timeline data
                         items:
                           $ref: '#/components/schemas/Alert'
-                      totalDealCount:
-                        type: integer
-                        description: Total number of deals across all alerts and periods
-                        example: 47
                   meta:
                     type: object
                     properties:
-                      limit:
+                      total_count:
+                        type: integer
+                        description: Total number of deals across all alerts and periods
+                        example: 47
+                      page:
+                        type: integer
+                        description: Current page number (always 0 for alerts endpoint)
+                        example: 0
+                      page_size:
                         type: integer
                         description: Number of alerts queried in this request
                         example: 2
-                      offset:
-                        type: integer
-                        description: Offset value (always 0 for alerts endpoint)
-                        example: 0
                       remaining_requests:
                         type: integer
                         nullable: true
-                        description: Remaining API requests for the current month (null if unlimited). Decremented by totalDealCount across all alerts.
+                        description: Remaining API requests for the current month (null if unlimited). Decremented by total_count across all alerts.
                         example: 953
                 required:
                   - success
@@ -252,22 +250,22 @@ paths:
                                 - link: "https://healthcarevc.com/article"
                                   is_primary: true
                                   publishedDate: "2024-01-10T00:00:00.000Z"
-                      totalDealCount: 47
                     meta:
-                      limit: 2
-                      offset: 0
+                      total_count: 47
+                      page: 0
+                      page_size: 2
                       remaining_requests: 953
-                
+
                 noDealsFound:
                   summary: Valid alert IDs but no deals in date range
                   value:
                     success: true
                     data:
                       alerts: []
-                      totalDealCount: 0
                     meta:
-                      limit: 1
-                      offset: 0
+                      total_count: 0
+                      page: 0
+                      page_size: 1
                       remaining_requests: 999
                       
         '400':
@@ -287,8 +285,8 @@ paths:
                       code: "MISSING_PARAMETERS"
                       message: "Missing required parameters"
                       details:
-                        missingParams: ["alertIds", "startDate"]
-                        help: "Please provide all required parameters: alertIds, startDate, endDate"
+                        missingParams: ["alert_ids", "start_date"]
+                        help: "Please provide all required parameters: alert_ids, start_date, end_date"
                     statusCode: 400
                 invalidAlertId:
                   summary: Invalid alert ID format
@@ -309,7 +307,7 @@ paths:
                       code: "INVALID_DATE_FORMAT"
                       message: "Invalid date format"
                       details:
-                        field: "startDate"
+                        field: "start_date"
                         provided: "2024-01-01"
                         expected: "ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)"
                         help: "Please provide dates in ISO 8601 format, e.g., 2024-01-01T00:00:00.000Z"
@@ -335,7 +333,7 @@ paths:
                       code: "FUTURE_DATE"
                       message: "Start date cannot be in the future"
                       details:
-                        field: "startDate"
+                        field: "start_date"
                         provided: "2025-12-01T00:00:00.000Z"
                         help: "Please provide a start date that is not in the future"
                     statusCode: 400
@@ -409,9 +407,9 @@ paths:
                         errors:
                           - field: "invalidParam"
                             value: "someValue"
-                            message: "Unknown parameter: invalidParam. Allowed parameters: alertIds, startDate, endDate"
+                            message: "Unknown parameter: invalidParam. Allowed parameters: alert_ids, start_date, end_date"
                             code: "UNKNOWN_PARAMETER"
-                            validOptions: ["alertIds", "startDate", "endDate"]
+                            validOptions: ["alert_ids", "start_date", "end_date"]
                         help: "Please check your request parameters and ensure they meet the required format and constraints."
                     statusCode: 422
                 
@@ -483,14 +481,14 @@ paths:
                   meta:
                     type: object
                     properties:
-                      limit:
+                      page:
+                        type: integer
+                        description: Current page number (always 0 for this endpoint)
+                        example: 0
+                      page_size:
                         type: integer
                         description: Number of configurations returned
                         example: 3
-                      offset:
-                        type: integer
-                        description: Offset value (always 0 for this endpoint)
-                        example: 0
                       remaining_requests:
                         type: integer
                         nullable: true
@@ -542,10 +540,10 @@ paths:
                             locations: ["united-states"]
                             companies: [{"id": "stripe", "name": "Stripe"}, {"id": "plaid", "name": "Plaid"}]
                     meta:
-                      limit: 3
-                      offset: 0
+                      page: 0
+                      page_size: 3
                       remaining_requests: 1000
-                
+
                 noConfigurations:
                   summary: User with no configurations
                   value:
@@ -553,8 +551,8 @@ paths:
                     data:
                       configurations: []
                     meta:
-                      limit: 0
-                      offset: 0
+                      page: 0
+                      page_size: 0
                       remaining_requests: 1000
                       
         '401':
@@ -1002,10 +1000,10 @@ components:
                   type: array
                   items:
                     type: string
-                  example: ["alertId", "startDate"]
+                  example: ["alert_ids", "start_date"]
                 help:
                   type: string
-                  example: "Please provide all required parameters: alertId, startDate, endDate"
+                  example: "Please provide all required parameters: alert_ids, start_date, end_date"
         statusCode:
           type: integer
           example: 400

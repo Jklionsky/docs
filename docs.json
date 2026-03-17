@@ -62,6 +62,7 @@
             "pages": [
               "api-reference/companies/list",
               "api-reference/companies/get",
+              "api-reference/companies/deals",
               "api-reference/companies/search"
             ]
           },
@@ -70,6 +71,7 @@
             "pages": [
               "api-reference/investors/list",
               "api-reference/investors/get",
+              "api-reference/investors/deals",
               "api-reference/investors/search"
             ]
           },
