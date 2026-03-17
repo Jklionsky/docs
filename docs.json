@@ -54,7 +54,8 @@
             "group": "Deals",
             "pages": [
               "api-reference/deals/list",
-              "api-reference/deals/get"
+              "api-reference/deals/get",
+              "api-reference/deals/investors"
             ]
           },
           {
