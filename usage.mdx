@@ -11,9 +11,16 @@ description: "Understand credit costs per endpoint and how pricing works"
 
     | Endpoint | Description |
     |----------|-------------|
+    | `GET /industry/search` | Search industries |
+    | `GET /location/search` | Search locations |
+  </Tab>
+  <Tab title="1/10 Credit / Request">
+    These endpoints cost **0.1 credits per request**, regardless of rows returned.
+
+    | Endpoint | Description |
+    |----------|-------------|
     | `GET /company/search` | Search companies by name |
     | `GET /investor/search` | Search investors by name |
-    | `GET /location/search` | Search locations |
   </Tab>
   <Tab title="1 Credit / Row">
     These endpoints cost **1 credit per row** returned.
@@ -64,8 +71,9 @@ Paid endpoints return a `meta` object with credit usage details:
 | `monthly_credits_remaining` | Remaining credits from your plan |
 | `purchased_credits_remaining` | Remaining individually purchased credits |
 
-- **1 credit = 1 row** returned by a paid endpoint. A request that returns 25 rows costs 25 credits.
-- **Search endpoints** (`/company/search`, `/investor/search`, `/location/search`) are always free and don't return credit fields.
+- **1 credit = 1 row** returned by list and get endpoints. A request that returns 25 rows costs 25 credits.
+- **Company & investor search** (`/company/search`, `/investor/search`) cost **0.1 credits per request**, regardless of rows returned.
+- **Industry & location search** (`/industry/search`, `/location/search`) are always free and don't return credit fields.
 - Credits come included with your plan. If you don't want a recurring plan, you can buy credits individually for as low as **$0.05 per credit**.
 
 ## Getting Started
