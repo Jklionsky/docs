@@ -258,7 +258,7 @@ paths:
                     type: object
                     properties:
                       investor:
-                        $ref: '#/components/schemas/InvestorListItem'
+                        $ref: '#/components/schemas/Investor'
                   meta:
                     type: object
                     properties:
@@ -767,9 +767,9 @@ components:
         API keys follow the pattern: `vg_[12_hex_chars]_[32_base64url_chars]`
         
   schemas:
-    InvestorListItem:
+    Investor:
       type: object
-      description: Investor returned from the /investors list endpoint
+      description: Full investor profile
       properties:
         id:
           type: string
@@ -891,15 +891,6 @@ components:
                 type: string
               count:
                 type: integer
-        # Portfolio filter results
-        filtered_deal_count:
-          type: integer
-          nullable: true
-          description: Number of deals matching portfolio filters (null when no portfolio filters active)
-        filtered_lead_count:
-          type: integer
-          nullable: true
-          description: Number of lead deals matching portfolio filters (null when no portfolio filters active)
       required:
         - id
         - name
@@ -907,6 +898,21 @@ components:
         - total_deal_count
         - lead_deal_count
         - recent_deal_count
+
+    InvestorListItem:
+      description: Investor with optional portfolio filter counts, returned from the POST /investors endpoint
+      allOf:
+        - $ref: '#/components/schemas/Investor'
+        - type: object
+          properties:
+            filtered_deal_count:
+              type: integer
+              nullable: true
+              description: Number of deals matching portfolio filters (present when portfolio filters are active)
+            filtered_lead_count:
+              type: integer
+              nullable: true
+              description: Number of lead deals matching portfolio filters (present when portfolio filters are active)
 
     InvestorsPostBody:
       type: object
@@ -1285,6 +1291,14 @@ components:
           nullable: true
           format: uri
           description: Investor website URL
+        linkedin:
+          type: string
+          nullable: true
+          description: LinkedIn profile URL
+        crunchbase:
+          type: string
+          nullable: true
+          description: Crunchbase profile URL
 
     AuthError:
       type: object

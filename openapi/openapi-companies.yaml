@@ -1237,11 +1237,6 @@ components:
           nullable: true
           description: Company website domain
           example: "acme.com"
-        website:
-          type: string
-          nullable: true
-          format: uri
-          description: Company website URL
 
     CompanyDeal:
       type: object

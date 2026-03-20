@@ -317,7 +317,7 @@ paths:
                     success: true
                     data:
                       industries:
-                        - permalink: "fintech"
+                        - permalink: "fintech-e067"
                           name: "FinTech"
                           industry_type: "INDUSTRY"
                     meta:
