@@ -1272,11 +1272,6 @@ components:
           nullable: true
           description: Brief description of the investor
           example: "Early-stage venture capital firm focused on AI startups"
-        image:
-          type: string
-          nullable: true
-          format: uri
-          description: Investor logo URL
         relevance_score:
           type: number
           description: Search relevance score (0-1)
