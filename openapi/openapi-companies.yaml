@@ -1148,10 +1148,10 @@ components:
             'HYBRID_SERIES_I', 'HYBRID_SERIES_J', 'HYBRID_SERIES_K', 'HYBRID_SERIES_M'
           ]
           example: "SERIES_B"
-        size_native:
+        total_round_raised:
           type: number
           nullable: true
-          description: Total amount raised in the round (native currency)
+          description: Total amount raised in the round (USD)
           example: 25000000
         date:
           type: string
@@ -1194,6 +1194,34 @@ components:
             type: string
             format: uuid
           example: ["c5a3f6ac-f6c9-4686-aa6e-12aeb7419b82", "c6bc63af-cb37-453d-9c20-35f56fb87ee9"]
+        financings:
+          type: array
+          description: Individual financing tranches in this deal
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: Unique identifier for the financing
+              type:
+                type: string
+                description: Type of financing
+              size_usd:
+                type: number
+                nullable: true
+                description: Financing amount in USD
+                example: 25000000
+              size_native:
+                type: number
+                nullable: true
+                description: Financing amount in native currency
+                example: 25000000
+              currency:
+                type: string
+                nullable: true
+                description: Currency code for size_native
+                example: "USD"
 
     LocationInfo:
       type: object
