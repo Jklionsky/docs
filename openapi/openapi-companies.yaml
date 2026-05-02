@@ -38,7 +38,7 @@ info:
     url: https://www.tryfundable.ai/terms/privacy/
 
 servers:
-  - url: https://tryfundable.ai/api/v1
+  - url: https://www.tryfundable.ai/api/v1
     description: Production server
 
 security:
@@ -1513,7 +1513,7 @@ components:
               example: 'INSUFFICIENT_CREDITS'
             message:
               type: string
-              example: "Not enough credits to complete this request. Visit https://tryfundable.ai/api-access to purchase more."
+              example: "Not enough credits to complete this request. Visit https://www.tryfundable.ai/api-access to purchase more."
             details:
               type: object
               properties:
@@ -1532,7 +1532,7 @@ components:
                   example: 0
                 help:
                   type: string
-                  example: "Purchase additional credits at https://tryfundable.ai/api-access or upgrade your plan."
+                  example: "Purchase additional credits at https://www.tryfundable.ai/api-access or upgrade your plan."
       required:
         - error
 
