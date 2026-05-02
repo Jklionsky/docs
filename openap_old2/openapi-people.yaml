@@ -1,0 +1,1574 @@
+openapi: 3.0.3
+info:
+  title: Fundable People API
+  description: |
+    API for searching and retrieving people (founders, executives, investors) with cross-type filtering.
+
+    ## Authentication
+    All API requests require authentication using an API key in the Authorization header.
+
+    ## Rate Limits
+    API usage is tracked and may be subject to monthly limits depending on your API key tier.
+
+    ## Endpoint shape (POST)
+    `POST /people` accepts a JSON body with up to seven filter blocks. There is no `type`
+    discriminator — filter intent is implicit in which blocks have data, so cross-type queries
+    (e.g. "founders at fintech companies who also invested in AI startups") work natively.
+
+    Filter blocks:
+    - `identifiers` — look up specific people by UUID, LinkedIn, Crunchbase, or Twitter
+    - `person` — role, contact info available, job title, education, prior employers
+    - `company` — current employer attributes (industry, location, IPO status, funding, etc.)
+    - `latest_deal` — current employer's latest funding round attributes
+    - `investor` — investor (firm) attributes for people who invest under a firm
+    - `deals` — the person's own deal activity (angel vs institutional, lead-only, etc.)
+    - `portfolio_company` — attributes of companies the person has invested in
+
+    Plus pagination/sort at the top level: `page`, `page_size`, `sort_by`.
+
+    ## Implicit constraints
+    The endpoint inspects which filter blocks have data and emits implicit WHERE clauses:
+
+    | When you set | Backend constraint |
+    |---|---|
+    | Any `company.*` or `latest_deal.*` field | Person must have a current employer |
+    | Any `investor.*` / `deals.*` / `portfolio_company.*` field | Person must be an investor |
+    | Both sides | Both apply (true cross-type query) |
+    | Neither | No constraint — paginated everyone |
+
+    The top-level `person_type` field (`"company"`, `"investor"`, or `"any"` — default `"any"`)
+    explicitly forces one population regardless of which filter blocks are present. Use it when
+    you want only company-people (founders/employees) or only investor-people without having to
+    add a filter block to imply it.
+
+    ## Semantic search
+    Two independent natural-language search fields:
+    - `company.search_query` — semantic match against the person's current employer
+    - `portfolio_company.search_query` — semantic match against companies the person has invested in
+
+    Both can fire simultaneously. Each accepts an optional `min_relevance` (0..1) to filter out
+    weak matches. When semantic search is active, results are ordered by relevance and any
+    explicit `sort_by` is ignored.
+
+    ## Response shape
+    Every row carries every field. Investor-context fields (`is_investor`, `firms`, `deal_count`,
+    etc.) populate to defaults (`false` / `0` / `[]` / `null`) for people who aren't investors.
+    Pure employees and pure angels have the same shape — only the values differ.
+
+    ## Person identifiers (for `/person`)
+    Detail endpoint uses query parameters — one of `?id=`, `?linkedin=`, `?crunchbase=`,
+    `?twitter=`, or `?url=`. Examples:
+    - `GET /person?id=550e8400-e29b-41d4-a716-446655440000`
+    - `GET /person?linkedin=jane-doe-12345`
+    - `GET /person?crunchbase=jane-doe`
+    - `GET /person?twitter=janedoe`
+    - `GET /person?url=https://linkedin.com/in/jane-doe-12345` (any LinkedIn / Crunchbase / Twitter URL — auto-detected)
+
+    ## Money units
+    All monetary values in request and response are in **actual USD** (not millions). For example,
+    `total_raised_min: 10000000` means $10M, and a response `latest_deal_size: 50000000` means $50M.
+
+  version: 1.0.0
+  contact:
+    name: Fundable API Support
+    url: jacob@tryfundable.ai
+  license:
+    name: Proprietary
+    url: https://www.tryfundable.ai/terms/privacy/
+
+servers:
+  - url: https://tryfundable.ai/api/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /people:
+    post:
+      summary: Search people with cross-type filters and optional semantic search
+      description: |
+        Unified people search. Combine any of seven filter blocks plus pagination/sort.
+
+        ## Common patterns
+        - **Find founders at fintech companies:** `{ person: { roles: ["founder"] }, company: { industries: ["fintech"] } }`
+        - **Find investors active in AI:** `{ portfolio_company: { industries: ["artificial-intelligence"] } }`
+        - **Cross-type:** `{ company: { industries: ["fintech"] }, portfolio_company: { search_query: "AI infrastructure" } }`
+        - **Batch lookup:** `{ identifiers: { linkedin_urls: [...] } }`
+
+        ## Validation
+        - Unknown fields → `422 UNKNOWN_PARAMETER` (per-block whitelisted)
+        - Invalid types/dates/enums → `400 VALIDATION_ERROR` with per-field details
+        - Identifier arrays (`linkedin_urls`, `crunchbase_urls`, `twitter_urls`,
+          `investor.domains`, `investor.linkedin_urls`, `investor.crunchbase_urls`,
+          `investor.permalinks`) are capped at 100 items each
+        - `page_size` capped at 500
+
+        ## Empty body
+        `POST /people` with `{}` returns paginated everyone (subject to `page_size` cap).
+      operationId: searchPeople
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                person_type:
+                  type: string
+                  enum: [company, investor, any]
+                  default: any
+                  description: |
+                    Restrict results to one population. `company` returns only people with a
+                    current employer (founders, executives, employees). `investor` returns only
+                    people who invest. `any` (default) returns the union — anyone matching the
+                    other filter blocks regardless of population.
+                  example: company
+                identifiers:
+                  type: object
+                  description: Look up specific people by identifier
+                  properties:
+                    ids:
+                      type: array
+                      description: Person UUIDs
+                      items:
+                        type: string
+                        format: uuid
+                      example: ["550e8400-e29b-41d4-a716-446655440000"]
+                    linkedin_urls:
+                      type: array
+                      description: LinkedIn slugs or full URLs (max 100). Server normalizes.
+                      items:
+                        type: string
+                      example: ["jane-doe-12345", "https://linkedin.com/in/john-smith"]
+                    crunchbase_urls:
+                      type: array
+                      description: Crunchbase slugs or full URLs (max 100). Server normalizes.
+                      items:
+                        type: string
+                      example: ["person/jane-doe", "https://www.crunchbase.com/person/john-smith"]
+                    twitter_urls:
+                      type: array
+                      description: Twitter handles (with or without @) or full URLs (max 100). Server normalizes.
+                      items:
+                        type: string
+                      example: ["@janedoe", "https://x.com/johnsmith"]
+                person:
+                  type: object
+                  description: Person attribute filters
+                  properties:
+                    roles:
+                      type: array
+                      description: Person's role at their current employer
+                      items:
+                        type: string
+                        enum: ['founder', 'ceo', 'key_person']
+                      example: ["founder", "ceo"]
+                    contact_types:
+                      type: array
+                      description: Available contact info on the person
+                      items:
+                        type: string
+                        enum: ['linkedin', 'email', 'phone', 'twitter']
+                      example: ["email", "linkedin"]
+                    job_titles:
+                      type: array
+                      description: Normalized job-title keys
+                      items:
+                        type: string
+                      example: ["ceo", "cto", "vp-engineering"]
+                    education_schools:
+                      type: array
+                      description: Education institution IDs
+                      items:
+                        type: string
+                      example: ["stanford-university", "mit"]
+                    linkedin_companies:
+                      type: array
+                      description: Filter by previous/current employer LinkedIn company IDs
+                      items:
+                        type: string
+                      example: ["google", "meta"]
+                company:
+                  type: object
+                  description: Current-employer attribute filters. Setting any field implicitly requires the person to have a current employer.
+                  properties:
+                    search_query:
+                      type: string
+                      description: AI-powered natural-language search against the current employer. Overrides explicit sort_by — results are ordered by relevance.
+                      example: "climate tech infrastructure startups"
+                    min_relevance:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                      description: Minimum similarity threshold (0-1). Only applies with search_query.
+                      example: 0.5
+                    ids:
+                      type: array
+                      description: Filter by current-employer UUIDs
+                      items:
+                        type: string
+                        format: uuid
+                      example: ["660e8400-e29b-41d4-a716-446655440000"]
+                    industries:
+                      type: array
+                      description: Industry permalinks
+                      items:
+                        type: string
+                      example: ["artificial-intelligence", "fintech"]
+                    super_categories:
+                      type: array
+                      description: Super category permalinks (auto-includes related industries)
+                      items:
+                        type: string
+                      example: ["financial-services"]
+                    locations:
+                      type: array
+                      description: Location permalinks
+                      items:
+                        type: string
+                      example: ["san-francisco-california", "new-york-new-york"]
+                    employee_count:
+                      type: array
+                      description: Current-employer headcount ranges
+                      items:
+                        type: string
+                        enum: ['1-10', '11-50', '51-100', '101-250', '251-500', '501-1000', '1001-5000', '5001-10000', '10001+']
+                      example: ["11-50", "51-100"]
+                    ipo_status:
+                      type: array
+                      description: Current-employer IPO status
+                      items:
+                        type: string
+                        enum: ['public', 'private', 'acquired', 'delisted']
+                      example: ["private"]
+                    total_raised_min:
+                      type: number
+                      minimum: 0
+                      description: Minimum total raised by current employer (USD)
+                      example: 1000000
+                    total_raised_max:
+                      type: number
+                      minimum: 0
+                      description: Maximum total raised by current employer (USD)
+                      example: 100000000
+                    founded_start:
+                      type: string
+                      format: date
+                      description: Current employer founded after this date (ISO 8601)
+                      example: "2018-01-01"
+                    founded_end:
+                      type: string
+                      format: date
+                      description: Current employer founded before this date (ISO 8601)
+                      example: "2024-12-31"
+                    investor_people_ids:
+                      type: array
+                      description: |
+                        Person UUIDs — filter to people whose current employer has ever raised
+                        from any of these people as an **angel investor** OR as a **lead partner**
+                        of an investing firm. Resolve via `/people/{id}`.
+                      items:
+                        type: string
+                        format: uuid
+                      example: ["b3e9c7d1-2f4a-4d5e-9c1b-7a8f3e2d1c6a"]
+                latest_deal:
+                  type: object
+                  description: Filters on the current employer's most recent funding round. Setting any field implicitly requires the person to have a current employer.
+                  properties:
+                    financing_types:
+                      type: array
+                      description: Financing types with optional modifiers (pre, extension)
+                      items:
+                        type: object
+                        required: [type]
+                        properties:
+                          type:
+                            type: string
+                            enum: [
+                              'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E', 'SERIES_F',
+                              'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_L',
+                              'SERIES_M', 'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED',
+                              'SECONDARY_MARKET', 'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE',
+                              'CROWDFUNDING', 'INITIAL_COIN_OFFERING', 'FUNDING_ROUND'
+                            ]
+                          pre:
+                            type: boolean
+                            default: false
+                          extension:
+                            type: boolean
+                            default: false
+                      example:
+                        - { "type": "SEED", "pre": true }
+                        - { "type": "SERIES_A" }
+                    size_min:
+                      type: number
+                      minimum: 0
+                      description: Minimum latest-deal size (USD)
+                      example: 1000000
+                    size_max:
+                      type: number
+                      minimum: 0
+                      description: Maximum latest-deal size (USD)
+                      example: 50000000
+                    date_start:
+                      type: string
+                      format: date
+                      example: "2024-01-01"
+                    date_end:
+                      type: string
+                      format: date
+                      example: "2024-12-31"
+                    investor_ids:
+                      type: array
+                      description: Filter to deals where these investor UUIDs participated
+                      items:
+                        type: string
+                        format: uuid
+                      example: ["770e8400-e29b-41d4-a716-446655440000"]
+                    investor_locations:
+                      type: array
+                      description: Filter to deals with investors HQ'd in these locations
+                      items:
+                        type: string
+                      example: ["san-francisco-california"]
+                investor:
+                  type: object
+                  description: Filters on the firm the person invests under. Setting any field implicitly requires the person to be an investor.
+                  properties:
+                    ids:
+                      type: array
+                      description: Firm (parent investor) UUIDs
+                      items:
+                        type: string
+                        format: uuid
+                      example: ["c5a3f6ac-f6c9-4686-aa6e-12aeb7419b82"]
+                    domains:
+                      type: array
+                      description: Firm domains (max 100)
+                      items:
+                        type: string
+                      example: ["sequoiacap.com", "a16z.com"]
+                    linkedin_urls:
+                      type: array
+                      description: Firm LinkedIn slugs or URLs (max 100)
+                      items:
+                        type: string
+                      example: ["sequoia-capital"]
+                    crunchbase_urls:
+                      type: array
+                      description: Firm Crunchbase slugs or URLs (max 100)
+                      items:
+                        type: string
+                      example: ["organization/sequoia-capital"]
+                    permalinks:
+                      type: array
+                      description: Fundable firm permalinks (max 100)
+                      items:
+                        type: string
+                      example: ["sequoia-capital", "andreessen-horowitz"]
+                    locations:
+                      type: array
+                      description: Firm HQ location permalinks
+                      items:
+                        type: string
+                      example: ["menlo-park-california"]
+                    employee_count:
+                      type: array
+                      description: Firm headcount ranges
+                      items:
+                        type: string
+                        enum: ['1-10', '11-50', '51-100', '101-250', '251-500', '501-1000', '1001-5000', '5001-10000', '10001+']
+                    founding_start:
+                      type: string
+                      format: date
+                      description: Firm founded after this date
+                    founding_end:
+                      type: string
+                      format: date
+                      description: Firm founded before this date
+                deals:
+                  type: object
+                  description: Filters on the person's own deal activity (separate from `latest_deal`, which is the current employer's). Setting any field implicitly requires the person to be an investor.
+                  properties:
+                    investment_type:
+                      type: string
+                      enum: ['all', 'angel', 'institutional']
+                      default: 'all'
+                      description: Filter by whether the person invests as an angel, under a firm, or both
+                      example: "angel"
+                    min_matching_deals:
+                      type: integer
+                      minimum: 1
+                      description: Require at least this many deals to match the deal-block filters (`size_min/max`, `date_start/end`, `financing_types`, `only_lead_deals`, `investment_type`)
+                      example: 3
+                    only_lead_deals:
+                      type: boolean
+                      default: false
+                      description: Only count deals where the person/firm was a lead investor
+                    financing_types:
+                      type: array
+                      description: Financing types for the person's investment activity
+                      items:
+                        type: object
+                        required: [type]
+                        properties:
+                          type:
+                            type: string
+                            enum: [
+                              'SERIES_A', 'SERIES_B', 'SERIES_C', 'SERIES_D', 'SERIES_E', 'SERIES_F',
+                              'SERIES_G', 'SERIES_H', 'SERIES_I', 'SERIES_J', 'SERIES_K', 'SERIES_L',
+                              'SERIES_M', 'SEED', 'SAFE', 'CONVERTIBLE_NOTE', 'EQUITY', 'PREFERRED',
+                              'SECONDARY_MARKET', 'DEBT_FINANCING', 'GRANT', 'NON_EQUITY_ASSISTANCE',
+                              'CROWDFUNDING', 'INITIAL_COIN_OFFERING', 'FUNDING_ROUND'
+                            ]
+                          pre:
+                            type: boolean
+                            default: false
+                          extension:
+                            type: boolean
+                            default: false
+                    size_min:
+                      type: number
+                      minimum: 0
+                      description: Minimum deal size (USD) for the person's deal activity
+                      example: 500000
+                    size_max:
+                      type: number
+                      minimum: 0
+                      description: Maximum deal size (USD) for the person's deal activity
+                      example: 10000000
+                    date_start:
+                      type: string
+                      format: date
+                      example: "2023-01-01"
+                    date_end:
+                      type: string
+                      format: date
+                      example: "2024-12-31"
+                portfolio_company:
+                  type: object
+                  description: Filters on companies the person has invested in. Setting any field implicitly requires the person to be an investor.
+                  properties:
+                    search_query:
+                      type: string
+                      description: AI-powered natural-language search against portfolio companies. Overrides explicit sort_by — results are ordered by relevance.
+                      example: "AI infrastructure"
+                    min_relevance:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                      description: Minimum similarity threshold (0-1). Only applies with search_query.
+                      example: 0.5
+                    industries:
+                      type: array
+                      description: Portfolio company industry permalinks
+                      items:
+                        type: string
+                      example: ["artificial-intelligence"]
+                    super_categories:
+                      type: array
+                      items:
+                        type: string
+                    locations:
+                      type: array
+                      items:
+                        type: string
+                    employee_count:
+                      type: array
+                      items:
+                        type: string
+                        enum: ['1-10', '11-50', '51-100', '101-250', '251-500', '501-1000', '1001-5000', '5001-10000', '10001+']
+                    ipo_status:
+                      type: array
+                      items:
+                        type: string
+                        enum: ['public', 'private']
+                    total_raised_min:
+                      type: number
+                      minimum: 0
+                      description: Minimum total raised by the portfolio company (USD)
+                      example: 1000000
+                    total_raised_max:
+                      type: number
+                      minimum: 0
+                      description: Maximum total raised by the portfolio company (USD)
+                page:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  description: Page number (0-based)
+                page_size:
+                  type: integer
+                  minimum: 1
+                  maximum: 500
+                  default: 10
+                  description: Number of results per page (max 500)
+                sort_by:
+                  type: string
+                  enum:
+                    - 'most_recent_deal_date'
+                    - 'total_raised'
+                    - 'latest_deal_size'
+                    - 'followers'
+                    - 'connections'
+                    - 'name'
+                    - 'total_deal_count'
+                    - 'recent_deal_count'
+                    - 'lead_deal_count'
+                    - 'lead_deal_count_last_12_months'
+                    - 'filtered_deal_count'
+                  default: 'most_recent_deal_date'
+                  description: |
+                    Sort order. All values are universally accepted — non-applicable values (e.g. `lead_deal_count`
+                    when no investor filter is set) resolve to 0 / null via COALESCE and naturally sort to the bottom (DESC).
+                    Ignored when `company.search_query` or `portfolio_company.search_query` is set (results are then
+                    ordered by semantic relevance).
+            examples:
+              filter_only:
+                summary: Founders at private fintech companies
+                value:
+                  person:
+                    roles: ["founder"]
+                  company:
+                    industries: ["fintech"]
+                    ipo_status: ["private"]
+                  page_size: 25
+              cross_type_semantic:
+                summary: Founders at climate-tech companies who also invested in AI infra startups
+                value:
+                  person:
+                    roles: ["founder"]
+                  company:
+                    search_query: "climate tech"
+                    min_relevance: 0.6
+                  portfolio_company:
+                    search_query: "AI infrastructure"
+                    min_relevance: 0.6
+                  page_size: 10
+              batch_lookup:
+                summary: Look up specific people by LinkedIn slug
+                value:
+                  identifiers:
+                    linkedin_urls: ["jane-doe-12345", "john-smith-67890"]
+              angel_investors_active_2024:
+                summary: People who made at least 3 angel investments in 2024
+                value:
+                  deals:
+                    investment_type: "angel"
+                    min_matching_deals: 3
+                    date_start: "2024-01-01"
+                    date_end: "2024-12-31"
+                  sort_by: "lead_deal_count"
+                  page_size: 50
+
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, meta]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    description: Optional friendly message (e.g. "No people found matching your filters" when empty)
+                  data:
+                    type: object
+                    required: [people]
+                    properties:
+                      people:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PersonSearchResult'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+              example:
+                success: true
+                data:
+                  people:
+                    - id: "550e8400-e29b-41d4-a716-446655440000"
+                      name: "Jane Doe"
+                      title: "CEO"
+                      linkedin_url: "https://linkedin.com/in/jane-doe"
+                      linkedin_id: "jane-doe-12345"
+                      crunchbase_url: null
+                      crunchbase_id: null
+                      profile_image_url: "https://example.com/jane.jpg"
+                      banner_image_url: null
+                      location: "San Francisco, CA"
+                      city: "San Francisco"
+                      country_code: "US"
+                      about: null
+                      twitter: "janedoe"
+                      is_founder: true
+                      is_ceo: true
+                      is_key_person: false
+                      is_current: true
+                      has_email: true
+                      has_phone: false
+                      email: "jane.doe@acmeinc.com"
+                      phone: null
+                      followers: 15000
+                      connections: 500
+                      current_company:
+                        id: "660e8400-e29b-41d4-a716-446655440000"
+                        name: "Acme Inc"
+                        permalink: "acme-inc"
+                        domain: "acme.com"
+                        image: "https://example.com/acme.png"
+                        latest_deal_id: "770e8400-e29b-41d4-a716-446655440000"
+                        latest_deal_type: "SERIES_A"
+                        latest_deal_size: 10000000
+                        latest_deal_date: "2024-09-01"
+                      employment_history:
+                        - title: "CEO"
+                          company_name: "Acme Inc"
+                          company_id: "660e8400-e29b-41d4-a716-446655440000"
+                          company_url: "https://acme.com"
+                          company_logo_url: null
+                          location: "San Francisco, CA"
+                          description: null
+                          start_date: "2022-01-01"
+                          end_date: null
+                          is_current: true
+                      education_history:
+                        - school_name: "Stanford GSB"
+                          school_id: "stanford-gsb"
+                          school_url: null
+                          school_logo_url: null
+                          degree: "MBA"
+                          field_of_study: "Business Administration"
+                          start_date: "2014-09-01"
+                          end_date: "2016-06-01"
+                          description: null
+                      is_investor: true
+                      is_angel: true
+                      has_led_deal: false
+                      firms: []
+                      top_industries:
+                        - { name: "Artificial Intelligence", permalink: "artificial-intelligence", count: 4 }
+                      deal_count: 5
+                      lead_deal_count: 0
+                      lead_deal_count_last_12_months: 0
+                      recent_deal_count: 3
+                      most_recent_deal_date: "2024-08-15"
+                      recent_angel_deals:
+                        - deal_id: "880e8400-e29b-41d4-a716-446655440000"
+                          company:
+                            name: "AI Startup Co"
+                            permalink: "ai-startup-co"
+                            logo: null
+                            domain: "aistartup.co"
+                          date: "2024-08-15"
+                          size: 5000000
+                          financing_type: "SEED"
+                          extension: false
+                          intermediate: "NONE"
+                          pre: false
+                          lead_investor: false
+                      recent_firm_deals: []
+                      filtered_deal_count: null
+                      filtered_lead_count: null
+                      filtered_most_recent_date: null
+                meta:
+                  total_count: 1250
+                  page: 0
+                  page_size: 25
+                  credits_used: 25
+        '400':
+          description: Validation error (invalid types, dates, enums, or empty `search_query`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
+        '422':
+          description: Unknown parameter (per-block whitelist enforced)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnknownParamError'
+        '429':
+          description: |
+            Two distinct cases share this status:
+            - `RATE_LIMIT_EXCEEDED` — per-minute API rate limit
+            - `USAGE_LIMIT_EXCEEDED` — semantic-search monthly usage limit (only when `company.search_query` or `portfolio_company.search_query` was set)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RateLimitError'
+                  - $ref: '#/components/schemas/SemanticUsageLimitError'
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying (sent for `RATE_LIMIT_EXCEEDED` only)
+              schema:
+                type: integer
+                example: 60
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+        '504':
+          description: Semantic search timed out (only when `company.search_query` or `portfolio_company.search_query` was set)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SemanticTimeoutError'
+
+  /person:
+    get:
+      summary: Get person details by identifier
+      description: |
+        Retrieve full person details by any supported identifier. Provide ONE of the
+        following query parameters:
+
+        - `id` — UUID
+        - `linkedin` — LinkedIn vanity slug (the `<slug>` part of `linkedin.com/in/<slug>`)
+        - `crunchbase` — Crunchbase person slug (the `<slug>` part of `crunchbase.com/person/<slug>`)
+        - `twitter` — Twitter handle (without `@`)
+        - `url` — any LinkedIn / Crunchbase / Twitter person URL (auto-detected)
+
+        Returns the same constant unified shape as the list endpoint, with **full**
+        employment and education history (no per-section limit).
+      operationId: getPerson
+      parameters:
+        - name: id
+          in: query
+          required: false
+          description: Person UUID
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: linkedin
+          in: query
+          required: false
+          description: LinkedIn vanity slug (e.g. `jane-doe-12345`)
+          schema:
+            type: string
+          example: "jane-doe-12345"
+        - name: crunchbase
+          in: query
+          required: false
+          description: Crunchbase person slug (e.g. `jane-doe`)
+          schema:
+            type: string
+          example: "jane-doe"
+        - name: twitter
+          in: query
+          required: false
+          description: Twitter handle (without `@`)
+          schema:
+            type: string
+          example: "janedoe"
+        - name: url
+          in: query
+          required: false
+          description: Any LinkedIn / Crunchbase / Twitter person URL — type is auto-detected
+          schema:
+            type: string
+          example: "https://linkedin.com/in/jane-doe-12345"
+      responses:
+        '200':
+          description: Successful response with person data
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    required: [person]
+                    properties:
+                      person:
+                        $ref: '#/components/schemas/PersonDetail'
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 0
+                      page_size:
+                        type: integer
+                        example: 1
+                      credits_used:
+                        type: integer
+                        example: 1
+                      credit_source:
+                        type: string
+                        nullable: true
+                        enum: ['monthly', 'purchased']
+                      monthly_credits_remaining:
+                        type: integer
+                        nullable: true
+                      purchased_credits_remaining:
+                        type: integer
+                        nullable: true
+        '400':
+          description: Missing or invalid identifier (no query param provided, or invalid UUID / URL)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidIdentifierError'
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '402':
+          description: Insufficient credits to complete request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
+        '404':
+          description: Person not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '429':
+          description: Rate limit exceeded (per-minute)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                example: 60
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API Key
+      description: |
+        API key authentication using Bearer token format.
+        Format: `Authorization: Bearer vg_your_api_key_here`
+
+  schemas:
+    PersonSearchResult:
+      type: object
+      description: |
+        Constant unified person shape — every row carries every field. Investor-context
+        fields (`is_investor`, `firms`, `deal_count`, etc.) default to `false` / `0` / `[]`
+        for people who aren't investors. `employment_history` and `education_history` are
+        capped at 3 in the search response; the detail endpoint returns the full lists.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          nullable: true
+          example: "Jane Doe"
+        title:
+          type: string
+          nullable: true
+          description: Current job title
+          example: "CEO"
+        linkedin_url:
+          type: string
+          nullable: true
+          format: uri
+        linkedin_id:
+          type: string
+          nullable: true
+          example: "jane-doe-12345"
+        crunchbase_url:
+          type: string
+          nullable: true
+          format: uri
+        crunchbase_id:
+          type: string
+          nullable: true
+          example: "person/jane-doe"
+        profile_image_url:
+          type: string
+          nullable: true
+          format: uri
+        banner_image_url:
+          type: string
+          nullable: true
+          format: uri
+        location:
+          type: string
+          nullable: true
+          example: "San Francisco, CA"
+        city:
+          type: string
+          nullable: true
+        country_code:
+          type: string
+          nullable: true
+          example: "US"
+        about:
+          type: string
+          nullable: true
+          description: LinkedIn bio/about section
+        twitter:
+          type: string
+          nullable: true
+          description: Twitter handle (no leading @)
+          example: "janedoe"
+        is_founder:
+          type: boolean
+        is_ceo:
+          type: boolean
+        is_key_person:
+          type: boolean
+        is_current:
+          type: boolean
+          description: Currently at the listed company
+        has_email:
+          type: boolean
+        has_phone:
+          type: boolean
+        email:
+          type: string
+          nullable: true
+          format: email
+        phone:
+          type: string
+          nullable: true
+        followers:
+          type: integer
+          nullable: true
+          description: LinkedIn follower count
+        connections:
+          type: integer
+          nullable: true
+          description: LinkedIn connection count
+        current_company:
+          $ref: '#/components/schemas/PersonCurrentCompany'
+        employment_history:
+          type: array
+          description: Recent employment (max 3 items in search; full list on detail endpoint)
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/EmploymentRecord'
+        education_history:
+          type: array
+          description: Education records (max 3 items in search; full list on detail endpoint)
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/EducationRecord'
+        is_investor:
+          type: boolean
+          description: Whether the person has any tracked investment activity
+        is_angel:
+          type: boolean
+          description: Whether the person makes angel investments
+        has_led_deal:
+          type: boolean
+          description: Whether the person has ever led a deal
+        firms:
+          type: array
+          description: Firms the person invests under (empty for pure angels)
+          items:
+            $ref: '#/components/schemas/Firm'
+        top_industries:
+          type: array
+          description: Top portfolio industries by deal count
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              permalink:
+                type: string
+              count:
+                type: integer
+        deal_count:
+          type: integer
+          description: Total tracked deals for this person (0 for non-investors)
+          example: 12
+        lead_deal_count:
+          type: integer
+          description: Total deals the person/firm led (0 for non-investors)
+        lead_deal_count_last_12_months:
+          type: integer
+          description: Lead deals in the last 12 months
+        recent_deal_count:
+          type: integer
+          description: Deals in the last 12 months (any role)
+        most_recent_deal_date:
+          type: string
+          format: date
+          nullable: true
+        recent_angel_deals:
+          type: array
+          description: Up to 3 most recent angel deals
+          items:
+            $ref: '#/components/schemas/AngelDeal'
+        recent_firm_deals:
+          type: array
+          description: Up to 3 most recent firm deals
+          items:
+            $ref: '#/components/schemas/FirmDeal'
+        filtered_deal_count:
+          type: integer
+          nullable: true
+          description: Count of deals matching the deal/portfolio_company filters. Populated only when `portfolio_company.*` filters are present; otherwise null.
+        filtered_lead_count:
+          type: integer
+          nullable: true
+          description: Of the matching deals, how many the person/firm led. Populated only when `portfolio_company.*` filters are present.
+        filtered_most_recent_date:
+          type: string
+          format: date
+          nullable: true
+          description: Most recent matching-deal date. Populated only when `portfolio_company.*` filters are present.
+
+    PersonDetail:
+      allOf:
+        - $ref: '#/components/schemas/PersonSearchResult'
+        - type: object
+          description: Detail endpoint returns the same shape as search but with full (unbounded) employment and education history.
+          properties:
+            employment_history:
+              type: array
+              description: Full employment history (no item cap)
+              items:
+                $ref: '#/components/schemas/EmploymentRecord'
+            education_history:
+              type: array
+              description: Full education history (no item cap)
+              items:
+                $ref: '#/components/schemas/EducationRecord'
+
+    PersonCurrentCompany:
+      type: object
+      nullable: true
+      description: Current employer summary. Null when the person has no current employer.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          nullable: true
+        permalink:
+          type: string
+          nullable: true
+          description: Fundable permalink for the company
+        domain:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true
+          format: uri
+        latest_deal_id:
+          type: string
+          format: uuid
+          nullable: true
+        latest_deal_type:
+          type: string
+          nullable: true
+          example: "SERIES_A"
+        latest_deal_size:
+          type: integer
+          nullable: true
+          description: Latest deal size (USD)
+          example: 10000000
+        latest_deal_date:
+          type: string
+          format: date
+          nullable: true
+
+    EmploymentRecord:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: true
+        company_name:
+          type: string
+          nullable: true
+        company_id:
+          type: string
+          nullable: true
+        company_url:
+          type: string
+          nullable: true
+          format: uri
+        company_logo_url:
+          type: string
+          nullable: true
+          format: uri
+        location:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+          description: null if current position
+        is_current:
+          type: boolean
+
+    EducationRecord:
+      type: object
+      properties:
+        school_name:
+          type: string
+          nullable: true
+        school_id:
+          type: string
+          nullable: true
+        school_url:
+          type: string
+          nullable: true
+          format: uri
+        school_logo_url:
+          type: string
+          nullable: true
+          format: uri
+        degree:
+          type: string
+          nullable: true
+        field_of_study:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          nullable: true
+        end_date:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+
+    Firm:
+      type: object
+      description: Firm (parent investor) the person invests under
+      properties:
+        id:
+          type: string
+          nullable: true
+          format: uuid
+        name:
+          type: string
+          nullable: true
+        permalink:
+          type: string
+          nullable: true
+        domain:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true
+          format: uri
+        deal_count:
+          type: integer
+          description: Number of deals this person has done under this firm
+        last_deal_date:
+          type: string
+          format: date
+          nullable: true
+
+    AngelDeal:
+      type: object
+      description: An angel-investment deal record. Sizes are in USD.
+      properties:
+        deal_id:
+          type: string
+          format: uuid
+        company:
+          type: object
+          properties:
+            name:
+              type: string
+              nullable: true
+            permalink:
+              type: string
+              nullable: true
+            logo:
+              type: string
+              nullable: true
+              format: uri
+            domain:
+              type: string
+              nullable: true
+        date:
+          type: string
+          format: date
+          nullable: true
+        size:
+          type: integer
+          nullable: true
+          description: Deal size in USD
+          example: 5000000
+        financing_type:
+          type: string
+          nullable: true
+          example: "SEED"
+        extension:
+          type: boolean
+          nullable: true
+        intermediate:
+          type: string
+          nullable: true
+          example: "NONE"
+        pre:
+          type: boolean
+          nullable: true
+        lead_investor:
+          type: boolean
+          nullable: true
+
+    FirmDeal:
+      allOf:
+        - $ref: '#/components/schemas/AngelDeal'
+        - type: object
+          properties:
+            firm:
+              type: object
+              properties:
+                id:
+                  type: string
+                  nullable: true
+                  format: uuid
+
+    PaginationMeta:
+      type: object
+      properties:
+        total_count:
+          type: integer
+          description: Total matching results across all pages
+          example: 1250
+        page:
+          type: integer
+          example: 0
+        page_size:
+          type: integer
+          example: 25
+        credits_used:
+          type: integer
+          example: 25
+        credit_source:
+          type: string
+          nullable: true
+          enum: ['monthly', 'purchased']
+        monthly_credits_remaining:
+          type: integer
+          nullable: true
+          example: 990
+        purchased_credits_remaining:
+          type: integer
+          nullable: true
+          example: 500
+
+    AuthError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum: [AUTH_ERROR, INVALID_API_KEY, INACTIVE_API_KEY]
+            message:
+              type: string
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+
+    ValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+            details:
+              type: object
+              properties:
+                errors:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                      value:
+                        type: string
+                      message:
+                        type: string
+                      code:
+                        type: string
+                      validOptions:
+                        type: array
+                        items:
+                          type: string
+
+    UnknownParamError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "UNKNOWN_PARAMETER"
+            message:
+              type: string
+            details:
+              type: object
+              properties:
+                unknownParameters:
+                  type: array
+                  items:
+                    type: string
+                allowedParameters:
+                  type: array
+                  items:
+                    type: string
+
+    InvalidIdentifierError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "INVALID_IDENTIFIER"
+            message:
+              type: string
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+
+    NotFoundError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "PERSON_NOT_FOUND"
+            message:
+              type: string
+              example: "Person not found"
+            details:
+              type: object
+              properties:
+                help:
+                  type: string
+
+    RateLimitError:
+      type: object
+      description: Per-minute API rate limit exceeded
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'RATE_LIMIT_EXCEEDED'
+            message:
+              type: string
+              example: "Rate limit exceeded. Maximum 200 requests per minute."
+            details:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                  example: 200
+                window:
+                  type: string
+                  example: "60 seconds"
+                help:
+                  type: string
+      required:
+        - error
+
+    SemanticUsageLimitError:
+      type: object
+      description: |
+        Monthly semantic-search usage limit exceeded. Only returned when the request included
+        `company.search_query` or `portfolio_company.search_query`.
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'USAGE_LIMIT_EXCEEDED'
+            message:
+              type: string
+              example: "Search limit exceeded"
+            details:
+              type: object
+              properties:
+                failed_block:
+                  type: string
+                  enum: ['company', 'portfolio_company']
+                  description: Which semantic call hit the limit. Optional — only present on the unified people endpoint, which can issue two semantic calls per request.
+                currentUsage:
+                  type: integer
+                  description: Current monthly semantic-search count
+                  example: 1000
+                limit:
+                  type: integer
+                  description: Monthly semantic-search ceiling for this API key tier
+                  example: 1000
+                help:
+                  type: string
+                  example: "You have reached your search usage limit. Upgrade your plan or wait for the next cycle."
+      required:
+        - error
+
+    SemanticTimeoutError:
+      type: object
+      description: |
+        Semantic search timed out. Only returned when the request included
+        `company.search_query` or `portfolio_company.search_query`.
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'TIMEOUT'
+            message:
+              type: string
+              example: "The semantic search operation timed out. Please try a simpler query."
+            details:
+              type: object
+              properties:
+                failed_block:
+                  type: string
+                  enum: ['company', 'portfolio_company']
+                  description: Which semantic call timed out
+                help:
+                  type: string
+                  example: "Try a simpler query or fewer filters"
+      required:
+        - error
+
+    InsufficientCreditsError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INSUFFICIENT_CREDITS'
+            message:
+              type: string
+            details:
+              type: object
+              properties:
+                credits_needed:
+                  type: integer
+                  nullable: true
+                monthly_credits_remaining:
+                  type: integer
+                purchased_credits_remaining:
+                  type: integer
+                help:
+                  type: string
+      required:
+        - error
+
+    ServerError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "INTERNAL_SERVER_ERROR"
+            message:
+              type: string
+
+tags:
+  - name: people
+    description: People search and detail operations

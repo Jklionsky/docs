@@ -42,16 +42,8 @@ paths:
     get:
       summary: Search locations by name and optionally filter by type
       description: |
-        Look up locations (cities, states, countries, regions) by name with fuzzy matching. The `name` parameter is required; `type` is optional.
-
-        **Search types:**
-        - `name` — Fuzzy name search with relevance scoring (required)
-        - `type` — Optional filter by location type: `CITY`, `STATE`, `REGION`, or `COUNTRY`
-        - `location_type` — Alias for `type`
-
-        Examples:
-        - `?name=san francisco`
-        - `?name=california&type=STATE`
+        Search for locations (cities, states, countries, regions) by name with fuzzy matching.
+        Optionally filter results by specific location type using the 'type' or 'location_type' parameter.
       operationId: searchLocations
       parameters:
         - name: name
@@ -235,16 +227,8 @@ paths:
     get:
       summary: Search industries and super categories by name
       description: |
-        Look up industries and super categories by name with fuzzy matching. The `name` parameter is required; `type` is optional.
-
-        **Search types:**
-        - `name` — Fuzzy name search with relevance scoring (required)
-        - `type` — Optional filter by industry type: `INDUSTRY` or `SUPER_CATEGORY`
-        - `industry_type` — Alias for `type`
-
-        Examples:
-        - `?name=artificial intelligence`
-        - `?name=fintech&type=INDUSTRY`
+        Search for industries and super categories by name with fuzzy matching.
+        Optionally filter results by specific type using the 'type' or 'industry_type' parameter.
       operationId: searchIndustries
       parameters:
         - name: name

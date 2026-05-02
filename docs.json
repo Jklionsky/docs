@@ -16,6 +16,7 @@
     "/openapi/openapi-deals.yaml",
     "/openapi/openapi-companies.yaml",
     "/openapi/openapi-investors.yaml",
+    "/openapi/openapi-people.yaml",
     "/openapi/openapi-alerts.yaml",
     "/openapi/openapi-other.yaml"
   ],
@@ -77,22 +78,26 @@
             ]
           },
           {
+            "group": "People",
+            "pages": [
+              "api-reference/people/list",
+              "api-reference/people/get",
+              "api-reference/people/deals",
+              "api-reference/people/search"
+            ]
+          },
+          {
+            "group": "Filters",
+            "pages": [
+              "api-reference/industries/search",
+              "api-reference/locations/search"
+            ]
+          },
+          {
             "group": "Alerts",
             "pages": [
               "api-reference/alerts/list",
               "api-reference/alerts/configurations"
-            ]
-          },
-          {
-            "group": "Industries",
-            "pages": [
-              "api-reference/industries/search"
-            ]
-          },
-          {
-            "group": "Locations",
-            "pages": [
-              "api-reference/locations/search"
             ]
           }
         ]

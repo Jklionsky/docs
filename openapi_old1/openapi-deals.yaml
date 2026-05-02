@@ -823,7 +823,7 @@ components:
               name: "John Smith"
               linkedin: "https://linkedin.com/in/johnsmith"
               crunchbase: "https://crunchbase.com/person/john-smith"
-              twitter: "https://x.com/johnsmith"
+              twitter: "@johnsmith"
         financing_type:
           type: string
           nullable: true
@@ -870,7 +870,7 @@ components:
         twitter:
           type: string
           nullable: true
-          description: Twitter/X URL.
+          description: Twitter / X handle or URL.
       required:
         - id
 

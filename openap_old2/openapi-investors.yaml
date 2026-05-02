@@ -31,8 +31,8 @@ info:
     ### `identifiers` — Investor lookup filters
     - `ids` — Investor UUIDs
     - `domains` — Investor domains (max 100)
-    - `linkedin_urls` — Investor LinkedIn URLs (max 100)
-    - `crunchbase_urls` — Investor Crunchbase URLs (max 100)
+    - `linkedin_urls` — Investor LinkedIn slugs or URLs (max 100)
+    - `crunchbase_urls` — Investor Crunchbase slugs or URLs (max 100)
 
     ### `investor` — Entity-level filters
     - `locations` — Investor HQ location (permalinks)
@@ -71,13 +71,14 @@ paths:
       description: |
         Retrieve a paginated list of investors with optional filtering.
 
-        ## Request Body Structure
-        Send a JSON body with up to 3 filter sections plus pagination/sort at the top level:
-        - `identifiers` - Look up specific investors by UUID, domain, LinkedIn, or Crunchbase
-        - `investor` - Filter by investor entity attributes (location, employee count)
-        - `company_investments` - Filter by portfolio (industries, deal characteristics, etc.)
+        Send a JSON body with filters organized into three sections:
+        1. **identifiers** — lookup by investor ID, domain, LinkedIn, or Crunchbase
+        2. **investor** — filter on the investor entity itself (location, employee count)
+        3. **company_investments** — filter by portfolio (industries, deal characteristics, etc.)
 
-        When `company_investments` filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.
+        When company_investments filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.
+
+        All filter fields that accept multiple values use JSON arrays (not comma-separated strings).
       operationId: listInvestors
       requestBody:
         required: false
@@ -105,16 +106,16 @@ paths:
                       example: ["sequoiacap.com", "a16z.com"]
                     linkedin_urls:
                       type: array
-                      description: Investor LinkedIn URLs (max 100)
+                      description: Investor LinkedIn slugs or full URLs (max 100). Auto-normalized.
                       items:
                         type: string
-                      example: ["https://linkedin.com/company/sequoia-capital", "https://linkedin.com/company/andreessen-horowitz"]
+                      example: ["sequoia-capital", "https://linkedin.com/company/andreessen-horowitz"]
                     crunchbase_urls:
                       type: array
-                      description: Investor Crunchbase URLs (max 100)
+                      description: Investor Crunchbase slugs or full URLs (max 100). Auto-normalized.
                       items:
                         type: string
-                      example: ["https://crunchbase.com/organization/sequoia-capital", "https://crunchbase.com/organization/andreessen-horowitz"]
+                      example: ["organization/sequoia-capital", "https://crunchbase.com/organization/andreessen-horowitz"]
                 investor:
                   type: object
                   description: Investor entity-level filters
@@ -250,9 +251,9 @@ paths:
                 page_size:
                   type: integer
                   minimum: 1
-                  maximum: 500
+                  maximum: 100
                   default: 10
-                  description: Number of results per page (max 500)
+                  description: Number of results per page (max 100)
                 sort_by:
                   type: string
                   enum: ["most_recent_deal", "recent_deals", "deals_led_ltm", "total_deals", "matching_deals"]
@@ -425,14 +426,14 @@ paths:
           example: "sequoiacap.com"
         - name: linkedin
           in: query
-          description: LinkedIn company URL
+          description: LinkedIn company URL (e.g., "https://linkedin.com/company/sequoia-capital")
           required: false
           schema:
             type: string
           example: "https://linkedin.com/company/sequoia-capital"
         - name: crunchbase
           in: query
-          description: Crunchbase organization URL
+          description: Crunchbase organization URL (e.g., "https://crunchbase.com/organization/sequoia-capital")
           required: false
           schema:
             type: string
@@ -533,16 +534,11 @@ paths:
     get:
       summary: Get deals for an investor by identifier
       description: |
-        Retrieve all deals for an investor using any supported identifier format.
-        The API intelligently detects the identifier type and queries accordingly.
+        Look up an investor by ID, domain, LinkedIn, or Crunchbase identifier, then return all of their deals
+        with pagination. If the identifier matches multiple investors (e.g., a16z has multiple firms),
+        deals from all matches are returned together.
 
-        Provide ONE of the following query parameters to identify the investor:
-        - `id` - Investor UUID
-        - `domain` - Investor domain or full URL (e.g., "sequoiacap.com" or "https://sequoiacap.com")
-        - `linkedin` - LinkedIn company URL
-        - `crunchbase` - Crunchbase organization URL
-
-        The response includes the investor's deals with pagination. If the identifier matches multiple investors (e.g., a16z has multiple firms), deals from all matches are returned together.
+        Provide exactly ONE identifier parameter plus optional pagination.
       operationId: getInvestorDeals
       parameters:
         - name: id
@@ -562,14 +558,14 @@ paths:
           example: "sequoiacap.com"
         - name: linkedin
           in: query
-          description: LinkedIn company URL
+          description: LinkedIn company URL (full URL required, e.g., "https://linkedin.com/company/sequoia-capital")
           required: false
           schema:
             type: string
           example: "https://linkedin.com/company/sequoia-capital"
         - name: crunchbase
           in: query
-          description: Crunchbase organization URL
+          description: Crunchbase organization URL (full URL required, e.g., "https://crunchbase.com/organization/sequoia-capital")
           required: false
           schema:
             type: string
@@ -585,12 +581,12 @@ paths:
           example: 0
         - name: page_size
           in: query
-          description: Number of results per page (1-500)
+          description: Number of results per page (1-100)
           required: false
           schema:
             type: integer
             minimum: 1
-            maximum: 500
+            maximum: 100
             default: 10
           example: 10
       responses:
@@ -747,18 +743,20 @@ paths:
     get:
       summary: Search investors by name, domain, LinkedIn, or Crunchbase
       description: |
-        Look up investors using one of four search methods. Exactly one parameter must be provided.
+        Search for investors using one of four mutually exclusive search types.
+        Provide exactly one parameter — sending zero or multiple returns a 400 error.
 
-        **Search types:**
-        - `name` — Fuzzy name search with relevance scoring
-        - `domain` — Investor domain or full URL
-        - `linkedin` — LinkedIn company URL
-        - `crunchbase` — Crunchbase organization URL
+        | Parameter | Behavior | Example |
+        |-----------|----------|---------|
+        | `name` | Fuzzy name search with relevance scoring | `?name=sequoia` |
+        | `domain` | Exact match on investor domain | `?domain=sequoiacap.com` |
+        | `linkedin` | Match by full LinkedIn company URL | `?linkedin=https://linkedin.com/company/sequoia-capital` |
+        | `crunchbase` | Match by full Crunchbase organization URL | `?crunchbase=https://crunchbase.com/organization/sequoia-capital` |
+
+        **LinkedIn and Crunchbase require full URLs** — bare slugs are rejected with a 400 error.
+        URLs are validated and normalized to slugs for database lookup.
 
         Identifier lookups (`domain`, `linkedin`, `crunchbase`) return `relevance_score: 1`.
-        Examples:
-        - `?linkedin=https://linkedin.com/company/sequoia-capital`
-        - `?crunchbase=https://crunchbase.com/organization/sequoia-capital`
       operationId: searchInvestors
       parameters:
         - name: name
@@ -770,21 +768,25 @@ paths:
           example: "sequoia"
         - name: domain
           in: query
-          description: Investor domain or full URL (e.g., "sequoiacap.com" or "https://sequoiacap.com") — URLs are automatically parsed to extract the domain
+          description: Investor website domain (exact match)
           required: false
           schema:
             type: string
           example: "sequoiacap.com"
         - name: linkedin
           in: query
-          description: LinkedIn company URL
+          description: |
+            Full LinkedIn company URL (e.g., https://linkedin.com/company/sequoia-capital).
+            Bare slugs like "sequoia-capital" are rejected — a full URL is required.
           required: false
           schema:
             type: string
           example: "https://linkedin.com/company/sequoia-capital"
         - name: crunchbase
           in: query
-          description: Crunchbase organization URL
+          description: |
+            Full Crunchbase organization URL (e.g., https://crunchbase.com/organization/sequoia-capital).
+            Bare slugs like "sequoia-capital" are rejected — a full URL is required.
           required: false
           schema:
             type: string
