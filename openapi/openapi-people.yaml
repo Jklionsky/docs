@@ -1311,12 +1311,6 @@ components:
           format: date
           nullable: true
           description: Most recent matching-deal date. Populated only when any `investor.deals.*` filter is present.
-        matching_deals:
-          type: array
-          nullable: true
-          description: Up to 3 deals (most recent first) the person participated in that match the `investor.deals.*` filters. Populated only when any `investor.deals.*` filter is present; otherwise null.
-          items:
-            $ref: '#/components/schemas/AngelDeal'
 
     PersonDetail:
       allOf:
