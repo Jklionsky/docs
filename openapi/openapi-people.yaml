@@ -1263,16 +1263,6 @@ components:
           type: string
           format: date
           nullable: true
-        recent_angel_deals:
-          type: array
-          description: Up to 3 most recent angel deals
-          items:
-            $ref: '#/components/schemas/AngelDeal'
-        recent_firm_deals:
-          type: array
-          description: Up to 3 most recent firm deals
-          items:
-            $ref: '#/components/schemas/FirmDeal'
         filtered_deal_count:
           type: integer
           nullable: true
@@ -1427,65 +1417,6 @@ components:
           type: string
           format: date
           nullable: true
-
-    AngelDeal:
-      type: object
-      description: An angel-investment deal record. Sizes are in USD.
-      properties:
-        deal_id:
-          type: string
-          format: uuid
-        company:
-          type: object
-          properties:
-            name:
-              type: string
-              nullable: true
-            permalink:
-              type: string
-              nullable: true
-            domain:
-              type: string
-              nullable: true
-        date:
-          type: string
-          format: date
-          nullable: true
-        size:
-          type: integer
-          nullable: true
-          description: Deal size in USD
-          example: 5000000
-        financing_type:
-          type: string
-          nullable: true
-          example: "SEED"
-        extension:
-          type: boolean
-          nullable: true
-        intermediate:
-          type: string
-          nullable: true
-          example: "NONE"
-        pre:
-          type: boolean
-          nullable: true
-        lead_investor:
-          type: boolean
-          nullable: true
-
-    FirmDeal:
-      allOf:
-        - $ref: '#/components/schemas/AngelDeal'
-        - type: object
-          properties:
-            firm:
-              type: object
-              properties:
-                id:
-                  type: string
-                  nullable: true
-                  format: uuid
 
     PaginationMeta:
       type: object
