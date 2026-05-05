@@ -52,8 +52,9 @@ info:
     explicit `sort_by` is ignored.
 
     ## Response shape
-    Every row carries every field. Investor-context fields (`is_investor`, `firms`, `deal_count`,
-    etc.) populate to defaults (`false` / `0` / `[]` / `null`) for people who aren't investors.
+    Every row carries every field. Investor-context aggregates (deal counts, top industries / locations / round types,
+    most recent deal date) live under a single `investor_highlights` object. For non-investors,
+    `investor_highlights` is `null` and `is_investor` / `is_angel` / `has_led_deal` are `false`.
     Pure employees and pure angels have the same shape — only the values differ.
 
     ## Person identifiers (for `/person`)
@@ -66,7 +67,7 @@ info:
 
     ## Money units
     All monetary values in request and response are in **actual USD** (not millions). For example,
-    `total_raised_min: 10000000` means $10M, and a response `latest_deal_size: 50000000` means $50M.
+    `total_raised_min: 10000000` means $10M.
 
   version: 1.0.0
   contact:
@@ -1041,10 +1042,16 @@ paths:
                             linkedin_url:
                               type: string
                               nullable: true
+                            profile_image_url:
+                              type: string
+                              nullable: true
                             title:
                               type: string
                               nullable: true
                             current_firm_name:
+                              type: string
+                              nullable: true
+                            current_firm_logo:
                               type: string
                               nullable: true
                             current_firm_domain:
@@ -1135,10 +1142,11 @@ components:
     PersonSearchResult:
       type: object
       description: |
-        Constant unified person shape — every row carries every field. Investor-context
-        fields (`is_investor`, `firms`, `deal_count`, etc.) default to `false` / `0` / `[]`
-        for people who aren't investors. `employment_history` and `education_history` are
-        capped at 3 in the search response; the detail endpoint returns the full lists.
+        Constant unified person shape — every row carries every field. Investor aggregates live
+        under `investor_highlights` (null for non-investors); discriminator flags `is_investor` /
+        `is_angel` / `has_led_deal` and `investment_firms` stay top-level. `employment_history`
+        and `education_history` are capped at 3 in the search response; the detail endpoint
+        returns the full lists.
       properties:
         id:
           type: string
@@ -1229,40 +1237,15 @@ components:
         has_led_deal:
           type: boolean
           description: Whether the person has ever led a deal
-        firms:
+        investment_firms:
           type: array
           description: Firms the person invests under (empty for pure angels)
           items:
             $ref: '#/components/schemas/Firm'
-        top_industries:
-          type: array
-          description: Top portfolio industries by deal count
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-              permalink:
-                type: string
-              count:
-                type: integer
-        deal_count:
-          type: integer
-          description: Total tracked deals for this person (0 for non-investors)
-          example: 12
-        lead_deal_count:
-          type: integer
-          description: Total deals the person/firm led (0 for non-investors)
-        lead_deal_count_last_12_months:
-          type: integer
-          description: Lead deals in the last 12 months
-        recent_deal_count:
-          type: integer
-          description: Deals in the last 12 months (any role)
-        most_recent_deal_date:
-          type: string
-          format: date
+        investor_highlights:
           nullable: true
+          description: Aggregated investor activity. Null when `is_investor` is false.
+          $ref: '#/components/schemas/InvestorHighlights'
         filtered_deal_count:
           type: integer
           nullable: true
@@ -1311,23 +1294,6 @@ components:
           description: Fundable permalink for the company
         domain:
           type: string
-          nullable: true
-        latest_deal_id:
-          type: string
-          format: uuid
-          nullable: true
-        latest_deal_type:
-          type: string
-          nullable: true
-          example: "SERIES_A"
-        latest_deal_size:
-          type: integer
-          nullable: true
-          description: Latest deal size (USD)
-          example: 10000000
-        latest_deal_date:
-          type: string
-          format: date
           nullable: true
 
     EmploymentRecord:
@@ -1417,6 +1383,68 @@ components:
           type: string
           format: date
           nullable: true
+
+    InvestorHighlights:
+      type: object
+      description: Aggregated investor activity. Counts dedupe by deal across angel + firm contributions.
+      properties:
+        deal_count:
+          type: integer
+          description: Total tracked deals for this person
+          example: 12
+        lead_deal_count:
+          type: integer
+          description: Total deals the person led
+        lead_deal_count_last_12_months:
+          type: integer
+          description: Lead deals in the last 12 months
+        recent_deal_count:
+          type: integer
+          description: Deals in the last 12 months (any role)
+        most_recent_deal_date:
+          type: string
+          format: date
+          nullable: true
+        top_industries:
+          type: array
+          description: Top portfolio industries by deal count (max 5)
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              permalink:
+                type: string
+              count:
+                type: integer
+        top_locations:
+          type: array
+          description: Top portfolio company cities by deal count (max 5)
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              full_name:
+                type: string
+              permalink:
+                type: string
+              type:
+                type: string
+                example: "CITY"
+              count:
+                type: integer
+        top_round_types:
+          type: array
+          description: Top financing round types by deal count (max 5)
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: "SERIES_A"
+              count:
+                type: integer
 
     PaginationMeta:
       type: object
