@@ -1041,16 +1041,10 @@ paths:
                             linkedin_url:
                               type: string
                               nullable: true
-                            profile_image_url:
-                              type: string
-                              nullable: true
                             title:
                               type: string
                               nullable: true
                             current_firm_name:
-                              type: string
-                              nullable: true
-                            current_firm_logo:
                               type: string
                               nullable: true
                             current_firm_domain:
@@ -1175,14 +1169,6 @@ components:
           type: string
           nullable: true
           example: "person/jane-doe"
-        profile_image_url:
-          type: string
-          nullable: true
-          format: uri
-        banner_image_url:
-          type: string
-          nullable: true
-          format: uri
         location:
           type: string
           nullable: true
@@ -1212,17 +1198,6 @@ components:
         is_current:
           type: boolean
           description: Currently at the listed company
-        has_email:
-          type: boolean
-        has_phone:
-          type: boolean
-        email:
-          type: string
-          nullable: true
-          format: email
-        phone:
-          type: string
-          nullable: true
         followers:
           type: integer
           nullable: true
@@ -1347,10 +1322,6 @@ components:
         domain:
           type: string
           nullable: true
-        image:
-          type: string
-          nullable: true
-          format: uri
         latest_deal_id:
           type: string
           format: uuid
@@ -1385,10 +1356,6 @@ components:
           type: string
           nullable: true
           format: uri
-        company_logo_url:
-          type: string
-          nullable: true
-          format: uri
         location:
           type: string
           nullable: true
@@ -1417,10 +1384,6 @@ components:
           type: string
           nullable: true
         school_url:
-          type: string
-          nullable: true
-          format: uri
-        school_logo_url:
           type: string
           nullable: true
           format: uri
@@ -1457,10 +1420,6 @@ components:
         domain:
           type: string
           nullable: true
-        image:
-          type: string
-          nullable: true
-          format: uri
         deal_count:
           type: integer
           description: Number of deals this person has done under this firm
@@ -1485,10 +1444,6 @@ components:
             permalink:
               type: string
               nullable: true
-            logo:
-              type: string
-              nullable: true
-              format: uri
             domain:
               type: string
               nullable: true
