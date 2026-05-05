@@ -966,17 +966,14 @@ paths:
         Look up people using one of five search methods. Exactly one parameter must be provided.
 
         **Search types:**
-        - `name` — Fuzzy name search with relevance scoring (returns up to ~150 results)
+        - `name` — Fuzzy name search across both investors AND non-investor people (founders, employees). Returns up to 10 results.
         - `id` — Person UUID lookup (returns 0 or 1)
-        - `linkedin` — LinkedIn person URL
-        - `crunchbase` — Crunchbase person URL
-        - `twitter` — Twitter/X URL
+        - `linkedin` — LinkedIn person URL or slug
+        - `crunchbase` — Crunchbase person URL or slug
+        - `twitter` — Twitter/X URL or handle
 
-        Examples:
-        - `?linkedin=https://linkedin.com/in/jane-doe-12345`
-        - `?twitter=https://x.com/janedoe`
-
-        Returns lightweight `PersonSearchResult` rows. For full person detail, use `/person`.
+        `person_type` on each result indicates which pool the row came from
+        (`investor` wins when a person is in both). For full person detail, use `/person`.
       operationId: searchPerson
       parameters:
         - name: name
@@ -1042,30 +1039,19 @@ paths:
                             linkedin_url:
                               type: string
                               nullable: true
-                            profile_image_url:
+                              format: uri
+                            crunchbase_url:
                               type: string
                               nullable: true
-                            title:
+                              format: uri
+                            twitter_url:
                               type: string
                               nullable: true
-                            current_firm_name:
+                              format: uri
+                            person_type:
                               type: string
-                              nullable: true
-                            current_firm_logo:
-                              type: string
-                              nullable: true
-                            current_firm_domain:
-                              type: string
-                              nullable: true
-                            affiliation_status:
-                              type: string
-                              enum: [active, past, angel, investor]
-                            is_angel:
-                              type: boolean
-                            has_led_deal:
-                              type: boolean
-                            relevance_score:
-                              type: number
+                              enum: [investor, company]
+                              description: Which pool the result came from. Mirrors the request-body discriminator on POST /people.
                   meta:
                     type: object
                     properties:
@@ -1165,18 +1151,17 @@ components:
           type: string
           nullable: true
           format: uri
-        linkedin_id:
-          type: string
-          nullable: true
-          example: "jane-doe-12345"
+          description: Canonical LinkedIn person URL
         crunchbase_url:
           type: string
           nullable: true
           format: uri
-        crunchbase_id:
+          description: Canonical Crunchbase person URL
+        twitter_url:
           type: string
           nullable: true
-          example: "person/jane-doe"
+          format: uri
+          description: Canonical Twitter/X profile URL
         location:
           type: string
           nullable: true
@@ -1192,11 +1177,6 @@ components:
           type: string
           nullable: true
           description: LinkedIn bio/about section
-        twitter:
-          type: string
-          nullable: true
-          description: Twitter handle (no leading @)
-          example: "janedoe"
         is_founder:
           type: boolean
         is_ceo:
