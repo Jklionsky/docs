@@ -1012,6 +1012,19 @@ paths:
           schema:
             type: string
           example: "https://x.com/janedoe"
+        - name: person_type
+          in: query
+          required: false
+          description: |
+            Optional filter restricting results to one pool. `investor` keeps only
+            people tracked as investors/angels; `company` keeps only non-investor
+            people (founders, CEOs, employees). Omit to search both. Applies to
+            both name and identifier modes — identifier lookups return empty if
+            the resolved person doesn't match the requested type.
+          schema:
+            type: string
+            enum: [investor, company]
+          example: "investor"
       responses:
         '200':
           description: Successful search results
