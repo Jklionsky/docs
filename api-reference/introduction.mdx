@@ -31,12 +31,19 @@ All endpoints require Bearer token authentication. See the [Authentication](/aut
 - **GET /investor** -- Get a single investor by identifier
 - **GET /investor/search** -- Search investors by name or domain
 
+### People
+- **POST /people** -- Search people (founders, executives, investors) with cross-type filters and semantic search
+- **GET /person** -- Get a single person by identifier (ID, LinkedIn, Crunchbase, Twitter)
+- **GET /person/deals** -- Get all deals a person has participated in as an investor
+- **GET /person/search** -- Search people by name or identifier
+
+### Filters
+- **GET /industry/search** -- Search industries by name with fuzzy matching
+- **GET /location/search** -- Search locations by name with fuzzy matching
+
 ### Alerts
 - **GET /alerts** -- List saved alert deal data for specified date ranges
 - **GET /alerts/configurations** -- Get alert configurations
-
-### Locations
-- **GET /location/search** -- Search locations by name with fuzzy matching
 
 ## Error Handling
 
