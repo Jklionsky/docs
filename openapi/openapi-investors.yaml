@@ -119,6 +119,22 @@ paths:
                   type: object
                   description: Investor entity-level filters
                   properties:
+                    search_query:
+                      type: string
+                      description: |
+                        Semantic search query for investors. When provided, results are ranked by
+                        relevance to the query rather than the default sort. Other `investor` filters
+                        and `company_investments` filters can still be combined with this field.
+                      example: "early stage deep tech investor focused on climate"
+                    min_relevance:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                      description: |
+                        Minimum relevance score threshold (0–1) for semantic search results.
+                        Only applies when `search_query` is provided. Results below this score
+                        are excluded. Defaults to 0 (return all results).
+                      example: 0.5
                     locations:
                       type: array
                       description: Investor HQ location permalinks
@@ -143,6 +159,12 @@ paths:
                         type: string
                         format: uuid
                       example: ["97ae048e-77bc-471b-821a-f9decb373689"]
+                    locations:
+                      type: array
+                      description: Portfolio company location permalinks
+                      items:
+                        type: string
+                      example: ["san-francisco-california"]
                     industries:
                       type: array
                       description: Portfolio company industry permalinks
@@ -155,12 +177,6 @@ paths:
                       items:
                         type: string
                       example: ["financial-services"]
-                    locations:
-                      type: array
-                      description: Portfolio company location permalinks
-                      items:
-                        type: string
-                      example: ["san-francisco-california"]
                     employee_count:
                       type: array
                       description: Portfolio company employee count ranges

@@ -201,6 +201,12 @@ paths:
                         type: string
                         format: uuid
                       example: ["660e8400-e29b-41d4-a716-446655440000"]
+                    locations:
+                      type: array
+                      description: Location permalinks
+                      items:
+                        type: string
+                      example: ["san-francisco-california", "new-york-new-york"]
                     industries:
                       type: array
                       description: Industry permalinks
@@ -213,12 +219,6 @@ paths:
                       items:
                         type: string
                       example: ["financial-services"]
-                    locations:
-                      type: array
-                      description: Location permalinks
-                      items:
-                        type: string
-                      example: ["san-francisco-california", "new-york-new-york"]
                     employee_count:
                       type: array
                       description: Current-employer headcount ranges
@@ -373,21 +373,31 @@ paths:
                         `portfolio_locations`, `portfolio_employee_count`, `ipo_status`,
                         `total_raised_min/max`, plus semantic `search_query` / `min_relevance`).
                       properties:
+                        search_query:
+                          type: string
+                          description: AI-powered natural-language search against portfolio companies. Overrides explicit sort_by — results are ordered by relevance.
+                          example: "AI infrastructure"
+                        min_relevance:
+                          type: number
+                          minimum: 0
+                          maximum: 1
+                          description: Minimum similarity threshold (0-1). Only applies with search_query.
+                          example: 0.5
                         investment_type:
                           type: string
                           enum: ['all', 'angel', 'institutional']
                           default: 'all'
                           description: Filter by whether the person invests as an angel, under a firm, or both
                           example: "angel"
+                        only_lead_deals:
+                          type: boolean
+                          default: false
+                          description: Only count deals where the person/firm was a lead investor
                         min_matching_deals:
                           type: integer
                           minimum: 1
                           description: Require at least this many deals to match the deal filters
                           example: 3
-                        only_lead_deals:
-                          type: boolean
-                          default: false
-                          description: Only count deals where the person/firm was a lead investor
                         financing_types:
                           type: array
                           description: Financing types for the person's investment activity
@@ -428,16 +438,6 @@ paths:
                           type: string
                           format: date
                           example: "2024-12-31"
-                        search_query:
-                          type: string
-                          description: AI-powered natural-language search against portfolio companies. Overrides explicit sort_by — results are ordered by relevance.
-                          example: "AI infrastructure"
-                        min_relevance:
-                          type: number
-                          minimum: 0
-                          maximum: 1
-                          description: Minimum similarity threshold (0-1). Only applies with search_query.
-                          example: 0.5
                         industries:
                           type: array
                           description: Portfolio company industry permalinks
