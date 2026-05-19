@@ -25,7 +25,10 @@
       "method": "bearer",
       "name": "Authorization"
     },
-    "baseUrl": "https://www.tryfundable.ai/api/v1"
+    "baseUrl": "https://www.tryfundable.ai/api/v1",
+    "examples": {
+      "autogenerate": false
+    }
   },
   "navigation": {
     "tabs": [

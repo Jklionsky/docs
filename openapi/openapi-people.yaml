@@ -492,8 +492,6 @@ paths:
                     - 'most_recent_deal_date'
                     - 'total_raised'
                     - 'latest_deal_size'
-                    - 'followers'
-                    - 'connections'
                     - 'name'
                     - 'total_deal_count'
                     - 'recent_deal_count'
@@ -1192,21 +1190,6 @@ components:
           description: LinkedIn bio/about section
         is_founder:
           type: boolean
-        is_ceo:
-          type: boolean
-        is_key_person:
-          type: boolean
-        is_current:
-          type: boolean
-          description: Currently at the listed company
-        followers:
-          type: integer
-          nullable: true
-          description: LinkedIn follower count
-        connections:
-          type: integer
-          nullable: true
-          description: LinkedIn connection count
         current_company:
           $ref: '#/components/schemas/PersonCurrentCompany'
         employment_history:

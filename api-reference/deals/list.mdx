@@ -2,3 +2,39 @@
 title: "List Deals"
 openapi: "/openapi/openapi-deals.yaml POST /deals"
 ---
+
+<RequestExample>
+
+```bash Filter by financing type
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/deals \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"deal":{"financing_types":[{"type":"SERIES_A"},{"type":"SERIES_B"}]},"page_size":10}'
+```
+
+```bash Pre-seed deals
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/deals \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"deal":{"financing_types":[{"type":"SEED","pre":true}]},"page_size":10}'
+```
+
+```bash Filter by company attributes
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/deals \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"company":{"industries":["artificial-intelligence"],"ipo_status":["private"]},"deal":{"size_min":5000000,"size_max":100000000},"page_size":10}'
+```
+
+```bash Look up by deal IDs
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/deals \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"identifiers":{"deal_ids":["550e8400-e29b-41d4-a716-446655440000"]}}'
+```
+
+</RequestExample>

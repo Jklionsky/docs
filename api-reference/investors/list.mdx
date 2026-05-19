@@ -2,3 +2,31 @@
 title: "List Investors"
 openapi: "/openapi/openapi-investors.yaml POST /investors"
 ---
+
+<RequestExample>
+
+```bash SF investors in AI Series A/B
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/investors \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"investor":{"locations":["san-francisco-california"]},"company_investments":{"industries":["artificial-intelligence"],"financing_types":[{"type":"SERIES_A"},{"type":"SERIES_B"}],"deal_start_date":"2023-01-01"},"page":0,"page_size":25,"sort_by":"most_recent_deal"}'
+```
+
+```bash Look up by domain
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/investors \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"identifiers":{"domains":["sequoiacap.com","a16z.com"]}}'
+```
+
+```bash Active lead investors
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/investors \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"company_investments":{"industries":["fintech"],"only_lead_deals":true,"min_matching_deals":3,"deal_start_date":"2024-01-01"},"sort_by":"deals_led_ltm","page_size":50}'
+```
+
+</RequestExample>

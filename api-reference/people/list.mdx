@@ -2,3 +2,31 @@
 title: "List People"
 openapi: "/openapi/openapi-people.yaml POST /people"
 ---
+
+<RequestExample>
+
+```bash Founders at private fintech companies
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/people \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"person":{"roles":["founder"]},"company":{"industries":["fintech"],"ipo_status":["private"]},"page_size":25}'
+```
+
+```bash Cross-type semantic search
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/people \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"person":{"roles":["founder"]},"company":{"search_query":"climate tech","min_relevance":0.6},"investor":{"deals":{"search_query":"AI infrastructure","min_relevance":0.6}},"page_size":10}'
+```
+
+```bash Lookup by LinkedIn URL
+curl --request POST \
+  --url https://www.tryfundable.ai/api/v1/people \
+  --header 'Authorization: Bearer YOUR_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{"identifiers":{"linkedin_urls":["https://linkedin.com/in/jane-doe-12345","https://linkedin.com/in/john-smith-67890"]}}'
+```
+
+</RequestExample>
