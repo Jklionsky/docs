@@ -39,6 +39,8 @@ info:
     - `employee_count` — Investor firm employee count ranges
 
     ### `company_investments` — Portfolio filters
+    - `search_query` — Semantic search over investors' portfolio company contents (results ranked by portfolio relevance)
+    - `min_relevance` — Minimum relevance threshold (0–1) for the portfolio semantic search
     - `company_ids` — Specific portfolio companies (by UUID)
     - `industries`, `super_categories`, `locations` — Portfolio company attributes
     - `employee_count`, `ipo_status` — Portfolio company characteristics
@@ -75,7 +77,7 @@ paths:
         Send a JSON body with up to 3 filter sections plus pagination/sort at the top level:
         - `identifiers` - Look up specific investors by UUID, domain, LinkedIn, or Crunchbase
         - `investor` - Filter by investor entity attributes (location, employee count)
-        - `company_investments` - Filter by portfolio (industries, deal characteristics, etc.)
+        - `company_investments` - Filter by portfolio (industries, deal characteristics, etc.). Supports semantic search via `search_query` + `min_relevance`.
 
         When `company_investments` filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.
       operationId: listInvestors
@@ -85,6 +87,8 @@ paths:
           application/json:
             schema:
               type: object
+              example:
+                page_size: 10
               properties:
                 identifiers:
                   type: object
@@ -119,22 +123,6 @@ paths:
                   type: object
                   description: Investor entity-level filters
                   properties:
-                    search_query:
-                      type: string
-                      description: |
-                        Semantic search query for investors. When provided, results are ranked by
-                        relevance to the query rather than the default sort. Other `investor` filters
-                        and `company_investments` filters can still be combined with this field.
-                      example: "early stage deep tech investor focused on climate"
-                    min_relevance:
-                      type: number
-                      minimum: 0
-                      maximum: 1
-                      description: |
-                        Minimum relevance score threshold (0–1) for semantic search results.
-                        Only applies when `search_query` is provided. Results below this score
-                        are excluded. Defaults to 0 (return all results).
-                      example: 0.5
                     locations:
                       type: array
                       description: Investor HQ location permalinks
@@ -159,6 +147,25 @@ paths:
                         type: string
                         format: uuid
                       example: ["97ae048e-77bc-471b-821a-f9decb373689"]
+                    search_query:
+                      type: string
+                      description: |
+                        Semantic search query matched against the contents of each investor's
+                        portfolio companies (industries, descriptions, and related portfolio
+                        attributes). When provided, results are ranked by how closely an
+                        investor's portfolio matches the query rather than the default sort.
+                        Combines with other `company_investments` and `investor` filters.
+                      example: "climate-focused deep tech startups"
+                    min_relevance:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                      description: |
+                        Minimum relevance score threshold (0–1) for the portfolio-based
+                        semantic search. Only applies when `search_query` is provided.
+                        Investors whose portfolio match score falls below this threshold
+                        are excluded. Defaults to 0 (return all results).
+                      example: 0.5
                     locations:
                       type: array
                       description: Portfolio company location permalinks
@@ -300,6 +307,15 @@ paths:
                 value:
                   identifiers:
                     domains: ["sequoiacap.com", "a16z.com"]
+              semantic_search:
+                summary: Semantic search for climate-focused investors with AI portfolio
+                value:
+                  company_investments:
+                    search_query: "climate-focused deep tech startups"
+                    min_relevance: 0.5
+                    industries: ["artificial-intelligence"]
+                  page: 0
+                  page_size: 25
               lead_investors_recent:
                 summary: Active lead investors with at least 3 matching deals
                 value:

@@ -613,6 +613,8 @@ paths:
           application/json:
             schema:
               type: object
+              example:
+                page_size: 10
               properties:
                 identifiers:
                   type: object
