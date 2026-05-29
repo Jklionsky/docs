@@ -18,32 +18,35 @@ All endpoints require Bearer token authentication. See the [Authentication](/aut
 ## Endpoints
 
 ### Deals
-- **GET /deals** -- List and filter funding rounds by company, investor, and round details
-- **GET /deals/{id}** -- Get a single deal by ID
+- **POST /deals** -- Search and filter funding rounds with pagination and sorting. Combine filters across deal attributes (financing type, size, date), company attributes (location, industry, size), and investor participation (firms or people).
+- **GET /deals/{id}** -- Retrieve full details for a single funding round by its UUID.
+- **GET /deals/{id}/investors** -- Get the full investor lineup for a deal, including lead status, the partners involved, angel investors, and profile links.
 
 ### Companies
-- **GET /companies** -- List and filter companies with advanced filtering and semantic search
-- **GET /company** -- Get a single company by identifier (ID, permalink, domain, LinkedIn, Crunchbase)
-- **GET /company/search** -- Search companies by name or domain
+- **POST /companies** -- Search and filter companies with pagination, sorting, and optional AI-powered semantic search. Filter by company attributes, latest funding round, and investors across all rounds.
+- **GET /company** -- Get full company details and the latest funding round (with participating investors) by any identifier -- UUID, domain, LinkedIn, or Crunchbase.
+- **GET /company/deals** -- Retrieve a company's complete funding history (paginated) by any identifier.
+- **GET /company/search** -- Quick lookup for a company by fuzzy name, domain, LinkedIn, or Crunchbase, with relevance scoring.
 
 ### Investors
-- **GET /investors** -- List and filter investors with portfolio-based filtering
-- **GET /investor** -- Get a single investor by identifier
-- **GET /investor/search** -- Search investors by name or domain
+- **POST /investors** -- List and filter investors with pagination and sorting. Filter by entity attributes (location, size) and by portfolio (industries, deal characteristics, semantic search); portfolio filters return per-investor matched deal and lead counts.
+- **GET /investor** -- Get an investor's full profile, statistics, and portfolio summary by any identifier -- UUID, domain, LinkedIn, or Crunchbase.
+- **GET /investor/deals** -- Retrieve an investor's complete deal history (paginated) by any identifier.
+- **GET /investor/search** -- Quick lookup for an investor by fuzzy name, domain, LinkedIn, or Crunchbase, with relevance scoring.
 
 ### People
-- **POST /people** -- Search people (founders, executives, investors) with cross-type filters and semantic search
-- **GET /person** -- Get a single person by identifier (ID, LinkedIn, Crunchbase, Twitter)
-- **GET /person/deals** -- Get all deals a person has participated in as an investor
-- **GET /person/search** -- Search people by name or identifier
+- **POST /people** -- Search people (founders, executives, investors) with pagination, sorting, and optional semantic search. Filter by person attributes, current employer, and investor activity.
+- **GET /person** -- Get full person detail, including complete employment and education history, by any identifier -- UUID, LinkedIn, Crunchbase, or Twitter.
+- **GET /person/deals** -- Retrieve every deal a person has participated in as an investor (angel plus lead/firm deals), paginated.
+- **GET /person/search** -- Quick lookup for a person by fuzzy name, UUID, LinkedIn, Crunchbase, or Twitter, across both investors and non-investor people.
 
 ### Filters
-- **GET /industry/search** -- Search industries by name with fuzzy matching
-- **GET /location/search** -- Search locations by name with fuzzy matching
+- **GET /industry/search** -- Look up industries and super categories by name with fuzzy matching and relevance scoring; optionally filter by type (`INDUSTRY` or `SUPER_CATEGORY`).
+- **GET /location/search** -- Look up locations by name with fuzzy matching and relevance scoring; optionally filter by type (`CITY`, `STATE`, `REGION`, or `COUNTRY`).
 
 ### Alerts
-- **GET /alerts** -- List saved alert deal data for specified date ranges
-- **GET /alerts/configurations** -- Get alert configurations
+- **GET /alerts** -- Retrieve saved alert data with all matching deals in a date range (up to 10 alerts per request). Deals are deduplicated, sorted newest-first, and each includes AI-generated reasoning for why it matched.
+- **GET /alerts/configurations** -- List the authenticated user's alert configurations (filters, frequency, descriptions). Does not consume usage credits.
 
 ## Error Handling
 
