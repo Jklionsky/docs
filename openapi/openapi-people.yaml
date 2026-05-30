@@ -496,7 +496,7 @@ paths:
                     - 'latest_deal_size'
                     - 'name'
                     - 'total_deal_count'
-                    - 'recent_deal_count'
+                    - 'deal_count_last_12_months'
                     - 'lead_deal_count'
                     - 'lead_deal_count_last_12_months'
                     - 'filtered_deal_count'
@@ -507,33 +507,23 @@ paths:
                     Ignored when `company.search_query` or `investor.deals.search_query` is set (results are then
                     ordered by semantic relevance).
             examples:
+              empty:
+                summary: Empty request (no filters)
+                value: {}
               filter_only:
-                summary: Founders at private fintech companies
+                summary: Founders at private financial-services companies
                 value:
                   person:
                     roles: ["founder"]
                   company:
-                    industries: ["fintech"]
                     ipo_status: ["private"]
+                    super_categories: ["financial-services-d7b6"]
                   page_size: 25
-              cross_type_semantic:
-                summary: Founders at climate-tech companies who also invested in AI infra startups
-                value:
-                  person:
-                    roles: ["founder"]
-                  company:
-                    search_query: "climate tech"
-                    min_relevance: 0.6
-                  investor:
-                    deals:
-                      search_query: "AI infrastructure"
-                      min_relevance: 0.6
-                  page_size: 10
               batch_lookup:
                 summary: Look up specific people by LinkedIn URL
                 value:
                   identifiers:
-                    linkedin_urls: ["https://linkedin.com/in/jane-doe-12345", "https://linkedin.com/in/john-smith-67890"]
+                    linkedin_urls: ["https://www.linkedin.com/in/joshua-kushner-711b45230/", "https://www.linkedin.com/in/eladgil/"]
               angel_investors_active_2024:
                 summary: People who made at least 3 angel investments in 2024
                 value:
@@ -1366,19 +1356,19 @@ components:
       type: object
       description: Aggregated investor activity. Counts dedupe by deal across angel + firm contributions.
       properties:
-        deal_count:
+        total_deal_count:
           type: integer
           description: Total tracked deals for this person
           example: 12
         lead_deal_count:
           type: integer
           description: Total deals the person led
+        deal_count_last_12_months:
+          type: integer
+          description: Deals in the last 12 months (any role)
         lead_deal_count_last_12_months:
           type: integer
           description: Lead deals in the last 12 months
-        recent_deal_count:
-          type: integer
-          description: Deals in the last 12 months (any role)
         most_recent_deal_date:
           type: string
           format: date

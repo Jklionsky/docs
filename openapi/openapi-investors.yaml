@@ -288,6 +288,9 @@ paths:
                     - **total_deals** — All-time deal count (highest first)
                     - **matching_deals** — Deals matching portfolio filters (highest first)
             examples:
+              empty:
+                summary: Empty request (no filters)
+                value: {}
               filter_only:
                 summary: Investors in SF investing in AI Series A/B rounds
                 value:
@@ -312,8 +315,6 @@ paths:
                 value:
                   company_investments:
                     search_query: "climate-focused deep tech startups"
-                    min_relevance: 0.5
-                    industries: ["artificial-intelligence"]
                   page: 0
                   page_size: 25
               lead_investors_recent:
@@ -1003,6 +1004,24 @@ components:
         name:
           type: string
           description: Investor name
+        # Stats
+        total_deal_count:
+          type: integer
+          description: Total number of deals
+        lead_deal_count:
+          type: integer
+          description: Number of deals where investor was lead
+        deal_count_last_12_months:
+          type: integer
+          description: Deals in the last 12 months
+        lead_deal_count_last_12_months:
+          type: integer
+          description: Lead deals in the last 12 months
+        most_recent_deal_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date of the most recent deal
         guru_permalink:
           type: string
           description: Fundable permalink for the investor
@@ -1059,24 +1078,6 @@ components:
           description: Contact phone number (when available)
         location:
           $ref: '#/components/schemas/LocationInfo'
-        # Stats
-        total_deal_count:
-          type: integer
-          description: Total number of deals
-        lead_deal_count:
-          type: integer
-          description: Number of deals where investor was lead
-        lead_deal_count_last_12_months:
-          type: integer
-          description: Lead deals in the last 12 months
-        recent_deal_count:
-          type: integer
-          description: Deals in the last 12 months
-        most_recent_deal_date:
-          type: string
-          format: date-time
-          nullable: true
-          description: Date of the most recent deal
         # Aggregated data
         top_industries:
           type: array
@@ -1122,7 +1123,7 @@ components:
         - guru_permalink
         - total_deal_count
         - lead_deal_count
-        - recent_deal_count
+        - deal_count_last_12_months
 
     InvestorListItem:
       description: Investor with optional portfolio filter counts, returned from the POST /investors endpoint

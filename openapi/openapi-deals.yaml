@@ -237,6 +237,9 @@ paths:
                   default: 'most_recent_deal'
                   description: Sort order for results
             examples:
+              empty:
+                summary: Empty request (no filters)
+                value: {}
               filter_by_financing:
                 summary: Filter by financing type
                 value:
