@@ -509,7 +509,8 @@ paths:
             examples:
               empty:
                 summary: Empty request (no filters)
-                value: {}
+                value:
+                  page_size: 5
               filter_only:
                 summary: Founders at private financial-services companies
                 value:
@@ -681,7 +682,7 @@ paths:
           description: LinkedIn person URL
           schema:
             type: string
-          example: "https://linkedin.com/in/jane-doe-12345"
+          example: "https://www.linkedin.com/in/eladgil/"
         - name: crunchbase
           in: query
           required: false
@@ -808,7 +809,7 @@ paths:
           required: false
           schema:
             type: string
-          example: "https://linkedin.com/in/jane-doe-12345"
+          example: "https://www.linkedin.com/in/eladgil/"
         - name: crunchbase
           in: query
           description: Crunchbase person URL
@@ -987,7 +988,7 @@ paths:
           description: LinkedIn person URL
           schema:
             type: string
-          example: "https://linkedin.com/in/jane-doe-12345"
+          example: "https://www.linkedin.com/in/eladgil/"
         - name: crunchbase
           in: query
           required: false

@@ -239,7 +239,8 @@ paths:
             examples:
               empty:
                 summary: Empty request (no filters)
-                value: {}
+                value:
+                  page_size: 5
               filter_by_financing:
                 summary: Filter by financing type
                 value:
@@ -384,7 +385,7 @@ paths:
           schema:
             type: string
             format: uuid
-            example: "550e8400-e29b-41d4-a716-446655440000"
+            example: "4b20cafe-c22b-441a-8378-53436e1d9edf"
       responses:
         '200':
           description: Successful response with deal data
@@ -563,7 +564,7 @@ paths:
           schema:
             type: string
             format: uuid
-            example: "550e8400-e29b-41d4-a716-446655440000"
+            example: "4b20cafe-c22b-441a-8378-53436e1d9edf"
       responses:
         '200':
           description: Successful response with deal investors

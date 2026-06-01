@@ -810,7 +810,8 @@ paths:
             examples:
               empty:
                 summary: Empty request (no filters)
-                value: {}
+                value:
+                  page_size: 5
               filter_only:
                 summary: Filter by IPO status and industry
                 value:
