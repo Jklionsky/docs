@@ -661,19 +661,19 @@ paths:
                       example: 0.5
                     locations:
                       type: array
-                      description: Location permalinks. Use /location/search to find permalinks.
+                      description: Location permalinks. Use /location/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
                       example: ["san-francisco-california", "california"]
                     industries:
                       type: array
-                      description: Industry permalinks
+                      description: Industry permalinks. Use /industry/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
                       example: ["artificial-intelligence", "fintech-e067"]
                     super_categories:
                       type: array
-                      description: Super category permalinks (automatically includes related industries)
+                      description: Super category permalinks (automatically includes related industries). Use /industry/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
                       example: ["artificial-intelligence-e551"]

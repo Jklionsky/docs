@@ -44,6 +44,14 @@ All endpoints require Bearer token authentication. See the [Authentication](/aut
 - **GET /industry/search** -- Look up industries and super categories by name with fuzzy matching and relevance scoring; optionally filter by type (`INDUSTRY` or `SUPER_CATEGORY`).
 - **GET /location/search** -- Look up locations by name with fuzzy matching and relevance scoring; optionally filter by type (`CITY`, `STATE`, `REGION`, or `COUNTRY`).
 
+<Tip>
+  `locations`, `industries`, and `super_categories` filters must use **exact
+  permalinks** — a wrong value is silently ignored and returns zero results. Always
+  resolve labels via the search endpoints above first. See
+  [Filtering & Permalinks](/api-reference/filtering) for the full workflow and the
+  round-type enum values.
+</Tip>
+
 ### Alerts
 - **GET /alerts** -- Retrieve saved alert data with all matching deals in a date range (up to 10 alerts per request). Deals are deduplicated, sorted newest-first, and each includes AI-generated reasoning for why it matched.
 - **GET /alerts/configurations** -- List the authenticated user's alert configurations (filters, frequency, descriptions). Does not consume usage credits.

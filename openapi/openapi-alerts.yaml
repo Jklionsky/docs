@@ -656,25 +656,25 @@ components:
               type: array
               items:
                 type: string
-              description: Industry permalinks to filter by
+              description: Industry permalinks to filter by. Use /industry/search to find permalinks; a value that is not an exact permalink is silently ignored.
               example: ["artificial-intelligence", "machine-learning"]
             super_categories:
               type: array
               items:
                 type: string
-              description: Super category permalinks to filter by
+              description: Super category permalinks to filter by. Use /industry/search to find permalinks; a value that is not an exact permalink is silently ignored.
               example: ["software"]
             locations:
               type: array
               items:
                 type: string
-              description: Location permalinks to filter by
+              description: Location permalinks to filter by. Use /location/search to find permalinks; a value that is not an exact permalink is silently ignored.
               example: ["san-francisco-bay-area", "new-york-new-york"]
             financing_types:
               type: array
               items:
                 type: string
-              description: Types of financing rounds to include
+              description: "Types of financing rounds to include. NOTE: the Alerts API accepts human-readable round names here (e.g. \"Series A\", \"Seed\"), which differs from /deals and /companies — those use the canonical enum (e.g. SERIES_A, SEED)."
               example: ["Series A", "Series B"]
             deal_size_min:
               type: number

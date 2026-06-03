@@ -125,7 +125,7 @@ paths:
                   properties:
                     locations:
                       type: array
-                      description: Investor HQ location permalinks
+                      description: Investor HQ location permalinks. Use /location/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
                       example: ["san-francisco-california", "menlo-park-california"]
@@ -168,22 +168,22 @@ paths:
                       example: 0.5
                     locations:
                       type: array
-                      description: Portfolio company location permalinks
+                      description: Portfolio company location permalinks. Use /location/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
                       example: ["san-francisco-california"]
                     industries:
                       type: array
-                      description: Portfolio company industry permalinks
+                      description: Portfolio company industry permalinks. Use /industry/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
-                      example: ["artificial-intelligence", "fintech"]
+                      example: ["artificial-intelligence", "fintech-e067"]
                     super_categories:
                       type: array
-                      description: Broad industry super-category permalinks
+                      description: Broad industry super-category permalinks. Use /industry/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
-                      example: ["financial-services"]
+                      example: ["financial-services-d7b6"]
                     employee_count:
                       type: array
                       description: Portfolio company employee count ranges

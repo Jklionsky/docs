@@ -1,0 +1,143 @@
+---
+title: "Filtering & Permalinks"
+description: "How to filter by location, industry, and round type without getting empty results"
+---
+
+Most "why is my query returning nothing?" problems come from one mistake: filtering
+by a **display name** instead of the **canonical permalink** the API expects.
+
+<Warning>
+  **Locations, industries, and super categories are matched by exact permalink — not
+  by the name you'd type in a search box.** A wrong permalink is silently ignored:
+  the filter is dropped and you get **zero or unrelated results with no error**.
+  Always resolve the permalink first.
+</Warning>
+
+| You type | What the API actually wants |
+|----------|-----------------------------|
+| `"San Francisco"` | `"san-francisco-california"` |
+| `"fintech"` | `"fintech-e067"` |
+| `"AI"` | `"artificial-intelligence"` (industry) or `"artificial-intelligence-e551"` (super category) |
+| `"Series A"` | `"SERIES_A"` |
+
+## Resolve, then query
+
+For **locations** and **industries**, never hand-write the permalink — look it up.
+Both lookup endpoints are **free (0 credits)** and use fuzzy matching, so a rough
+name is fine.
+
+<Steps>
+  <Step title="Find the permalink">
+    Call the relevant search endpoint with a plain-English name.
+
+    ```bash Locations
+    curl "https://www.tryfundable.ai/api/v1/location/search?name=san francisco" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+    ```json Response
+    {
+      "success": true,
+      "data": {
+        "locations": [
+          { "permalink": "san-francisco-california", "name": "San Francisco", "location_type": "CITY" },
+          { "permalink": "san-francisco-bay-area",   "name": "San Francisco Bay Area", "location_type": "REGION" },
+          { "permalink": "california",               "name": "California", "location_type": "STATE" }
+        ]
+      }
+    }
+    ```
+
+    Pick the row at the level you actually want — a **CITY**, **STATE**, **REGION**,
+    or **COUNTRY** are all distinct permalinks. Industry search works the same way
+    via [`GET /industry/search`](/api-reference/industries/search) and returns an
+    `industry_type` of `INDUSTRY` or `SUPER_CATEGORY`.
+  </Step>
+  <Step title="Copy the permalink into your filter">
+    Paste the exact `permalink` value into your query.
+
+    ```json POST /deals
+    {
+      "company": {
+        "locations": ["san-francisco-california"],
+        "industries": ["fintech-e067"]
+      },
+      "deal": {
+        "financing_types": [{ "type": "SERIES_A" }]
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Permalink format
+
+Permalinks are lowercase, kebab-case slugs. Many carry a short **hex disambiguator
+suffix** (`fintech-e067`, `artificial-intelligence-e551`) that distinguishes
+duplicate names — it is part of the value and must be included **verbatim**.
+
+<Tip>
+  Don't try to construct a permalink by hand (e.g. guessing `"fintech"` →
+  `"fintech-e067"`). Always copy it from `/industry/search` or `/location/search`.
+</Tip>
+
+### Industry vs. super category
+
+`industries` are specific (e.g. `machine-learning`); `super_categories` are broad
+groupings that **automatically include their related industries** (e.g.
+`artificial-intelligence-e551` pulls in many AI sub-industries). Use a super
+category when you want wide coverage, an industry when you want precision. Both come
+from `/industry/search` — check the `industry_type` field to tell them apart.
+
+## Round / financing types
+
+Round types are the exception: there is **no lookup endpoint** because the set is a
+fixed enum. Pass them as objects under `deal.financing_types`, using the exact
+canonical value — **not** the human label.
+
+<Warning>
+  Unlike locations and industries, an invalid `financing_types` value **does** return
+  a `422` error (e.g. `Invalid financing type(s): series-a`). So you'll know
+  immediately — but you still have to use the canonical form below.
+</Warning>
+
+| Round (human) | Canonical value | Round (human) | Canonical value |
+|---|---|---|---|
+| Seed | `SEED` | Series A–M | `SERIES_A` … `SERIES_M` |
+| SAFE | `SAFE` | Convertible Note | `CONVERTIBLE_NOTE` |
+| Equity | `EQUITY` | Preferred | `PREFERRED` |
+| Secondary Market | `SECONDARY_MARKET` | Debt Financing | `DEBT_FINANCING` |
+| Grant | `GRANT` | Non-Equity Assistance | `NON_EQUITY_ASSISTANCE` |
+| Crowdfunding | `CROWDFUNDING` | Initial Coin Offering | `INITIAL_COIN_OFFERING` |
+| Funding Round (unspecified) | `FUNDING_ROUND` | | |
+
+Pre-rounds and extensions are modifiers on the same value, not separate types:
+
+```json
+{
+  "deal": {
+    "financing_types": [
+      { "type": "SEED", "pre": true },        // Pre-Seed
+      { "type": "SERIES_A" },                  // Series A
+      { "type": "SERIES_B", "extension": true } // Series B extension
+    ]
+  }
+}
+```
+
+## Common mistakes
+
+| Mistake | Result | Fix |
+|---------|--------|-----|
+| `locations: ["San Francisco"]` | Silent zero results | Resolve via `/location/search` → `"san-francisco-california"` |
+| `industries: ["fintech"]` | Silent zero results | Resolve via `/industry/search` → `"fintech-e067"` |
+| Dropping the hex suffix (`"fintech"` for `"fintech-e067"`) | Silent zero results | Copy the full permalink verbatim |
+| Using an industry where you meant a super category | Narrower results than expected | Check `industry_type`; use `super_categories` for broad coverage |
+| `financing_types: ["Series A"]` | `422` error | Use `[{ "type": "SERIES_A" }]` |
+
+<Note>
+  The **Alerts** API currently accepts round types as human-readable strings (e.g.
+  `["Series A"]`) rather than the `SERIES_A` enum used by `/deals` and `/companies`.
+  This is a known inconsistency — follow the format shown in each endpoint's own
+  reference.
+</Note>

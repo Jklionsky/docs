@@ -2,3 +2,11 @@
 title: "List Deals"
 openapi: "/openapi/openapi-deals.yaml POST /deals"
 ---
+
+<Warning>
+  Filtering by location, industry, or round type? Use **exact permalinks** — a wrong
+  value for `locations`, `industries`, or `super_categories` returns zero results
+  with no error. Resolve them via [`/location/search`](/api-reference/locations/search)
+  and [`/industry/search`](/api-reference/industries/search) first. See
+  [Filtering & Permalinks](/api-reference/filtering).
+</Warning>

@@ -205,22 +205,22 @@ paths:
                       example: ["660e8400-e29b-41d4-a716-446655440000"]
                     locations:
                       type: array
-                      description: Location permalinks
+                      description: Location permalinks. Use /location/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
                       example: ["san-francisco-california", "new-york-new-york"]
                     industries:
                       type: array
-                      description: Industry permalinks
+                      description: Industry permalinks. Use /industry/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
-                      example: ["artificial-intelligence", "fintech"]
+                      example: ["artificial-intelligence", "fintech-e067"]
                     super_categories:
                       type: array
-                      description: Super category permalinks (auto-includes related industries)
+                      description: Super category permalinks (auto-includes related industries). Use /industry/search to find permalinks. A value that is not an exact permalink is silently ignored (returns zero results, no error).
                       items:
                         type: string
-                      example: ["financial-services"]
+                      example: ["financial-services-d7b6"]
                     employee_count:
                       type: array
                       description: Current-employer headcount ranges
