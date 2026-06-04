@@ -39,7 +39,7 @@ info:
     - `employee_count` — Investor firm employee count ranges
 
     ### `company_investments` — Portfolio filters
-    - `search_query` — Semantic search over investors' portfolio company contents (results ranked by portfolio relevance)
+    - `search_query` — Semantic search describing **what portfolio companies do** (product/technology/business model); not for structured attributes like stage, location, or industry — use the dedicated fields below. Results ranked by portfolio relevance
     - `min_relevance` — Minimum relevance threshold (0–1) for the portfolio semantic search
     - `company_ids` — Specific portfolio companies (by UUID)
     - `industries`, `super_categories`, `locations` — Portfolio company attributes
@@ -150,12 +150,16 @@ paths:
                     search_query:
                       type: string
                       description: |
-                        Semantic search query matched against the contents of each investor's
-                        portfolio companies (industries, descriptions, and related portfolio
-                        attributes). When provided, results are ranked by how closely an
-                        investor's portfolio matches the query rather than the default sort.
-                        Combines with other `company_investments` and `investor` filters.
-                      example: "climate-focused deep tech startups"
+                        AI-powered semantic search matched against each investor's
+                        portfolio companies. Use this to describe what those companies
+                        do — their product, technology, or business model (e.g.
+                        "climate-focused carbon capture hardware"). Do NOT use it for
+                        structured attributes like stage, location, industry, or
+                        funding — apply those with the dedicated `company_investments`
+                        and `investor` filter fields instead. When provided, results
+                        are ranked by how closely an investor's portfolio matches the
+                        query rather than the default sort.
+                      example: "climate-focused carbon capture hardware"
                     min_relevance:
                       type: number
                       minimum: 0

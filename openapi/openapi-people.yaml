@@ -43,7 +43,9 @@ info:
     add a filter block to imply it.
 
     ## Semantic search
-    Two independent natural-language search fields:
+    Two independent natural-language search fields. Use them to describe **what a company does**
+    — its product, technology, or business model — not structured attributes like stage, location,
+    industry, or funding (apply those with the dedicated filter fields instead):
     - `company.search_query` — semantic match against the person's current employer
     - `investor.deals.search_query` — semantic match against companies the person has invested in
 
@@ -188,8 +190,15 @@ paths:
                   properties:
                     search_query:
                       type: string
-                      description: AI-powered natural-language search against the current employer. Overrides explicit sort_by — results are ordered by relevance.
-                      example: "climate tech infrastructure startups"
+                      description: >-
+                        AI-powered semantic search against the person's current employer.
+                        Use this to describe what that company does — its product,
+                        technology, or business model (e.g. "climate tech carbon
+                        accounting software"). Do NOT use it for structured attributes
+                        like stage, location, industry, or funding — apply those with
+                        the dedicated filter fields instead. Overrides explicit sort_by
+                        — results are ordered by relevance.
+                      example: "climate tech carbon accounting software"
                     min_relevance:
                       type: number
                       minimum: 0
@@ -377,8 +386,16 @@ paths:
                       properties:
                         search_query:
                           type: string
-                          description: AI-powered natural-language search against portfolio companies. Overrides explicit sort_by — results are ordered by relevance.
-                          example: "AI infrastructure"
+                          description: >-
+                            AI-powered semantic search against the person's portfolio
+                            companies. Use this to describe what those companies do —
+                            their product, technology, or business model (e.g. "AI
+                            infrastructure for model training"). Do NOT use it for
+                            structured attributes like stage, location, industry, or
+                            funding — apply those with the dedicated filter fields
+                            instead. Overrides explicit sort_by — results are ordered
+                            by relevance.
+                          example: "AI infrastructure for model training"
                         min_relevance:
                           type: number
                           minimum: 0
