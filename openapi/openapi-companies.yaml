@@ -26,11 +26,14 @@ info:
 
     ## Semantic Search
     The /companies endpoint supports AI-powered semantic search via `company.search_query`.
-    Use it to describe **what a company does** — its product, technology, or business model
-    (e.g. "AI-powered medical imaging diagnostics"). It is not a keyword filter: do not put
-    structured attributes like stage, location, industry, or funding in `search_query` —
-    apply those with the dedicated filter fields instead, and combine them with semantic
-    search. Results come back with a `similarity` score (0-1) and are sorted by relevance.
+    Think of it as a flexible replacement for an industry tag: use it to pinpoint a **niche
+    industry or specific product type** by describing what a company does — its product,
+    technology, or business model (e.g. "AI-powered medical imaging diagnostics" or "vertical
+    SaaS for dental practices"). It is best for product/category targeting that the fixed
+    industry list can't capture. It is not a keyword filter: do not put other attributes like
+    stage, location, funding, or employee count in `search_query` — apply those with the
+    dedicated filter fields instead, and combine them with semantic search. Results come back
+    with a `similarity` score (0-1) and are sorted by relevance.
 
   version: 1.0.0
   contact:
@@ -655,13 +658,15 @@ paths:
                     search_query:
                       type: string
                       description: >-
-                        AI-powered semantic search. Use this to describe what the
-                        company does — its product, technology, or business model
-                        (e.g. "AI-powered medical imaging diagnostics" or "B2B
-                        payments infrastructure"). Do NOT use it for structured
-                        attributes like stage, location, industry, or funding —
-                        apply those with the dedicated filter fields instead.
-                        Results include a similarity score and are sorted by relevance.
+                        AI-powered semantic search — a flexible replacement for an
+                        industry tag. Use it to target a niche industry or specific
+                        product type by describing what the company does — its product,
+                        technology, or business model (e.g. "AI-powered medical imaging
+                        diagnostics" or "vertical SaaS for dental practices"). Best for
+                        product/category targeting the fixed industry list can't capture.
+                        Do NOT use it for other attributes like stage, location, funding,
+                        or employee count — apply those with the dedicated filter fields
+                        instead. Results include a similarity score and are sorted by relevance.
                       example: "AI-powered medical imaging diagnostics software"
                     min_relevance:
                       type: number
