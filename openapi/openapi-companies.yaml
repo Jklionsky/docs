@@ -768,6 +768,21 @@ paths:
                       format: date
                       description: Latest deal before this date (ISO 8601)
                       example: "2024-12-31"
+                    created_start:
+                      type: string
+                      format: date
+                      description: >-
+                        Latest deal record added to the system on or after this date (ISO 8601).
+                        Filters by ingestion date (`created_at`), not the announcement date —
+                        useful for finding rounds newly added to Fundable.
+                      example: "2024-01-01"
+                    created_end:
+                      type: string
+                      format: date
+                      description: >-
+                        Latest deal record added to the system on or before this date (ISO 8601).
+                        Filters by ingestion date (`created_at`), not the announcement date.
+                      example: "2024-12-31"
                     investor_ids:
                       type: array
                       description: Filter by investors who participated in the latest deal only
