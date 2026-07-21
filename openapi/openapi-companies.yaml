@@ -452,7 +452,7 @@ paths:
         Examples:
         - `?linkedin=https://linkedin.com/company/stripe`
         - `?crunchbase=https://crunchbase.com/organization/notion`
-      operationId: searchCompanies
+      operationId: searchCompany
       parameters:
         - name: name
           in: query

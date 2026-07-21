@@ -12,15 +12,8 @@
     "light": "/logo/fundable_w_name.png",
     "dark": "/logo/fundable_w_name_white.png"
   },
-  "openapi": [
-    "/openapi/openapi-deals.yaml",
-    "/openapi/openapi-companies.yaml",
-    "/openapi/openapi-investors.yaml",
-    "/openapi/openapi-people.yaml",
-    "/openapi/openapi-alerts.yaml",
-    "/openapi/openapi-other.yaml"
-  ],
   "api": {
+    "openapi": "openapi.json",
     "auth": {
       "method": "bearer",
       "name": "Authorization"
