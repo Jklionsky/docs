@@ -1,19 +1,39 @@
 ---
-title: "Fundable API Docs"
-description: "Real-time access to VC funding, startup, and investor data"
+title: "Fundable API: Startup and VC Funding Data"
+description: "Fundable's REST API for real-time startup funding rounds, VC deals, investors, and people. 150k+ rounds, 200 free credits, native API access."
 ---
 
-## What You Can Build
+<Info>
+  **Best suited for:**
 
-**GTM**
+  - **Signal-based outbound:** Spot companies within hours of a raise
+  - **Market mapping:** Find every funded company in a sector
+  - **Funding alerts:** Track companies by sector, stage, or use of funds
+  - **AI agents:** Power tools and workflows with real-time funding data
+</Info>
 
-- **Signal-based outbound**: Spot companies matching your ICP within hours of a raise announcement and trigger GTM workflows
-- **Company enrichment**: Understand a potential customer's funding history, investors, or plans after a fundraise
+<Tip>
+  For AI agents, use [`llms.txt`](https://docs.tryfundable.ai/llms.txt) for a Markdown
+  index of every page and OpenAPI specification, or
+  [`llms-full.txt`](https://docs.tryfundable.ai/llms-full.txt) for the complete docs.
+</Tip>
 
-**Venture / Growth Equity**
+## Explore use-case guides
 
-- **Follow-on & pipeline building**: Track newly funded startups in your target market so you can invest in their next round
-- **Market mapping**: Build landscape views of every funded company in a sector with round sizes, investors, and timing
+<CardGroup cols={2}>
+  <Card title="Track newly funded startups" icon="radar" href="/guides/track-newly-funded-startups">
+    Find companies as funding rounds are added, then filter by stage, industry, and location.
+  </Card>
+  <Card title="Build a funding alert workflow" icon="bell" href="/guides/funding-alert-workflow">
+    Pull saved alert matches into scheduled workflows without sending duplicates.
+  </Card>
+  <Card title="Enrich your CRM" icon="address-card" href="/guides/crm-enrichment">
+    Add funding history, investors, and company details to account records.
+  </Card>
+  <Card title="Power an AI agent" icon="robot" href="/guides/ai-agent-funding-data">
+    Give an agent safe, structured access to real-time funding data through the REST API.
+  </Card>
+</CardGroup>
 
 ## Why Choose Our API
 
@@ -23,9 +43,9 @@ description: "Real-time access to VC funding, startup, and investor data"
 
 **Rich Filtering**: Search across 15+ dimensions like stage, industry, geography, deal size, investor participation, or use semantic search.
 
-## Get Started
+## Get started with the Fundable API
 
-**Create an API Key**: Grab an API key [here](https://www.tryfundable.ai/api-access/), your first 50 credits are free.
+**Create an API Key**: Grab an API key [here](https://www.tryfundable.ai/api-access/), your first 200 credits are free.
 
 **Make Your First API Call**: Read our API documentation and view example recipes to understand how the API works. Check out some [example code](https://github.com/Jklionsky/fundable-api-example.git) on how to use the API.
 

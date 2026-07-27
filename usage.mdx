@@ -1,50 +1,43 @@
 ---
-title: "Usage & Pricing"
-description: "Understand credit costs per endpoint and how pricing works"
+title: "Fundable API Pricing and Credits"
+description: "Fundable API pricing: credit cost per endpoint, free search endpoints, and pay-as-you-go credits from $0.05."
 ---
 
-## Pricing Tiers
+## API Pricing
 
-<Tabs>
-  <Tab title="Free">
-    These endpoints cost **0 credits** per request.
+Single-record company, investor, and person lookups cost **1 credit per call**.
+List and history endpoints cost **1 credit per row returned**. Search endpoints
+cost 0.1 credits per call or are free, as shown below.
 
-    | Endpoint | Description |
-    |----------|-------------|
-    | `GET /industry/search` | Search industries |
-    | `GET /location/search` | Search locations |
-  </Tab>
-  <Tab title="1/10 Credit / Request">
-    These endpoints cost **0.1 credits per request**, regardless of rows returned.
+| Endpoint | Description | Cost |
+| --- | --- | --- |
+| `POST /deals` | Search and filter funding rounds | 1 credit/row |
+| `GET /deals/{id}` | Get a specific funding round by ID | 1 credit/row |
+| `GET /deals/{id}/investors` | Get investors for a specific funding round | 1 credit/row |
+| `POST /companies` | List and filter companies with recent funding details | 1 credit/row |
+| `GET /company` | Get a company by ID, domain, LinkedIn, or Crunchbase | 1 credit/call |
+| `GET /company/deals` | Get funding rounds for a specific company | 1 credit/row |
+| `GET /company/search` | Search companies by name or domain | 0.1 credit/call |
+| `POST /investors` | List and filter investors with matching investments | 1 credit/row |
+| `GET /investor` | Get an investor by ID, domain, LinkedIn, or Crunchbase | 1 credit/call |
+| `GET /investor/deals` | Get funding rounds for a specific investor | 1 credit/row |
+| `GET /investor/search` | Search investors by name or domain | 0.1 credit/call |
+| `POST /people` | List and filter people with investment activity | 1 credit/row |
+| `GET /person` | Get a person by ID, LinkedIn, Crunchbase, or Twitter | 1 credit/call |
+| `GET /person/deals` | Get deals a person participated in as an investor | 1 credit/row |
+| `GET /person/search` | Search for a person by name or identifier | 0.1 credit/call |
+| `GET /industry/search` | Search industries by name | Free |
+| `GET /location/search` | Search locations by name | Free |
+| `GET /alerts` | Get alert data with deals | Free — Pro+ / API |
+| `GET /alerts/configurations` | Get alert configurations | Free — Pro+ / API |
 
-    | Endpoint | Description |
-    |----------|-------------|
-    | `GET /company/search` | Search companies by name |
-    | `GET /investor/search` | Search investors by name |
-  </Tab>
-  <Tab title="1 Credit / Row">
-    These endpoints cost **1 credit per row** returned.
+The Alerts API is available on **Pro+ and API plans**. Both Alerts endpoints are
+currently free and do not consume credits.
 
-    | Endpoint | Description |
-    |----------|-------------|
-    | `GET /companies` | List companies with filters |
-    | `GET /company` | Get a single company |
-    | `GET /deals` | List deals with filters |
-    | `GET /deals/{id}` | Get a single deal |
-    | `GET /investors` | List investors with filters |
-    | `GET /investor` | Get a single investor |
-  </Tab>
-  <Tab title="Enterprise">
-    These endpoints require an **Enterprise** plan.
-
-    | Endpoint | Description |
-    |----------|-------------|
-    | `GET /alerts` | Real-time funding alerts |
-    | `GET /alerts/configurations` | Manage alert configurations |
-
-    Contact [jacob@tryfundable.ai](mailto:jacob@tryfundable.ai) to learn more about Enterprise access.
-  </Tab>
-</Tabs>
+<Note>
+  View current usage, credit balances, and billing details on the
+  [API Access page](https://www.tryfundable.ai/api-access#usage).
+</Note>
 
 ## How Credits Work
 
@@ -52,30 +45,41 @@ Paid endpoints return a `meta` object with credit usage details:
 
 ```json
 {
-  "meta": {
-    "limit": 25,
-    "offset": 0,
-    "credits_used": 25,
-    "credit_source": "monthly",
-    "monthly_credits_remaining": 175,
-    "purchased_credits_remaining": 50
+  "success": true,
+  "data": {
+    "companies": [
+      { "id": "550e8400-e29b-41d4-a716-446655440000", "name": "Acme" }
+    ]
   },
-  "data": [...]
+  "meta": {
+    "total_count": 1,
+    "page": 0,
+    "page_size": 25,
+    "credits_used": 1,
+    "credit_source": "monthly",
+    "monthly_credits_remaining": 199,
+    "purchased_credits_remaining": 50
+  }
 }
 ```
 
 | Field | Description |
 |-------|-------------|
+| `total_count` | Total records matching the request |
+| `page` | Current page number, starting at `0` |
+| `page_size` | Maximum records requested per page |
 | `credits_used` | Number of credits consumed by this request |
 | `credit_source` | Whether credits came from `monthly` plan or `purchased` balance |
 | `monthly_credits_remaining` | Remaining credits from your plan |
 | `purchased_credits_remaining` | Remaining individually purchased credits |
 
-- **1 credit = 1 row** returned by list and get endpoints. A request that returns 25 rows costs 25 credits.
-- **Company & investor search** (`/company/search`, `/investor/search`) cost **0.1 credits per request**, regardless of rows returned.
+- **List and history endpoints** cost **1 credit per row returned**. A request that returns 25 rows costs 25 credits.
+- **Single-record lookups** (`/company`, `/investor`, `/person`) cost **1 credit per call**.
+- **Company, investor, and person search** cost **0.1 credits per request**, regardless of rows returned.
 - **Industry & location search** (`/industry/search`, `/location/search`) are always free and don't return credit fields.
+- **Alerts endpoints** are free for Pro+ and API plans.
 - Credits come included with your plan. If you don't want a recurring plan, you can buy credits individually for as low as **$0.05 per credit**.
 
 ## Getting Started
 
-Your first **50 credits are free** — no credit card required. Grab your API key [here](https://www.tryfundable.ai/api-access/) and start making requests immediately.
+Your first **200 credits are free** — no credit card required. Grab your API key [here](https://www.tryfundable.ai/api-access/) and start making requests immediately.

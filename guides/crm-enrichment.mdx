@@ -1,0 +1,77 @@
+---
+title: "Enrich Your CRM with Funding Data"
+description: "Match CRM accounts by domain and add Fundable company details, funding history, investors, and latest-round data."
+---
+
+Use `GET /company` to enrich a CRM account when you already have a domain, LinkedIn
+URL, Crunchbase URL, or Fundable UUID. Domain is usually the simplest stable key for
+company-level enrichment.
+
+## 1. Normalize the account identifier
+
+Before calling the API, lowercase the domain and remove the protocol, path, query
+string, and leading `www.`. Keep your original CRM value unchanged for display.
+
+Examples:
+
+| CRM value | Lookup value |
+| --- | --- |
+| `https://www.example.com/pricing` | `example.com` |
+| `EXAMPLE.COM` | `example.com` |
+| `https://app.example.com` | `app.example.com` |
+
+## 2. Retrieve the company
+
+Provide exactly one identifier.
+
+```bash
+curl --get "https://www.tryfundable.ai/api/v1/company" \
+  --header "Authorization: Bearer YOUR_API_KEY" \
+  --data-urlencode "domain=example.com"
+```
+
+If the domain is missing or does not resolve, use
+[`GET /company/search`](/api-reference/companies/search) with the company name,
+LinkedIn URL, or Crunchbase URL, then save the returned Fundable UUID for future
+lookups.
+
+## 3. Map source-owned fields
+
+The company record is returned at `data.company`. Keep Fundable data in dedicated
+CRM properties so enrichment does not overwrite values owned by sales or customer
+success teams.
+
+| Fundable field | Suggested CRM property |
+| --- | --- |
+| `id` | `fundable_company_id` |
+| `total_raised` | `fundable_total_raised_usd` |
+| `num_funding_rounds` | `fundable_funding_round_count` |
+| `num_investors` | `fundable_investor_count` |
+| `latest_valuation_usd` | `fundable_latest_valuation_usd` |
+| `num_employees` | `fundable_employee_range` |
+| `latest_deal` | Latest-round fields or a serialized source payload |
+
+Also store an `enriched_at` timestamp and the Fundable UUID. The timestamp supports
+freshness policies, and the UUID makes later refreshes independent of domain changes.
+
+## 4. Upsert instead of append
+
+Use the CRM account ID as the destination key and the Fundable UUID as the external
+source key. On every sync:
+
+1. Update source-owned enrichment fields.
+2. Preserve user-entered CRM fields.
+3. Clear a value only when your data policy explicitly treats `null` as authoritative.
+4. Log the response's `meta.credits_used` value for cost monitoring.
+
+For lists of target accounts, `POST /companies` can batch lookup up to 100 domains
+through `identifiers.domains`.
+
+<CardGroup cols={2}>
+  <Card title="Company Funding Data API" icon="building" href="/api-reference/companies/get">
+    Retrieve one company's full details and latest round.
+  </Card>
+  <Card title="Track newly funded startups" icon="radar" href="/guides/track-newly-funded-startups">
+    Find new accounts before enriching them.
+  </Card>
+</CardGroup>

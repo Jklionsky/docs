@@ -1,0 +1,89 @@
+---
+title: "Track Newly Funded Startups with the API"
+description: "Find startups as funding rounds are added to Fundable, then filter by stage, industry, location, and company size."
+---
+
+Use `POST /companies` to build a repeatable feed of newly funded startups. Filter on
+`latest_deal.created_start` when you care about when Fundable added a round, or use
+`latest_deal.date_start` when you care about the round's announcement date.
+
+<Tip>
+  For signal-based outbound, `created_start` is usually the better checkpoint. It
+  catches rounds when they enter Fundable, including older announcements that were
+  added recently.
+</Tip>
+
+## 1. Resolve filter permalinks
+
+Location, industry, and super-category filters require exact permalinks. Resolve
+human-readable names with the free [`GET /location/search`](/api-reference/locations/search)
+and [`GET /industry/search`](/api-reference/industries/search) endpoints before you
+build the company request.
+
+```bash
+curl --get "https://www.tryfundable.ai/api/v1/industry/search" \
+  --header "Authorization: Bearer YOUR_API_KEY" \
+  --data-urlencode "name=artificial intelligence"
+```
+
+See [Filtering and Permalinks](/api-reference/filtering) for round-type enums and
+common filtering mistakes.
+
+## 2. Query companies with newly added rounds
+
+This request returns private Seed and Series A companies whose latest funding round
+was added to Fundable on or after July 1, 2026.
+
+```bash
+curl --request POST "https://www.tryfundable.ai/api/v1/companies" \
+  --header "Authorization: Bearer YOUR_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "company": {
+      "locations": ["san-francisco-california"],
+      "super_categories": ["artificial-intelligence-e551"],
+      "ipo_status": ["private"]
+    },
+    "latest_deal": {
+      "financing_types": [
+        { "type": "SEED" },
+        { "type": "SERIES_A" }
+      ],
+      "created_start": "2026-07-01"
+    },
+    "page": 0,
+    "page_size": 50,
+    "sort_by": "most_recent_raise"
+  }'
+```
+
+The response places company records in `data.companies` and pagination details in
+`meta`. Increase `page` from `0` until you have processed `meta.total_count` results.
+The maximum `page_size` is `500`.
+
+## 3. Make the sync idempotent
+
+Use a small overlap between runs so a delayed job does not create a gap.
+
+1. Save the timestamp of the last successful run.
+2. Query again from a slightly earlier `created_start` date.
+3. Upsert companies by `company.id` and rounds by `company.latest_deal.id`.
+4. Advance the checkpoint only after every page succeeds.
+
+This pattern tolerates retries and late-arriving records without sending the same
+company through your workflow twice.
+
+## 4. Send qualified records downstream
+
+Common destinations include a CRM, outbound queue, warehouse, or review sheet. Keep
+the Fundable company and deal IDs in the destination so later runs can update the
+same records.
+
+<CardGroup cols={2}>
+  <Card title="Company Search API" icon="building" href="/api-reference/companies/list">
+    Review every company and latest-deal filter.
+  </Card>
+  <Card title="Enrich your CRM" icon="address-card" href="/guides/crm-enrichment">
+    Turn matched companies into durable CRM records.
+  </Card>
+</CardGroup>

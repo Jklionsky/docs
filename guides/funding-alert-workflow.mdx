@@ -1,0 +1,70 @@
+---
+title: "Build a Funding Alert Workflow"
+description: "Pull saved Fundable alert matches into a scheduled workflow with UTC checkpoints, deduplication, and retry-safe processing."
+---
+
+The Alerts API lets a scheduled job retrieve the deals matched by your saved
+Fundable alerts. A reliable workflow first discovers the available configurations,
+then requests matches for a bounded UTC time window.
+
+<Note>
+  The Alerts API is available on Pro+ and API plans. Both Alerts endpoints are
+  currently free and do not consume credits. See [Pricing and Credits](/usage).
+</Note>
+
+## 1. List alert configurations
+
+`GET /alerts/configurations` returns the authenticated user's alert IDs, filters,
+frequency, and descriptions. It does not consume usage credits.
+
+```bash
+curl "https://www.tryfundable.ai/api/v1/alerts/configurations" \
+  --header "Authorization: Bearer YOUR_API_KEY"
+```
+
+Store the alert IDs you want the workflow to process. You can request up to 10 alert
+IDs at once.
+
+## 2. Request matching deals
+
+Pass a comma-separated list of alert IDs and an inclusive UTC date range.
+
+```bash
+curl --get "https://www.tryfundable.ai/api/v1/alerts" \
+  --header "Authorization: Bearer YOUR_API_KEY" \
+  --data-urlencode "alert_ids=ALERT_UUID_1,ALERT_UUID_2" \
+  --data-urlencode "start_date=2026-07-20T00:00:00.000Z" \
+  --data-urlencode "end_date=2026-07-21T00:00:00.000Z"
+```
+
+The response returns each alert in `data.alerts` with a flattened `deals` array.
+Deals are sorted newest first and deduplicated within the API response. Each match
+also includes reasoning that explains why the deal satisfied the alert.
+
+## 3. Process matches safely
+
+Use the deal UUID as the idempotency key in your destination.
+
+1. Read the last successful UTC checkpoint.
+2. Request a short overlapping time window.
+3. Upsert or skip each deal by UUID.
+4. Record per-item failures for retry.
+5. Advance the checkpoint only when the complete batch succeeds.
+
+An overlap is safe because the destination deduplicates by UUID. It also protects
+against scheduler delays and partial failures.
+
+## 4. Route by alert
+
+Keep `alertId`, `alertName`, and the match reasoning with each downstream record.
+Those fields let you route different alerts to different Slack channels, CRM lists,
+email sequences, or analyst queues without reimplementing the filter logic.
+
+<CardGroup cols={2}>
+  <Card title="Funding Alerts API" icon="bell" href="/api-reference/alerts/list">
+    Review query parameters and the response schema.
+  </Card>
+  <Card title="Alert configurations" icon="sliders" href="/api-reference/alerts/configurations">
+    Retrieve the alerts available to the authenticated user.
+  </Card>
+</CardGroup>

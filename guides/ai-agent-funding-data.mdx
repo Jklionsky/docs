@@ -1,0 +1,116 @@
+---
+title: "Power an AI Agent with Funding Data"
+description: "Give an AI agent controlled access to real-time startup and funding data through typed Fundable REST API tools."
+---
+
+Wrap a small set of Fundable REST API operations as typed tools so an AI agent can
+search startup and funding data without handling raw credentials or inventing query
+shapes.
+
+<Note>
+  This guide covers REST API tool integration. Dedicated Fundable MCP setup will be
+  documented separately.
+</Note>
+
+## Start with one narrow tool
+
+A useful first tool is `find_funded_companies`. Its server-side implementation calls
+`POST /companies` and exposes only the filters your agent needs.
+
+```json Tool schema
+{
+  "name": "find_funded_companies",
+  "description": "Find companies by funding stage, date, industry, and location.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "financing_types": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["SEED", "SERIES_A", "SERIES_B", "SERIES_C"]
+        }
+      },
+      "date_start": {
+        "type": "string",
+        "description": "Earliest funding announcement date in YYYY-MM-DD format."
+      },
+      "industry_permalinks": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "location_permalinks": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "required": ["date_start"]
+  }
+}
+```
+
+The server translates those arguments into the API request.
+
+```javascript
+async function findFundedCompanies(args) {
+  const response = await fetch("https://www.tryfundable.ai/api/v1/companies", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.FUNDABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      company: {
+        industries: args.industry_permalinks,
+        locations: args.location_permalinks,
+      },
+      latest_deal: {
+        financing_types: args.financing_types?.map((type) => ({ type })),
+        date_start: args.date_start,
+      },
+      page_size: 25,
+      sort_by: "most_recent_raise",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Fundable API returned ${response.status}`);
+  }
+
+  return response.json();
+}
+```
+
+## Resolve names before filtering
+
+Do not let the model guess location or industry permalinks. Give the agent separate
+tools backed by [`GET /location/search`](/api-reference/locations/search) and
+[`GET /industry/search`](/api-reference/industries/search), then pass the returned
+permalinks into `find_funded_companies`.
+
+Round types use fixed enum values such as `SEED` and `SERIES_A`. See
+[Filtering and Permalinks](/api-reference/filtering) for the complete rules.
+
+## Add guardrails on the server
+
+- Keep the Fundable API key server-side and out of model context.
+- Allowlist filters and round-type enum values.
+- Cap `page_size` and the number of automatic pagination requests.
+- Return concise records to the model, not an unbounded raw payload.
+- Log tool arguments, response status, credits used, and destination user.
+- Require confirmation before the agent writes to a CRM or sends outreach.
+
+## Expand by user intent
+
+Add tools only when the agent needs them:
+
+| User intent | Fundable endpoint |
+| --- | --- |
+| Find funded companies | [`POST /companies`](/api-reference/companies/list) |
+| Inspect one company | [`GET /company`](/api-reference/companies/get) |
+| Search funding rounds | [`POST /deals`](/api-reference/deals/list) |
+| Inspect a round's investors | [`GET /deals/{id}/investors`](/api-reference/deals/investors) |
+| Look up founders or investors | [`GET /person/search`](/api-reference/people/search) |
+
+Keeping each tool narrow produces more predictable calls, clearer permissions, and
+better audit logs than exposing the entire API through one generic request tool.

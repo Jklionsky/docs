@@ -12,6 +12,9 @@
     "light": "/logo/fundable_w_name.png",
     "dark": "/logo/fundable_w_name_white.png"
   },
+  "metadata": {
+    "timestamp": true
+  },
   "api": {
     "openapi": "openapi.json",
     "auth": {
@@ -34,6 +37,15 @@
               "index",
               "authentication",
               "usage"
+            ]
+          },
+          {
+            "group": "Use Case Guides",
+            "pages": [
+              "guides/track-newly-funded-startups",
+              "guides/funding-alert-workflow",
+              "guides/crm-enrichment",
+              "guides/ai-agent-funding-data"
             ]
           }
         ]
