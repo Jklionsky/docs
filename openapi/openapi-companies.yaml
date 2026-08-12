@@ -1280,6 +1280,13 @@ components:
                 nullable: true
                 description: Currency code for size_native
                 example: "USD"
+        articles:
+          type: array
+          description: Related articles/sources for the latest deal. Always included; empty when no sources exist.
+          items:
+            $ref: '#/components/schemas/DealArticle'
+      required:
+        - articles
 
     LocationInfo:
       type: object
@@ -1421,12 +1428,39 @@ components:
               nullable: true
             type:
               type: string
+        articles:
+          type: array
+          description: Related articles/sources for this deal. Always included; empty when no sources exist.
+          items:
+            $ref: '#/components/schemas/DealArticle'
       required:
         - id
         - company_id
         - investor_ids
         - angel_investor_ids
         - financings
+        - articles
+
+    DealArticle:
+      type: object
+      description: An article or source related to a deal
+      properties:
+        link:
+          type: string
+          nullable: true
+          description: URL of the article
+          example: "https://techcrunch.com/2024/01/15/company-raises-series-a"
+        date:
+          type: string
+          nullable: true
+          description: Date of the article
+          example: "2024-01-15"
+        is_primary:
+          type: boolean
+          description: Whether this is the primary source article for the deal
+          example: true
+      required:
+        - is_primary
 
     ValidationError:
       type: object

@@ -881,6 +881,28 @@ paths:
                         items:
                           type: object
                           description: Deal record (same shape as deals returned by `/api/v1/company/deals`)
+                          properties:
+                            articles:
+                              type: array
+                              description: Related articles/sources for this deal. Always included; empty when no sources exist.
+                              items:
+                                type: object
+                                properties:
+                                  link:
+                                    type: string
+                                    nullable: true
+                                    description: URL of the article
+                                  date:
+                                    type: string
+                                    nullable: true
+                                    description: Date of the article
+                                  is_primary:
+                                    type: boolean
+                                    description: Whether this is a primary source article for the canonical deal
+                                required:
+                                  - is_primary
+                          required:
+                            - articles
                   meta:
                     type: object
                     properties:

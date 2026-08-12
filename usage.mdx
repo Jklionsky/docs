@@ -28,11 +28,12 @@ cost 0.1 credits per call or are free, as shown below.
 | `GET /person/search` | Search for a person by name or identifier | 0.1 credit/call |
 | `GET /industry/search` | Search industries by name | Free |
 | `GET /location/search` | Search locations by name | Free |
-| `GET /alerts` | Get alert data with deals | Free — Pro+ / API |
-| `GET /alerts/configurations` | Get alert configurations | Free — Pro+ / API |
+| `GET /alerts` | Get alert data with deals | 1 credit/deal across all alerts; 1 credit minimum |
+| `GET /alerts/configurations` | Get alert configurations | Free |
 
-The Alerts API is available on **Pro+ and API plans**. Both Alerts endpoints are
-currently free and do not consume credits.
+`GET /alerts` counts every deal returned across all requested alerts. For example,
+25 deals from one alert plus 22 from another consumes 47 credits. A successful
+request with no matching deals consumes the 1-credit minimum.
 
 <Note>
   View current usage, credit balances, and billing details on the
@@ -77,7 +78,8 @@ Paid endpoints return a `meta` object with credit usage details:
 - **Single-record lookups** (`/company`, `/investor`, `/person`) cost **1 credit per call**.
 - **Company, investor, and person search** cost **0.1 credits per request**, regardless of rows returned.
 - **Industry & location search** (`/industry/search`, `/location/search`) are always free and don't return credit fields.
-- **Alerts endpoints** are free for Pro+ and API plans.
+- **Alert results** cost **1 credit per deal returned across all requested alerts**, with a 1-credit minimum when no deals match.
+- **Alert configurations** (`/alerts/configurations`) are free.
 - Credits come included with your plan. If you don't want a recurring plan, you can buy credits individually for as low as **$0.05 per credit**.
 
 ## Getting Started

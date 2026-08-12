@@ -7,12 +7,26 @@ info:
     ## Authentication
     All API requests require authentication using an API key in the Authorization header.
     
-    ## Access and Pricing
-    The Alerts API is available on Pro+ and API plans. Both `/alerts` and
-    `/alerts/configurations` are free and do not consume credits.
-
     ## Rate Limits
-    Per-minute rate limiting (200 requests/minute) returns a **429 error**.
+    API usage is tracked and may be subject to monthly limits depending on your API key tier.
+
+    **Deal-Based Counting:**
+    - Each request consumes credits equal to the **total number of deals** returned across all alerts
+    - Example: Query 2 alerts → Alert 1 returns 25 deals + Alert 2 returns 22 deals = **47 credits consumed**
+    - Empty results (no deals found) still consume 1 credit minimum
+
+    **How Credits Work:**
+    - Credit check occurs **after** the query executes
+    - If the request would exceed your available credits, it is **rejected with a 402 error**
+    - No partial results are returned if credits would be exceeded
+    - Rejected requests do not consume any credits
+    - Per-minute rate limiting (200 req/min) returns a **429 error**
+
+    **Best Practices:**
+    - Monitor `credits_used` in the `meta` section of each response
+    - Query smaller date ranges when approaching your credit limit
+    - Use fewer alerts per request when nearing your cap
+    - Check the `total_count` in the `meta` section to estimate credit consumption
     
     ## Parameter Validation
     This API enforces strict parameter validation:
@@ -70,7 +84,7 @@ paths:
         - Query multiple alerts in a single request (up to 10)
         - Each alert returns its own flattened deals array
         - Different alerts can have different frequencies (e.g., one daily, one weekly)
-        - This endpoint is free and does not consume credits
+        - Total deal count across all alerts determines credit usage
 
         **Important Notes:**
         - All alert_ids must belong to alerts you have access to
@@ -153,8 +167,8 @@ paths:
                         example: 2
                       credits_used:
                         type: integer
-                        description: Number of credits consumed by this request (always 0)
-                        example: 0
+                        description: Number of credits consumed by this request
+                        example: 47
                       credit_source:
                         type: string
                         nullable: true
@@ -256,7 +270,7 @@ paths:
                       total_count: 47
                       page: 0
                       page_size: 2
-                      credits_used: 0
+                      credits_used: 47
 
                 noDealsFound:
                   summary: Valid alert IDs but no deals in date range
@@ -268,7 +282,7 @@ paths:
                       total_count: 0
                       page: 0
                       page_size: 1
-                      credits_used: 0
+                      credits_used: 1
 
         '400':
           description: Bad Request - Invalid parameters or validation failed
@@ -346,6 +360,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthError'
+
+        '402':
+          description: Insufficient credits to complete the request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientCreditsError'
                 
         '404':
           description: |
@@ -443,7 +464,7 @@ paths:
         Returns configuration metadata including filters, frequency, and descriptions.
         
         **Important Notes:**
-        - This endpoint is free and does not consume usage credits
+        - This endpoint does NOT consume usage credits (actualUsageCount: 0)
         - Returns only configuration metadata, not deal data
         - Does not require any query parameters - user is identified by API key
         - All configurations for the authenticated user are returned (no pagination)
@@ -493,7 +514,7 @@ paths:
                         example: 3
                       credits_used:
                         type: integer
-                        description: Number of credits consumed by this request (always 0)
+                        description: Number of credits consumed by this request
                         example: 0
                       credit_source:
                         type: string
@@ -947,6 +968,43 @@ components:
                 help:
                   type: string
                   example: "Please reduce your request frequency and try again."
+      required:
+        - error
+
+    InsufficientCreditsError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: 'INSUFFICIENT_CREDITS'
+            message:
+              type: string
+              example: "Not enough credits to complete this request. Visit https://www.tryfundable.ai/api-access to purchase more."
+            details:
+              type: object
+              properties:
+                credits_needed:
+                  type: integer
+                  nullable: true
+                  description: Number of credits required (included when known post-execution)
+                  example: 25
+                monthly_credits_remaining:
+                  type: integer
+                  description: Remaining monthly credits
+                  example: 0
+                purchased_credits_remaining:
+                  type: integer
+                  description: Remaining purchased credits
+                  example: 0
+                help:
+                  type: string
+                  example: "Purchase additional credits at https://www.tryfundable.ai/api-access or upgrade your plan."
       required:
         - error
 

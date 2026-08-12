@@ -8,8 +8,9 @@ Fundable alerts. A reliable workflow first discovers the available configuration
 then requests matches for a bounded UTC time window.
 
 <Note>
-  The Alerts API is available on Pro+ and API plans. Both Alerts endpoints are
-  currently free and do not consume credits. See [Pricing and Credits](/usage).
+  `GET /alerts` consumes one credit per deal returned across all requested alerts,
+  with a one-credit minimum when no deals match. `GET /alerts/configurations` is
+  free. See [Pricing and Credits](/usage).
 </Note>
 
 ## 1. List alert configurations
@@ -39,7 +40,11 @@ curl --get "https://www.tryfundable.ai/api/v1/alerts" \
 
 The response returns each alert in `data.alerts` with a flattened `deals` array.
 Deals are sorted newest first and deduplicated within the API response. Each match
-also includes reasoning that explains why the deal satisfied the alert.
+also includes reasoning that explains why the deal satisfied the alert and an
+`articles` array containing its related sources.
+
+Monitor `meta.credits_used` and use narrower date ranges or fewer alert IDs when
+you need to limit credit consumption.
 
 ## 3. Process matches safely
 

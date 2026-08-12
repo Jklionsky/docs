@@ -4803,7 +4803,38 @@
                           "type": "array",
                           "items": {
                             "type": "object",
-                            "description": "Deal record (same shape as deals returned by `/api/v1/company/deals`)"
+                            "description": "Deal record (same shape as deals returned by `/api/v1/company/deals`)",
+                            "properties": {
+                              "articles": {
+                                "type": "array",
+                                "description": "Related articles/sources for this deal. Always included; empty when no sources exist.",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "link": {
+                                      "type": "string",
+                                      "nullable": true,
+                                      "description": "URL of the article"
+                                    },
+                                    "date": {
+                                      "type": "string",
+                                      "nullable": true,
+                                      "description": "Date of the article"
+                                    },
+                                    "is_primary": {
+                                      "type": "boolean",
+                                      "description": "Whether this is a primary source article for the canonical deal"
+                                    }
+                                  },
+                                  "required": [
+                                    "is_primary"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "articles"
+                            ]
                           }
                         }
                       }
@@ -5191,7 +5222,7 @@
     "/alerts": {
       "get": {
         "summary": "Get alert data with deals",
-        "description": "Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.\nResults include a flattened array of deals sorted by date (newest first) with duplicates removed.\n\n**Multiple Alerts Support:**\n- Query multiple alerts in a single request (up to 10)\n- Each alert returns its own flattened deals array\n- Different alerts can have different frequencies (e.g., one daily, one weekly)\n- This endpoint is free and does not consume credits\n\n**Important Notes:**\n- All alert_ids must belong to alerts you have access to\n- Deals are flattened from all time periods and sorted by date DESC (newest first)\n- Duplicate deals are automatically removed\n- Each deal includes AI-generated reasoning for why it matched the alert criteria\n- Deal structure is simplified with flattened company information for easier integration\n",
+        "description": "Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.\nResults include a flattened array of deals sorted by date (newest first) with duplicates removed.\n\n**Multiple Alerts Support:**\n- Query multiple alerts in a single request (up to 10)\n- Each alert returns its own flattened deals array\n- Different alerts can have different frequencies (e.g., one daily, one weekly)\n- Total deal count across all alerts determines credit usage\n\n**Important Notes:**\n- All alert_ids must belong to alerts you have access to\n- Deals are flattened from all time periods and sorted by date DESC (newest first)\n- Duplicate deals are automatically removed\n- Each deal includes AI-generated reasoning for why it matched the alert criteria\n- Deal structure is simplified with flattened company information for easier integration\n",
         "operationId": "getAlerts",
         "tags": [
           "alerts"
@@ -5274,8 +5305,8 @@
                         },
                         "credits_used": {
                           "type": "integer",
-                          "description": "Number of credits consumed by this request (always 0)",
-                          "example": 0
+                          "description": "Number of credits consumed by this request",
+                          "example": 47
                         },
                         "credit_source": {
                           "type": "string",
@@ -5412,7 +5443,7 @@
                         "total_count": 47,
                         "page": 0,
                         "page_size": 2,
-                        "credits_used": 0
+                        "credits_used": 47
                       }
                     }
                   },
@@ -5427,7 +5458,7 @@
                         "total_count": 0,
                         "page": 0,
                         "page_size": 1,
-                        "credits_used": 0
+                        "credits_used": 1
                       }
                     }
                   }
@@ -5542,6 +5573,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Insufficient credits to complete the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsufficientCreditsError"
                 }
               }
             }
@@ -5678,7 +5719,7 @@
     "/alerts/configurations": {
       "get": {
         "summary": "Get alert configurations for authenticated user",
-        "description": "Retrieve all alert configurations for the authenticated user (identified by API key).\nReturns configuration metadata including filters, frequency, and descriptions.\n\n**Important Notes:**\n- This endpoint is free and does not consume usage credits\n- Returns only configuration metadata, not deal data\n- Does not require any query parameters - user is identified by API key\n- All configurations for the authenticated user are returned (no pagination)\n\n**Authentication:**\n- User identity is automatically determined from the API key\n- No email or user_id parameter needed\n\n**Use Cases:**\n- Look up what alerts are configured for the authenticated user\n- Retrieve alert filter settings for external integrations\n- Audit alert configurations programmatically\n",
+        "description": "Retrieve all alert configurations for the authenticated user (identified by API key).\nReturns configuration metadata including filters, frequency, and descriptions.\n\n**Important Notes:**\n- This endpoint does NOT consume usage credits (actualUsageCount: 0)\n- Returns only configuration metadata, not deal data\n- Does not require any query parameters - user is identified by API key\n- All configurations for the authenticated user are returned (no pagination)\n\n**Authentication:**\n- User identity is automatically determined from the API key\n- No email or user_id parameter needed\n\n**Use Cases:**\n- Look up what alerts are configured for the authenticated user\n- Retrieve alert filter settings for external integrations\n- Audit alert configurations programmatically\n",
         "operationId": "getAlertConfigurations",
         "tags": [
           "alerts"
@@ -5723,7 +5764,7 @@
                         },
                         "credits_used": {
                           "type": "integer",
-                          "description": "Number of credits consumed by this request (always 0)",
+                          "description": "Number of credits consumed by this request",
                           "example": 0
                         },
                         "credit_source": {
@@ -6635,7 +6676,7 @@
           },
           "articles": {
             "type": "array",
-            "description": "Related articles/sources for this deal.\nOnly included for Enterprise (API tier) users. Omitted entirely for other tiers.\n",
+            "description": "Related articles/sources for this deal.\nAlways included for every API tier. Empty when the deal has no related sources.\n",
             "items": {
               "$ref": "#/components/schemas/DealArticle"
             }
@@ -6646,7 +6687,8 @@
           "company_id",
           "investor_ids",
           "angel_investor_ids",
-          "financings"
+          "financings",
+          "articles"
         ]
       },
       "DealInvestor": {
@@ -6787,7 +6829,7 @@
       },
       "DealArticle": {
         "type": "object",
-        "description": "An article or source related to a deal (Enterprise/API tier only)",
+        "description": "An article or source related to a deal",
         "properties": {
           "link": {
             "type": "string",
@@ -7572,8 +7614,18 @@
                 }
               }
             }
+          },
+          "articles": {
+            "type": "array",
+            "description": "Related articles/sources for the latest deal. Always included; empty when no sources exist.",
+            "items": {
+              "$ref": "#/components/schemas/DealArticle"
+            }
           }
-        }
+        },
+        "required": [
+          "articles"
+        ]
       },
       "LocationInfo": {
         "type": "object",
@@ -7757,6 +7809,13 @@
                 "type": "string"
               }
             }
+          },
+          "articles": {
+            "type": "array",
+            "description": "Related articles/sources for this deal. Always included; empty when no sources exist.",
+            "items": {
+              "$ref": "#/components/schemas/DealArticle"
+            }
           }
         },
         "required": [
@@ -7764,7 +7823,8 @@
           "company_id",
           "investor_ids",
           "angel_investor_ids",
-          "financings"
+          "financings",
+          "articles"
         ]
       },
       "CompaniesValidationError": {
@@ -8248,6 +8308,13 @@
                 "type": "string"
               }
             }
+          },
+          "articles": {
+            "type": "array",
+            "description": "Related articles/sources for this deal. Always included; empty when no sources exist.",
+            "items": {
+              "$ref": "#/components/schemas/DealArticle"
+            }
           }
         },
         "required": [
@@ -8255,7 +8322,8 @@
           "company_id",
           "investor_ids",
           "angel_investor_ids",
-          "financings"
+          "financings",
+          "articles"
         ]
       },
       "ParameterValidationError": {

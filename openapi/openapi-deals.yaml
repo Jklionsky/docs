@@ -791,7 +791,7 @@ components:
           type: array
           description: |
             Related articles/sources for this deal.
-            Only included for Enterprise (API tier) users. Omitted entirely for other tiers.
+            Always included for every API tier. Empty when the deal has no related sources.
           items:
             $ref: '#/components/schemas/DealArticle'
       required:
@@ -800,6 +800,7 @@ components:
         - investor_ids
         - angel_investor_ids
         - financings
+        - articles
 
     DealInvestor:
       type: object
@@ -910,7 +911,7 @@ components:
 
     DealArticle:
       type: object
-      description: An article or source related to a deal (Enterprise/API tier only)
+      description: An article or source related to a deal
       properties:
         link:
           type: string
