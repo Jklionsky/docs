@@ -796,10 +796,19 @@ components:
             $ref: '#/components/schemas/DealArticle'
       required:
         - id
+        - round_type
+        - extension
+        - intermediate
+        - pre
+        - date
+        - created_at
+        - total_round_raised
+        - deal_descriptions
         - company_id
         - investor_ids
         - angel_investor_ids
         - financings
+        - valuation
         - articles
 
     DealInvestor:

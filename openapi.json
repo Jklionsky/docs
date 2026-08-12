@@ -4802,39 +4802,7 @@
                         "deals": {
                           "type": "array",
                           "items": {
-                            "type": "object",
-                            "description": "Deal record (same shape as deals returned by `/api/v1/company/deals`)",
-                            "properties": {
-                              "articles": {
-                                "type": "array",
-                                "description": "Related articles/sources for this deal. Always included; empty when no sources exist.",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "link": {
-                                      "type": "string",
-                                      "nullable": true,
-                                      "description": "URL of the article"
-                                    },
-                                    "date": {
-                                      "type": "string",
-                                      "nullable": true,
-                                      "description": "Date of the article"
-                                    },
-                                    "is_primary": {
-                                      "type": "boolean",
-                                      "description": "Whether this is a primary source article for the canonical deal"
-                                    }
-                                  },
-                                  "required": [
-                                    "is_primary"
-                                  ]
-                                }
-                              }
-                            },
-                            "required": [
-                              "articles"
-                            ]
+                            "$ref": "#/components/schemas/PersonDeal"
                           }
                         }
                       }
@@ -6684,10 +6652,19 @@
         },
         "required": [
           "id",
+          "round_type",
+          "extension",
+          "intermediate",
+          "pre",
+          "date",
+          "created_at",
+          "total_round_raised",
+          "deal_descriptions",
           "company_id",
           "investor_ids",
           "angel_investor_ids",
           "financings",
+          "valuation",
           "articles"
         ]
       },
@@ -7624,6 +7601,17 @@
           }
         },
         "required": [
+          "id",
+          "type",
+          "total_round_raised",
+          "date",
+          "extension",
+          "pre",
+          "intermediate",
+          "description",
+          "investors",
+          "angel_investor_ids",
+          "financings",
           "articles"
         ]
       },
@@ -7820,10 +7808,19 @@
         },
         "required": [
           "id",
+          "round_type",
+          "extension",
+          "intermediate",
+          "pre",
+          "date",
+          "created_at",
+          "total_round_raised",
+          "deal_descriptions",
           "company_id",
           "investor_ids",
           "angel_investor_ids",
           "financings",
+          "valuation",
           "articles"
         ]
       },
@@ -8319,10 +8316,19 @@
         },
         "required": [
           "id",
+          "round_type",
+          "extension",
+          "intermediate",
+          "pre",
+          "date",
+          "created_at",
+          "total_round_raised",
+          "deal_descriptions",
           "company_id",
           "investor_ids",
           "angel_investor_ids",
           "financings",
+          "valuation",
           "articles"
         ]
       },
@@ -8847,6 +8853,152 @@
             }
           }
         }
+      },
+      "PersonDeal": {
+        "type": "object",
+        "description": "Deal returned by the /person/deals endpoint. Same shape as deals returned by /company/deals.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "round_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "extension": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "intermediate": {
+            "type": "string",
+            "nullable": true
+          },
+          "pre": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "total_round_raised": {
+            "type": "number",
+            "nullable": true
+          },
+          "deal_descriptions": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "short_description": {
+                "type": "string",
+                "nullable": true
+              },
+              "long_description": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "company_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "investor_ids": {
+            "type": "array",
+            "description": "UUIDs of firm investors participating in this deal. Angels are surfaced separately in `angel_investor_ids`.",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "angel_investor_ids": {
+            "type": "array",
+            "description": "UUIDs of angel investors (people) on this deal. Resolve via `/people/{id}`. Empty array when no angels.",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "financings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "size_usd": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "size_native": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "currency": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "valuation": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "valuation_currency": {
+                "type": "string",
+                "nullable": true
+              },
+              "valuation_usd": {
+                "type": "number",
+                "nullable": true
+              },
+              "valuation_native": {
+                "type": "number",
+                "nullable": true
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          },
+          "articles": {
+            "type": "array",
+            "description": "Related articles/sources for this deal. Always included; empty when no sources exist.",
+            "items": {
+              "$ref": "#/components/schemas/DealArticle"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "round_type",
+          "extension",
+          "intermediate",
+          "pre",
+          "date",
+          "created_at",
+          "total_round_raised",
+          "deal_descriptions",
+          "company_id",
+          "investor_ids",
+          "angel_investor_ids",
+          "financings",
+          "valuation",
+          "articles"
+        ]
       },
       "PaginationMeta": {
         "type": "object",
