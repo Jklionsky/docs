@@ -40,6 +40,7 @@ All endpoints require Bearer token authentication. See the [Authentication](/aut
 ### People
 - **POST /people** -- Search people (founders, executives, investors) with pagination, sorting, and optional semantic search. Filter by person attributes, current employer, and investor activity.
 - **GET /person** -- Get full person detail, including complete employment and education history, by any identifier -- UUID, LinkedIn, Crunchbase, or Twitter.
+- **GET /person/email** -- Unlock a person's verified email by UUID, LinkedIn, Crunchbase, or Twitter. Available on non-trial Pro+, Enterprise, and API plans. New unlocks consume 5 credits; previously unlocked emails consume 0 credits.
 - **GET /person/deals** -- Retrieve every deal a person has participated in as an investor (angel plus lead/firm deals), including related source articles.
 - **GET /person/search** -- Quick lookup for a person by fuzzy name, UUID, LinkedIn, Crunchbase, or Twitter, across both investors and non-investor people.
 
@@ -56,11 +57,10 @@ All endpoints require Bearer token authentication. See the [Authentication](/aut
 </Tip>
 
 ### Alerts
-- **GET /alerts** -- Retrieve saved alert data with all matching deals in a date range (up to 10 alerts per request). Deals are deduplicated, sorted newest-first, and each includes AI-generated reasoning and related source articles.
-- **GET /alerts/configurations** -- List the authenticated user's alert configurations (filters, frequency, descriptions).
+- **GET /alerts** -- Retrieve saved alert data with all matching deals in a date range (up to 10 alerts per request). Available on Pro+, Enterprise, and API plans.
+- **GET /alerts/configurations** -- List the authenticated user's alert configurations (filters, frequency, descriptions). Available on Pro+, Enterprise, and API plans.
 
-`GET /alerts` consumes one credit per deal returned across all requested alerts,
-with a one-credit minimum when no deals match. `GET /alerts/configurations` is free.
+Both alert endpoints return `credits_used: 0`; they do not consume API credits.
 
 ## Error Handling
 

@@ -798,6 +798,150 @@ paths:
               schema:
                 $ref: '#/components/schemas/ServerError'
 
+  /person/email:
+    get:
+      summary: Unlock a person's verified email by identifier
+      description: |
+        Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,
+        or Twitter/X. Provide one identifier. If multiple identifiers are supplied, the
+        endpoint uses the first non-empty value in this order: `id`, `linkedin`,
+        `crunchbase`, `twitter`.
+
+        A newly created unlock costs 5 credits. Repeating the request for an email the
+        same user already unlocked costs 0 credits. Unlock ownership persists across API
+        keys belonging to that user. Provider attribution is internal and is not returned.
+
+        Available on non-trial Pro+, Enterprise, and API plans.
+      operationId: getPersonEmail
+      parameters:
+        - name: id
+          in: query
+          required: false
+          description: Fundable person UUID
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: linkedin
+          in: query
+          required: false
+          description: LinkedIn person URL, slug, or supported normalized identifier
+          schema:
+            type: string
+          example: "https://www.linkedin.com/in/eladgil/"
+        - name: crunchbase
+          in: query
+          required: false
+          description: Crunchbase person URL or supported normalized identifier
+          schema:
+            type: string
+          example: "https://www.crunchbase.com/person/jane-doe"
+        - name: twitter
+          in: query
+          required: false
+          description: Twitter/X URL or handle
+          schema:
+            type: string
+          example: "https://x.com/janedoe"
+      responses:
+        '200':
+          description: Verified email returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonEmailResponse'
+        '400':
+          description: Missing or invalid person identifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonEmailError'
+              example:
+                success: false
+                error:
+                  code: MISSING_IDENTIFIER
+                  message: Person identifier is required
+                  details:
+                    help: Provide id, linkedin, crunchbase, or twitter.
+                statusCode: 400
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '402':
+          description: Insufficient credits or monthly email-unlock allowance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonEmailError'
+              example:
+                success: false
+                error:
+                  code: INSUFFICIENT_CREDITS
+                  message: Not enough credits to unlock this email
+                  details:
+                    credits_needed: 5
+                    monthly_credits_remaining: 0
+                    purchased_credits_remaining: 0
+                statusCode: 402
+        '403':
+          description: Current subscription or trial status cannot unlock emails
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonEmailError'
+              example:
+                success: false
+                error:
+                  code: UPGRADE_REQUIRED
+                  message: Email unlocks require a Pro+, Enterprise, or API plan.
+                  details:
+                    current_tier: Pro
+                statusCode: 403
+        '404':
+          description: Person not found or no verified email available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonEmailError'
+              examples:
+                person_not_found:
+                  summary: Person not found
+                  value:
+                    success: false
+                    error:
+                      code: PERSON_NOT_FOUND
+                      message: Person not found
+                    statusCode: 404
+                email_not_found:
+                  summary: No verified email found
+                  value:
+                    success: false
+                    error:
+                      code: EMAIL_NOT_FOUND
+                      message: No verified email was found for this person
+                    statusCode: 404
+        '429':
+          description: Rate limit exceeded (per-minute)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
   /person/deals:
     get:
       summary: Get deals a person participated in (as an investor) by identifier
@@ -1263,6 +1407,109 @@ components:
               description: Full education history (no item cap)
               items:
                 $ref: '#/components/schemas/EducationRecord'
+
+    PersonEmailResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [person_id, email, already_unlocked]
+          properties:
+            person_id:
+              type: string
+              format: uuid
+              example: "550e8400-e29b-41d4-a716-446655440000"
+            email:
+              type: string
+              format: email
+              example: "jane@example.com"
+            already_unlocked:
+              type: boolean
+              description: True when this user previously unlocked the same email.
+              example: false
+        meta:
+          type: object
+          required: [page, page_size, credits_used]
+          properties:
+            page:
+              type: integer
+              enum: [0]
+            page_size:
+              type: integer
+              enum: [1]
+            credits_used:
+              type: integer
+              enum: [0, 5]
+              description: Five for a new unlock; zero when already unlocked.
+            credit_source:
+              type: string
+              nullable: true
+              enum: [monthly, purchased]
+              description: Omitted for API-tier keys.
+            monthly_credits_remaining:
+              type: integer
+              nullable: true
+              description: Omitted for API-tier keys.
+            purchased_credits_remaining:
+              type: integer
+              nullable: true
+              description: Omitted for API-tier keys.
+
+    PersonEmailError:
+      type: object
+      required: [success, error, statusCode]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - MISSING_IDENTIFIER
+                - INVALID_ID
+                - INVALID_IDENTIFIER
+                - INSUFFICIENT_CREDITS
+                - UPGRADE_REQUIRED
+                - PERSON_NOT_FOUND
+                - EMAIL_NOT_FOUND
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+              properties:
+                help:
+                  type: string
+                current_tier:
+                  type: string
+                credits_needed:
+                  type: integer
+                  nullable: true
+                monthly_credits_remaining:
+                  type: integer
+                  nullable: true
+                purchased_credits_remaining:
+                  type: integer
+                  nullable: true
+                email_unlock_limit_exceeded:
+                  type: boolean
+                email_unlock_limit:
+                  type: integer
+                  nullable: true
+                email_unlock_used:
+                  type: integer
+                  nullable: true
+        statusCode:
+          type: integer
+          enum: [400, 402, 403, 404]
 
     PersonCurrentCompany:
       type: object

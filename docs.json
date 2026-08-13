@@ -91,6 +91,7 @@
             "pages": [
               "api-reference/people/list",
               "api-reference/people/get",
+              "api-reference/people/email",
               "api-reference/people/deals",
               "api-reference/people/search"
             ]

@@ -4711,6 +4711,206 @@
         }
       }
     },
+    "/person/email": {
+      "get": {
+        "summary": "Unlock a person's verified email by identifier",
+        "description": "Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that user. Provider attribution is internal and is not returned.\n\nAvailable on non-trial Pro+, Enterprise, and API plans.\n",
+        "operationId": "getPersonEmail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "description": "Fundable person UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          {
+            "name": "linkedin",
+            "in": "query",
+            "required": false,
+            "description": "LinkedIn person URL, slug, or supported normalized identifier",
+            "schema": {
+              "type": "string"
+            },
+            "example": "https://www.linkedin.com/in/eladgil/"
+          },
+          {
+            "name": "crunchbase",
+            "in": "query",
+            "required": false,
+            "description": "Crunchbase person URL or supported normalized identifier",
+            "schema": {
+              "type": "string"
+            },
+            "example": "https://www.crunchbase.com/person/jane-doe"
+          },
+          {
+            "name": "twitter",
+            "in": "query",
+            "required": false,
+            "description": "Twitter/X URL or handle",
+            "schema": {
+              "type": "string"
+            },
+            "example": "https://x.com/janedoe"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verified email returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonEmailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid person identifier",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonEmailError"
+                },
+                "example": {
+                  "success": false,
+                  "error": {
+                    "code": "MISSING_IDENTIFIER",
+                    "message": "Person identifier is required",
+                    "details": {
+                      "help": "Provide id, linkedin, crunchbase, or twitter."
+                    }
+                  },
+                  "statusCode": 400
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleAuthError"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Insufficient credits or monthly email-unlock allowance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonEmailError"
+                },
+                "example": {
+                  "success": false,
+                  "error": {
+                    "code": "INSUFFICIENT_CREDITS",
+                    "message": "Not enough credits to unlock this email",
+                    "details": {
+                      "credits_needed": 5,
+                      "monthly_credits_remaining": 0,
+                      "purchased_credits_remaining": 0
+                    }
+                  },
+                  "statusCode": 402
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current subscription or trial status cannot unlock emails",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonEmailError"
+                },
+                "example": {
+                  "success": false,
+                  "error": {
+                    "code": "UPGRADE_REQUIRED",
+                    "message": "Email unlocks require a Pro+, Enterprise, or API plan.",
+                    "details": {
+                      "current_tier": "Pro"
+                    }
+                  },
+                  "statusCode": 403
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Person not found or no verified email available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonEmailError"
+                },
+                "examples": {
+                  "person_not_found": {
+                    "summary": "Person not found",
+                    "value": {
+                      "success": false,
+                      "error": {
+                        "code": "PERSON_NOT_FOUND",
+                        "message": "Person not found"
+                      },
+                      "statusCode": 404
+                    }
+                  },
+                  "email_not_found": {
+                    "summary": "No verified email found",
+                    "value": {
+                      "success": false,
+                      "error": {
+                        "code": "EMAIL_NOT_FOUND",
+                        "message": "No verified email was found for this person"
+                      },
+                      "statusCode": 404
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded (per-minute)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleRateLimitError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer",
+                  "example": 60
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeopleServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/person/deals": {
       "get": {
         "summary": "Get deals a person participated in (as an investor) by identifier",
@@ -5190,7 +5390,7 @@
     "/alerts": {
       "get": {
         "summary": "Get alert data with deals",
-        "description": "Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.\nResults include a flattened array of deals sorted by date (newest first) with duplicates removed.\n\n**Multiple Alerts Support:**\n- Query multiple alerts in a single request (up to 10)\n- Each alert returns its own flattened deals array\n- Different alerts can have different frequencies (e.g., one daily, one weekly)\n- Total deal count across all alerts determines credit usage\n\n**Important Notes:**\n- All alert_ids must belong to alerts you have access to\n- Deals are flattened from all time periods and sorted by date DESC (newest first)\n- Duplicate deals are automatically removed\n- Each deal includes AI-generated reasoning for why it matched the alert criteria\n- Deal structure is simplified with flattened company information for easier integration\n",
+        "description": "Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.\nResults include a flattened array of deals sorted by date (newest first) with duplicates removed.\n\nAvailable on Pro+, Enterprise, and API plans. This endpoint does not consume credits.\n\n**Multiple Alerts Support:**\n- Query multiple alerts in a single request (up to 10)\n- Each alert returns its own flattened deals array\n- Different alerts can have different frequencies (e.g., one daily, one weekly)\n- Successful requests report `credits_used: 0`, regardless of deal count\n\n**Important Notes:**\n- All alert_ids must belong to alerts you have access to\n- Deals are flattened from all time periods and sorted by date DESC (newest first)\n- Duplicate deals are automatically removed\n- Each deal includes AI-generated reasoning for why it matched the alert criteria\n- Deal structure is simplified with flattened company information for easier integration\n",
         "operationId": "getAlerts",
         "tags": [
           "alerts"
@@ -5256,11 +5456,6 @@
                     "meta": {
                       "type": "object",
                       "properties": {
-                        "total_count": {
-                          "type": "integer",
-                          "description": "Total number of deals across all alerts and periods",
-                          "example": 47
-                        },
                         "page": {
                           "type": "integer",
                           "description": "Current page number (always 0 for alerts endpoint)",
@@ -5273,30 +5468,11 @@
                         },
                         "credits_used": {
                           "type": "integer",
-                          "description": "Number of credits consumed by this request",
-                          "example": 47
-                        },
-                        "credit_source": {
-                          "type": "string",
-                          "nullable": true,
                           "enum": [
-                            "monthly",
-                            "purchased"
+                            0
                           ],
-                          "description": "Source of credits used (only included for non-API tier keys)",
-                          "example": "monthly"
-                        },
-                        "monthly_credits_remaining": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "Remaining monthly credits (only included for non-API tier keys)",
-                          "example": 953
-                        },
-                        "purchased_credits_remaining": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "Remaining purchased credits (only included for non-API tier keys)",
-                          "example": 500
+                          "description": "Alert endpoints do not consume credits",
+                          "example": 0
                         }
                       }
                     }
@@ -5408,10 +5584,9 @@
                         ]
                       },
                       "meta": {
-                        "total_count": 47,
                         "page": 0,
                         "page_size": 2,
-                        "credits_used": 47
+                        "credits_used": 0
                       }
                     }
                   },
@@ -5423,10 +5598,9 @@
                         "alerts": []
                       },
                       "meta": {
-                        "total_count": 0,
                         "page": 0,
                         "page_size": 1,
-                        "credits_used": 1
+                        "credits_used": 0
                       }
                     }
                   }
@@ -5545,12 +5719,12 @@
               }
             }
           },
-          "402": {
-            "description": "Insufficient credits to complete the request",
+          "403": {
+            "description": "A Pro+, Enterprise, or API plan is required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InsufficientCreditsError"
+                  "$ref": "#/components/schemas/TierAccessError"
                 }
               }
             }
@@ -5687,7 +5861,7 @@
     "/alerts/configurations": {
       "get": {
         "summary": "Get alert configurations for authenticated user",
-        "description": "Retrieve all alert configurations for the authenticated user (identified by API key).\nReturns configuration metadata including filters, frequency, and descriptions.\n\n**Important Notes:**\n- This endpoint does NOT consume usage credits (actualUsageCount: 0)\n- Returns only configuration metadata, not deal data\n- Does not require any query parameters - user is identified by API key\n- All configurations for the authenticated user are returned (no pagination)\n\n**Authentication:**\n- User identity is automatically determined from the API key\n- No email or user_id parameter needed\n\n**Use Cases:**\n- Look up what alerts are configured for the authenticated user\n- Retrieve alert filter settings for external integrations\n- Audit alert configurations programmatically\n",
+        "description": "Retrieve all alert configurations for the authenticated user (identified by API key).\nReturns configuration metadata including filters, frequency, and descriptions.\n\nAvailable on Pro+, Enterprise, and API plans. This endpoint does not consume credits.\n\n**Important Notes:**\n- This endpoint does NOT consume usage credits (actualUsageCount: 0)\n- Returns only configuration metadata, not deal data\n- Does not require any query parameters - user is identified by API key\n- All configurations for the authenticated user are returned (no pagination)\n\n**Authentication:**\n- User identity is automatically determined from the API key\n- No email or user_id parameter needed\n\n**Use Cases:**\n- Look up what alerts are configured for the authenticated user\n- Retrieve alert filter settings for external integrations\n- Audit alert configurations programmatically\n",
         "operationId": "getAlertConfigurations",
         "tags": [
           "alerts"
@@ -5732,30 +5906,11 @@
                         },
                         "credits_used": {
                           "type": "integer",
-                          "description": "Number of credits consumed by this request",
-                          "example": 0
-                        },
-                        "credit_source": {
-                          "type": "string",
-                          "nullable": true,
                           "enum": [
-                            "monthly",
-                            "purchased"
+                            0
                           ],
-                          "description": "Source of credits used (only included for non-API tier keys)",
-                          "example": "monthly"
-                        },
-                        "monthly_credits_remaining": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "Remaining monthly credits (only included for non-API tier keys)",
-                          "example": 1000
-                        },
-                        "purchased_credits_remaining": {
-                          "type": "integer",
-                          "nullable": true,
-                          "description": "Remaining purchased credits (only included for non-API tier keys)",
-                          "example": 500
+                          "description": "Alert endpoints do not consume credits",
+                          "example": 0
                         }
                       }
                     }
@@ -5889,6 +6044,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A Pro+, Enterprise, or API plan is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TierAccessError"
                 }
               }
             }
@@ -8629,6 +8794,180 @@
           }
         ]
       },
+      "PersonEmailResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "person_id",
+              "email",
+              "already_unlocked"
+            ],
+            "properties": {
+              "person_id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "550e8400-e29b-41d4-a716-446655440000"
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "example": "jane@example.com"
+              },
+              "already_unlocked": {
+                "type": "boolean",
+                "description": "True when this user previously unlocked the same email.",
+                "example": false
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "page",
+              "page_size",
+              "credits_used"
+            ],
+            "properties": {
+              "page": {
+                "type": "integer",
+                "enum": [
+                  0
+                ]
+              },
+              "page_size": {
+                "type": "integer",
+                "enum": [
+                  1
+                ]
+              },
+              "credits_used": {
+                "type": "integer",
+                "enum": [
+                  0,
+                  5
+                ],
+                "description": "Five for a new unlock; zero when already unlocked."
+              },
+              "credit_source": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "monthly",
+                  "purchased"
+                ],
+                "description": "Omitted for API-tier keys."
+              },
+              "monthly_credits_remaining": {
+                "type": "integer",
+                "nullable": true,
+                "description": "Omitted for API-tier keys."
+              },
+              "purchased_credits_remaining": {
+                "type": "integer",
+                "nullable": true,
+                "description": "Omitted for API-tier keys."
+              }
+            }
+          }
+        }
+      },
+      "PersonEmailError": {
+        "type": "object",
+        "required": [
+          "success",
+          "error",
+          "statusCode"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "MISSING_IDENTIFIER",
+                  "INVALID_ID",
+                  "INVALID_IDENTIFIER",
+                  "INSUFFICIENT_CREDITS",
+                  "UPGRADE_REQUIRED",
+                  "PERSON_NOT_FOUND",
+                  "EMAIL_NOT_FOUND"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "help": {
+                    "type": "string"
+                  },
+                  "current_tier": {
+                    "type": "string"
+                  },
+                  "credits_needed": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "monthly_credits_remaining": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "purchased_credits_remaining": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "email_unlock_limit_exceeded": {
+                    "type": "boolean"
+                  },
+                  "email_unlock_limit": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "email_unlock_used": {
+                    "type": "integer",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          },
+          "statusCode": {
+            "type": "integer",
+            "enum": [
+              400,
+              402,
+              403,
+              404
+            ]
+          }
+        }
+      },
       "PersonCurrentCompany": {
         "type": "object",
         "nullable": true,
@@ -9803,6 +10142,58 @@
               "publishedDate": "2024-01-15T00:00:00.000Z"
             }
           ]
+        }
+      },
+      "TierAccessError": {
+        "type": "object",
+        "required": [
+          "success",
+          "error"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "details"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "API_TIER_REQUIRED"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "This endpoint requires a Pro+, Enterprise, or API plan."
+              },
+              "details": {
+                "type": "object",
+                "required": [
+                  "current_tier",
+                  "help"
+                ],
+                "properties": {
+                  "current_tier": {
+                    "type": "string",
+                    "example": "Pro"
+                  },
+                  "help": {
+                    "type": "string",
+                    "example": "Upgrade to Pro+, Enterprise, or API to access this endpoint."
+                  }
+                }
+              }
+            }
+          }
         }
       },
       "AlertsValidationError": {

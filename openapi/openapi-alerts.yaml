@@ -7,26 +7,12 @@ info:
     ## Authentication
     All API requests require authentication using an API key in the Authorization header.
     
-    ## Rate Limits
-    API usage is tracked and may be subject to monthly limits depending on your API key tier.
+    ## Plan Access
+    Both alert endpoints are available on Pro+, Enterprise, and API plans.
 
-    **Deal-Based Counting:**
-    - Each request consumes credits equal to the **total number of deals** returned across all alerts
-    - Example: Query 2 alerts → Alert 1 returns 25 deals + Alert 2 returns 22 deals = **47 credits consumed**
-    - Empty results (no deals found) still consume 1 credit minimum
-
-    **How Credits Work:**
-    - Credit check occurs **after** the query executes
-    - If the request would exceed your available credits, it is **rejected with a 402 error**
-    - No partial results are returned if credits would be exceeded
-    - Rejected requests do not consume any credits
-    - Per-minute rate limiting (200 req/min) returns a **429 error**
-
-    **Best Practices:**
-    - Monitor `credits_used` in the `meta` section of each response
-    - Query smaller date ranges when approaching your credit limit
-    - Use fewer alerts per request when nearing your cap
-    - Check the `total_count` in the `meta` section to estimate credit consumption
+    ## Usage and Rate Limits
+    - Alert endpoints do not consume credits; successful responses report `credits_used: 0`
+    - Per-minute rate limiting (200 requests/minute) returns a **429 error**
     
     ## Parameter Validation
     This API enforces strict parameter validation:
@@ -80,11 +66,13 @@ paths:
         Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.
         Results include a flattened array of deals sorted by date (newest first) with duplicates removed.
 
+        Available on Pro+, Enterprise, and API plans. This endpoint does not consume credits.
+
         **Multiple Alerts Support:**
         - Query multiple alerts in a single request (up to 10)
         - Each alert returns its own flattened deals array
         - Different alerts can have different frequencies (e.g., one daily, one weekly)
-        - Total deal count across all alerts determines credit usage
+        - Successful requests report `credits_used: 0`, regardless of deal count
 
         **Important Notes:**
         - All alert_ids must belong to alerts you have access to
@@ -153,10 +141,6 @@ paths:
                   meta:
                     type: object
                     properties:
-                      total_count:
-                        type: integer
-                        description: Total number of deals across all alerts and periods
-                        example: 47
                       page:
                         type: integer
                         description: Current page number (always 0 for alerts endpoint)
@@ -167,24 +151,9 @@ paths:
                         example: 2
                       credits_used:
                         type: integer
-                        description: Number of credits consumed by this request
-                        example: 47
-                      credit_source:
-                        type: string
-                        nullable: true
-                        enum: ['monthly', 'purchased']
-                        description: Source of credits used (only included for non-API tier keys)
-                        example: "monthly"
-                      monthly_credits_remaining:
-                        type: integer
-                        nullable: true
-                        description: Remaining monthly credits (only included for non-API tier keys)
-                        example: 953
-                      purchased_credits_remaining:
-                        type: integer
-                        nullable: true
-                        description: Remaining purchased credits (only included for non-API tier keys)
-                        example: 500
+                        enum: [0]
+                        description: Alert endpoints do not consume credits
+                        example: 0
                 required:
                   - success
                   - data
@@ -267,10 +236,9 @@ paths:
                                   is_primary: true
                                   publishedDate: "2024-01-10T00:00:00.000Z"
                     meta:
-                      total_count: 47
                       page: 0
                       page_size: 2
-                      credits_used: 47
+                      credits_used: 0
 
                 noDealsFound:
                   summary: Valid alert IDs but no deals in date range
@@ -279,10 +247,9 @@ paths:
                     data:
                       alerts: []
                     meta:
-                      total_count: 0
                       page: 0
                       page_size: 1
-                      credits_used: 1
+                      credits_used: 0
 
         '400':
           description: Bad Request - Invalid parameters or validation failed
@@ -361,12 +328,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthError'
 
-        '402':
-          description: Insufficient credits to complete the request
+        '403':
+          description: A Pro+, Enterprise, or API plan is required
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InsufficientCreditsError'
+                $ref: '#/components/schemas/TierAccessError'
                 
         '404':
           description: |
@@ -462,6 +429,8 @@ paths:
       description: |
         Retrieve all alert configurations for the authenticated user (identified by API key).
         Returns configuration metadata including filters, frequency, and descriptions.
+
+        Available on Pro+, Enterprise, and API plans. This endpoint does not consume credits.
         
         **Important Notes:**
         - This endpoint does NOT consume usage credits (actualUsageCount: 0)
@@ -514,24 +483,9 @@ paths:
                         example: 3
                       credits_used:
                         type: integer
-                        description: Number of credits consumed by this request
+                        enum: [0]
+                        description: Alert endpoints do not consume credits
                         example: 0
-                      credit_source:
-                        type: string
-                        nullable: true
-                        enum: ['monthly', 'purchased']
-                        description: Source of credits used (only included for non-API tier keys)
-                        example: "monthly"
-                      monthly_credits_remaining:
-                        type: integer
-                        nullable: true
-                        description: Remaining monthly credits (only included for non-API tier keys)
-                        example: 1000
-                      purchased_credits_remaining:
-                        type: integer
-                        nullable: true
-                        description: Remaining purchased credits (only included for non-API tier keys)
-                        example: 500
                 required:
                   - success
                   - data
@@ -599,6 +553,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthError'
+
+        '403':
+          description: A Pro+, Enterprise, or API plan is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TierAccessError'
 
         '429':
           description: Rate limit exceeded (per-minute)
@@ -938,6 +899,34 @@ components:
                   example: "Bearer vg_your_api_key_here"
       required:
         - error
+
+    TierAccessError:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          required: [code, message, details]
+          properties:
+            code:
+              type: string
+              enum: [API_TIER_REQUIRED]
+            message:
+              type: string
+              example: This endpoint requires a Pro+, Enterprise, or API plan.
+            details:
+              type: object
+              required: [current_tier, help]
+              properties:
+                current_tier:
+                  type: string
+                  example: Pro
+                help:
+                  type: string
+                  example: Upgrade to Pro+, Enterprise, or API to access this endpoint.
 
     RateLimitError:
       type: object
