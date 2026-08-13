@@ -24,16 +24,19 @@ cost 0.1 credits per call or are free, as shown below.
 | `GET /investor/search` | Search investors by name or domain | 0.1 credit/call |
 | `POST /people` | List and filter people with investment activity | 1 credit/row |
 | `GET /person` | Get a person by ID, LinkedIn, Crunchbase, or Twitter | 1 credit/call |
+| `GET /person/email` | Unlock a verified email for a person | 5 credits/new unlock; repeat unlocks free |
 | `GET /person/deals` | Get deals a person participated in as an investor | 1 credit/row |
 | `GET /person/search` | Search for a person by name or identifier | 0.1 credit/call |
 | `GET /industry/search` | Search industries by name | Free |
 | `GET /location/search` | Search locations by name | Free |
-| `GET /alerts` | Get alert data with deals | 1 credit/deal across all alerts; 1 credit minimum |
+| `GET /alerts` | Get alert data with deals | Free |
 | `GET /alerts/configurations` | Get alert configurations | Free |
 
-`GET /alerts` counts every deal returned across all requested alerts. For example,
-25 deals from one alert plus 22 from another consumes 47 credits. A successful
-request with no matching deals consumes the 1-credit minimum.
+## Plan-gated endpoints
+
+- `GET /person/email` is available on non-trial Pro+, Enterprise, and API plans.
+- `GET /alerts` and `GET /alerts/configurations` are available on Pro+, Enterprise, and API plans.
+- Alert requests do not consume credits.
 
 <Note>
   View current usage, credit balances, and billing details on the
@@ -78,8 +81,8 @@ Paid endpoints return a `meta` object with credit usage details:
 - **Single-record lookups** (`/company`, `/investor`, `/person`) cost **1 credit per call**.
 - **Company, investor, and person search** cost **0.1 credits per request**, regardless of rows returned.
 - **Industry & location search** (`/industry/search`, `/location/search`) are always free and don't return credit fields.
-- **Alert results** cost **1 credit per deal returned across all requested alerts**, with a 1-credit minimum when no deals match.
-- **Alert configurations** (`/alerts/configurations`) are free.
+- **Person email unlocks** (`/person/email`) cost **5 credits for a new unlock** and **0 credits when the same user already unlocked that email**.
+- **Alert endpoints** (`/alerts`, `/alerts/configurations`) consume **0 credits**.
 - Credits come included with your plan. If you don't want a recurring plan, you can buy credits individually for as low as **$0.05 per credit**.
 
 ## Getting Started

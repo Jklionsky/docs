@@ -8,9 +8,9 @@ Fundable alerts. A reliable workflow first discovers the available configuration
 then requests matches for a bounded UTC time window.
 
 <Note>
-  `GET /alerts` consumes one credit per deal returned across all requested alerts,
-  with a one-credit minimum when no deals match. `GET /alerts/configurations` is
-  free. See [Pricing and Credits](/usage).
+  `GET /alerts` and `GET /alerts/configurations` are available on Pro+,
+  Enterprise, and API plans. Both endpoints consume zero credits. See
+  [Pricing and Credits](/usage).
 </Note>
 
 ## 1. List alert configurations
@@ -43,8 +43,8 @@ Deals are sorted newest first and deduplicated within the API response. Each mat
 also includes reasoning that explains why the deal satisfied the alert and an
 `articles` array containing its related sources.
 
-Monitor `meta.credits_used` and use narrower date ranges or fewer alert IDs when
-you need to limit credit consumption.
+Use narrower date ranges or fewer alert IDs to keep response payloads smaller and
+downstream processing faster.
 
 ## 3. Process matches safely
 
