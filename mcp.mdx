@@ -1,0 +1,173 @@
+---
+title: "Fundable MCP: Private-Market Research in Your AI Assistant"
+description: "Connect Fundable to an MCP-compatible AI assistant to source companies, research investors, map markets, and build prospect lists with private-market data."
+---
+
+Fundable MCP lets an AI assistant research private companies, funding rounds,
+investors, founders, and verified contact information using Fundable's private-market
+dataset. Describe the outcome you want in plain language; the assistant can explore
+the dataset, run read-only queries, and—with your approval—export results or unlock
+emails.
+
+<CardGroup cols={2}>
+  <Card title="Source companies" icon="magnifying-glass-chart">
+    Turn an investment thesis or ideal customer profile into a qualified company list.
+  </Card>
+  <Card title="Research markets" icon="chart-line">
+    Analyze funding activity, competitive landscapes, investors, and syndicates.
+  </Card>
+</CardGroup>
+
+## What you can do
+
+### Venture and growth-equity sourcing
+
+Turn an investment thesis into a targeted sourcing pipeline using sector, geography,
+stage, funding, investor, and company-maturity signals.
+
+```text Example prompt
+Find private companies that match this investment thesis: [sector or business model],
+[target geography], [funding stage or company maturity], and [other investment
+criteria]. Explain why each company fits, summarize its funding history, identify its
+founders, and retrieve available contact information.
+```
+
+### GTM lead generation and sales prospecting
+
+Build prospect lists for B2B products and services using funding events, company
+stage, location, industry, and organizational information as buying signals.
+
+```text Example prompt
+We sell [product or service] to [ideal customer profile]. Find companies at [target
+stage or maturity] in [target region] that show relevant buying signals. Identify the
+founders or likely decision-makers, retrieve available contact information, and draft
+personalized outbound messages.
+```
+
+### Investor discovery for founders
+
+Identify firms, angels, and partner-level professionals using sector, stage,
+geography, round size, and evidence from previous investments.
+
+```text Example prompt
+Using this company description, website, or fundraising deck, find angel investors,
+venture firms, and relevant investment partners that could be a fit for our next
+round. Explain why each investor matches, show relevant prior investments, and
+retrieve available contact information.
+```
+
+### Venture and private-market landscape research
+
+Compare funding activity across sectors, stages, geographies, and time periods to
+identify active companies, investors, emerging categories, and shifts in momentum.
+
+```text Example prompt
+Analyze funding activity in [sector] across [stages], [locations], and [time period].
+Show changes in deal volume and capital invested, identify active companies and
+investors, and summarize the most important market trends.
+```
+
+### Co-investor and syndicate research
+
+Map disclosed investors, recurring co-investment relationships, partner-level
+professionals, and other deals where relevant investors participated together.
+
+```text Example prompt
+Find the disclosed investors and co-investors associated with [company, investor,
+sector, or group of deals]. Identify recurring investment relationships, relevant
+partners at each firm, and other deals where these investors participated together.
+```
+
+### Market mapping and competitive landscapes
+
+Organize private companies by maturity, funding, geography, business model, customer
+segment, and specialization to expose crowded categories and potential market gaps.
+
+```text Example prompt
+Map the [market or industry] landscape. Find relevant private companies funded during
+[time period] and organize them by stage, funding, geography, customer focus,
+business model, and domain specialization. Identify mature platforms, emerging
+specialists, crowded segments, and potential market gaps.
+```
+
+## Connect Fundable MCP
+
+Fundable MCP uses remote OAuth, so you do not need to install a local server or copy
+an API key into your AI assistant.
+
+1. Open the MCP or integrations settings in your MCP-compatible assistant.
+2. Add a custom remote MCP server using this URL:
+
+```text Fundable MCP server URL
+https://mcp.tryfundable.ai/
+```
+
+3. Follow the browser prompt to sign in to Fundable and authorize the connection.
+4. Start a new conversation and ask what Fundable tools are available.
+
+<Note>
+  MCP access requires an active Pro+ or Enterprise plan. [View Fundable
+  pricing](https://www.tryfundable.ai/home/#pricing).
+</Note>
+
+## Available tools
+
+| Tool | What it does | Cost and limits |
+| --- | --- | --- |
+| `getDatasetContext` | Explains the dataset, business rules, and common joins. | Free |
+| `listDatasetTables` | Lists the available dataset tables. | Free |
+| `getTableDetails` | Returns the columns and constraints for one table. | Free |
+| `getQueryExamples` | Returns example queries by research category. | Free |
+| `previewData` | Runs a read-only SQL query for analysis and previews. | Free; up to 15 rows per response and 1,000 preview rows in a rolling 24-hour period |
+| `exportData` | Creates a downloadable CSV from a read-only query. | 1 credit per exported row; up to 1,000 rows |
+| `unlockPersonEmail` | Retrieves a verified email for one person when available. | Up to 5 credits; repeat unlocks for the same account cost 0 |
+| `unlockPersonEmails` | Retrieves verified emails for an explicitly bounded batch of 1–20 people. | Up to 5 credits per new email; free outcomes use 0 |
+
+## Previews, exports, and approval
+
+Fundable separates research from paid retrieval:
+
+- Analytical previews are free and return at most 15 rows at a time.
+- Preview queries are read-only and cannot modify the dataset.
+- A CSV export happens only after you explicitly request a file or download and
+  approve a maximum credit amount.
+- Exports support up to 1,000 rows, 25 columns, 4,096 bytes per cell, and 10 MB per
+  file. A result above your approved ceiling or a file limit is rejected without a
+  charge.
+- Retrying identical export SQL within 15 minutes recovers the same export without a
+  second charge.
+- Email unlocks require explicit approval. Missing emails, invalid identifiers,
+  duplicates, and emails previously unlocked by the same account use 0 credits.
+
+<Tip>
+  Begin broad research with a free preview. Ask for a CSV only after the filters and
+  columns look right.
+</Tip>
+
+## A reliable workflow
+
+1. Ask the assistant to understand the Fundable dataset and your research goal.
+2. Refine names, sectors, locations, stages, and time periods with a small preview.
+3. Review the matches and adjust your criteria.
+4. Ask for a CSV or verified contact information only when you want a paid action.
+5. Confirm the scope and maximum credit amount before the assistant proceeds.
+
+## Troubleshooting
+
+### The connection says I do not have access
+
+Confirm that you signed in with the Fundable account attached to an active Pro+ or
+Enterprise plan. You can manage your plan from [Fundable billing](https://www.tryfundable.ai/billing).
+
+### A query returns too few results
+
+Ask the assistant to inspect the dataset schema, validate exact filter values, and
+run a small diagnostic query. Avoid guessing internal identifiers or category names.
+
+### The assistant will not export or unlock an email
+
+Paid actions require an explicit request and a bounded credit approval. State that
+you want the file or email, identify the intended scope, and approve the maximum
+number of credits.
+
+For help connecting Fundable MCP, contact [jacob@tryfundable.ai](mailto:jacob@tryfundable.ai).

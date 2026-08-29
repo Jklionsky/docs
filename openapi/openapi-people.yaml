@@ -811,7 +811,7 @@ paths:
         same user already unlocked costs 0 credits. Unlock ownership persists across API
         keys belonging to that user. Provider attribution is internal and is not returned.
 
-        Available on non-trial Pro+, Enterprise, and API plans.
+        Available on non-trial Pro+ and Enterprise plans.
       operationId: getPersonEmail
       parameters:
         - name: id
@@ -896,7 +896,7 @@ paths:
                 success: false
                 error:
                   code: UPGRADE_REQUIRED
-                  message: Email unlocks require a Pro+, Enterprise, or API plan.
+                  message: Email unlocks require a Pro+ or Enterprise plan.
                   details:
                     current_tier: Pro
                 statusCode: 403

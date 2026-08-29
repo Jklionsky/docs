@@ -8,7 +8,7 @@ info:
     All API requests require authentication using an API key in the Authorization header.
     
     ## Plan Access
-    Both alert endpoints are available on Pro+, Enterprise, and API plans.
+    Both alert endpoints are available on Pro+ and Enterprise plans.
 
     ## Usage and Rate Limits
     - Alert endpoints do not consume credits; successful responses report `credits_used: 0`
@@ -66,7 +66,7 @@ paths:
         Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.
         Results include a flattened array of deals sorted by date (newest first) with duplicates removed.
 
-        Available on Pro+, Enterprise, and API plans. This endpoint does not consume credits.
+        Available on Pro+ and Enterprise plans. This endpoint does not consume credits.
 
         **Multiple Alerts Support:**
         - Query multiple alerts in a single request (up to 10)
@@ -329,7 +329,7 @@ paths:
                 $ref: '#/components/schemas/AuthError'
 
         '403':
-          description: A Pro+, Enterprise, or API plan is required
+          description: A Pro+ or Enterprise plan is required
           content:
             application/json:
               schema:
@@ -430,7 +430,7 @@ paths:
         Retrieve all alert configurations for the authenticated user (identified by API key).
         Returns configuration metadata including filters, frequency, and descriptions.
 
-        Available on Pro+, Enterprise, and API plans. This endpoint does not consume credits.
+        Available on Pro+ and Enterprise plans. This endpoint does not consume credits.
         
         **Important Notes:**
         - This endpoint does NOT consume usage credits (actualUsageCount: 0)
@@ -555,7 +555,7 @@ paths:
                 $ref: '#/components/schemas/AuthError'
 
         '403':
-          description: A Pro+, Enterprise, or API plan is required
+          description: A Pro+ or Enterprise plan is required
           content:
             application/json:
               schema:
@@ -916,7 +916,7 @@ components:
               enum: [API_TIER_REQUIRED]
             message:
               type: string
-              example: This endpoint requires a Pro+, Enterprise, or API plan.
+              example: This endpoint requires a Pro+ or Enterprise plan.
             details:
               type: object
               required: [current_tier, help]
@@ -926,7 +926,7 @@ components:
                   example: Pro
                 help:
                   type: string
-                  example: Upgrade to Pro+, Enterprise, or API to access this endpoint.
+                  example: Upgrade to Pro+ or Enterprise to access this endpoint.
 
     RateLimitError:
       type: object

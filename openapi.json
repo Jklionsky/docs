@@ -4714,7 +4714,7 @@
     "/person/email": {
       "get": {
         "summary": "Unlock a person's verified email by identifier",
-        "description": "Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that user. Provider attribution is internal and is not returned.\n\nAvailable on non-trial Pro+, Enterprise, and API plans.\n",
+        "description": "Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that user. Provider attribution is internal and is not returned.\n\nAvailable on non-trial Pro+ and Enterprise plans.\n",
         "operationId": "getPersonEmail",
         "parameters": [
           {
@@ -4835,7 +4835,7 @@
                   "success": false,
                   "error": {
                     "code": "UPGRADE_REQUIRED",
-                    "message": "Email unlocks require a Pro+, Enterprise, or API plan.",
+                    "message": "Email unlocks require a Pro+ or Enterprise plan.",
                     "details": {
                       "current_tier": "Pro"
                     }
@@ -5390,7 +5390,7 @@
     "/alerts": {
       "get": {
         "summary": "Get alert data with deals",
-        "description": "Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.\nResults include a flattened array of deals sorted by date (newest first) with duplicates removed.\n\nAvailable on Pro+, Enterprise, and API plans. This endpoint does not consume credits.\n\n**Multiple Alerts Support:**\n- Query multiple alerts in a single request (up to 10)\n- Each alert returns its own flattened deals array\n- Different alerts can have different frequencies (e.g., one daily, one weekly)\n- Successful requests report `credits_used: 0`, regardless of deal count\n\n**Important Notes:**\n- All alert_ids must belong to alerts you have access to\n- Deals are flattened from all time periods and sorted by date DESC (newest first)\n- Duplicate deals are automatically removed\n- Each deal includes AI-generated reasoning for why it matched the alert criteria\n- Deal structure is simplified with flattened company information for easier integration\n",
+        "description": "Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.\nResults include a flattened array of deals sorted by date (newest first) with duplicates removed.\n\nAvailable on Pro+ and Enterprise plans. This endpoint does not consume credits.\n\n**Multiple Alerts Support:**\n- Query multiple alerts in a single request (up to 10)\n- Each alert returns its own flattened deals array\n- Different alerts can have different frequencies (e.g., one daily, one weekly)\n- Successful requests report `credits_used: 0`, regardless of deal count\n\n**Important Notes:**\n- All alert_ids must belong to alerts you have access to\n- Deals are flattened from all time periods and sorted by date DESC (newest first)\n- Duplicate deals are automatically removed\n- Each deal includes AI-generated reasoning for why it matched the alert criteria\n- Deal structure is simplified with flattened company information for easier integration\n",
         "operationId": "getAlerts",
         "tags": [
           "alerts"
@@ -5720,7 +5720,7 @@
             }
           },
           "403": {
-            "description": "A Pro+, Enterprise, or API plan is required",
+            "description": "A Pro+ or Enterprise plan is required",
             "content": {
               "application/json": {
                 "schema": {
@@ -5861,7 +5861,7 @@
     "/alerts/configurations": {
       "get": {
         "summary": "Get alert configurations for authenticated user",
-        "description": "Retrieve all alert configurations for the authenticated user (identified by API key).\nReturns configuration metadata including filters, frequency, and descriptions.\n\nAvailable on Pro+, Enterprise, and API plans. This endpoint does not consume credits.\n\n**Important Notes:**\n- This endpoint does NOT consume usage credits (actualUsageCount: 0)\n- Returns only configuration metadata, not deal data\n- Does not require any query parameters - user is identified by API key\n- All configurations for the authenticated user are returned (no pagination)\n\n**Authentication:**\n- User identity is automatically determined from the API key\n- No email or user_id parameter needed\n\n**Use Cases:**\n- Look up what alerts are configured for the authenticated user\n- Retrieve alert filter settings for external integrations\n- Audit alert configurations programmatically\n",
+        "description": "Retrieve all alert configurations for the authenticated user (identified by API key).\nReturns configuration metadata including filters, frequency, and descriptions.\n\nAvailable on Pro+ and Enterprise plans. This endpoint does not consume credits.\n\n**Important Notes:**\n- This endpoint does NOT consume usage credits (actualUsageCount: 0)\n- Returns only configuration metadata, not deal data\n- Does not require any query parameters - user is identified by API key\n- All configurations for the authenticated user are returned (no pagination)\n\n**Authentication:**\n- User identity is automatically determined from the API key\n- No email or user_id parameter needed\n\n**Use Cases:**\n- Look up what alerts are configured for the authenticated user\n- Retrieve alert filter settings for external integrations\n- Audit alert configurations programmatically\n",
         "operationId": "getAlertConfigurations",
         "tags": [
           "alerts"
@@ -6049,7 +6049,7 @@
             }
           },
           "403": {
-            "description": "A Pro+, Enterprise, or API plan is required",
+            "description": "A Pro+ or Enterprise plan is required",
             "content": {
               "application/json": {
                 "schema": {
@@ -10173,7 +10173,7 @@
               },
               "message": {
                 "type": "string",
-                "example": "This endpoint requires a Pro+, Enterprise, or API plan."
+                "example": "This endpoint requires a Pro+ or Enterprise plan."
               },
               "details": {
                 "type": "object",
@@ -10188,7 +10188,7 @@
                   },
                   "help": {
                     "type": "string",
-                    "example": "Upgrade to Pro+, Enterprise, or API to access this endpoint."
+                    "example": "Upgrade to Pro+ or Enterprise to access this endpoint."
                   }
                 }
               }
