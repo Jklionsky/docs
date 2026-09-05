@@ -49,9 +49,22 @@ security:
 paths:
   /deals:
     post:
-      summary: Search and filter funding rounds by company, investor, and round details
+      summary: Find funding rounds across complete company histories
       description: |
-        Retrieve venture capital deals with advanced filtering, pagination, and sorting.
+        Use this endpoint when the requested result is a set of funding rounds, or when
+        deal criteria must match any historical round rather than only each company's
+        latest round. It supports round-level analysis across the full deal history.
+
+        For most company-sourcing requests, prefer `POST /companies`: it returns company
+        metadata together with the full latest deal. Its `latest_deal` filters apply only
+        to each company's most recent round. For example, use `/companies` for "find AI
+        companies in San Francisco whose latest round was Seed," but use `/deals` for
+        "analyze every Seed round announced last year."
+
+        Deal records contain full round details, but related companies and investors are
+        identified by IDs instead of full entity profiles. Use `GET /company?id=...` to
+        retrieve company metadata and `GET /deals/{id}/investors` to retrieve the full
+        investor lineup for a returned deal.
 
         ## Request Body Structure
         Send a JSON body with up to 4 filter sections plus pagination/sort at the top level:
@@ -375,7 +388,11 @@ paths:
   /deals/{id}:
     get:
       summary: Get a specific deal by ID
-      description: Retrieve detailed information about a single venture capital deal by its unique identifier
+      description: |
+        Use this endpoint when a deal UUID is already known and full details for that one
+        funding round are required. The response identifies related entities by ID rather
+        than embedding their full profiles. Use `GET /company?id=...` for company metadata
+        and `GET /deals/{id}/investors` for the complete investor lineup.
       operationId: getDealById
       parameters:
         - name: id
@@ -554,7 +571,14 @@ paths:
   /deals/{id}/investors:
     get:
       summary: Get investors for a specific deal
-      description: Retrieve detailed investor information for a single deal, including lead status, personnel, and investor profile links.
+      description: |
+        Use this endpoint after identifying a deal when investor IDs in the deal record
+        need to be resolved into the complete investor lineup. It returns firm investors,
+        associated people, angel investors, lead status, and profile links for one deal.
+
+        Do not use this endpoint to discover investors across many deals. Use
+        `POST /investors` when the desired result is a list of firms, or `POST /people`
+        with investor filters when the desired result is individual investors.
       operationId: getDealInvestors
       parameters:
         - name: id

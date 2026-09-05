@@ -1,0 +1,148 @@
+---
+title: "Endpoint and Filter Selection"
+description: "Choose the right Fundable endpoints and filters for company, funding-round, investor, and people workflows."
+---
+
+Fundable's collection endpoints can apply similar filters while returning different
+entity types. Choose the endpoint based first on the result you need, then on
+whether funding-round filters should apply only to a company's latest round or to its
+complete history.
+
+## Choose the result type first
+
+| Requested result | Default endpoint | Selection rule |
+| --- | --- | --- |
+| Companies | [`POST /companies`](/api-reference/companies/list) | Default for most sourcing workflows; returns company metadata and the full latest deal |
+| Funding rounds | [`POST /deals`](/api-reference/deals/list) | Use for deal analysis across complete company histories |
+| Investor firms | [`POST /investors`](/api-reference/investors/list) | Finds matching investments and returns the participating firms |
+| Founders, employees, or individual investors | [`POST /people`](/api-reference/people/list) | Returns people rather than companies, rounds, or firms |
+
+## Choose companies or deals
+
+Use `POST /companies` for most company discovery. Each result includes company
+metadata such as its name and domain plus the full details of its latest funding
+round. Filters inside `latest_deal` apply only to that most recent round. Filters
+inside `investors` can match investor participation across all rounds.
+
+> **Example:** "Find AI companies in San Francisco whose latest round was Seed" should
+> use `POST /companies` with company industry and location filters plus a
+> `latest_deal.financing_types` filter.
+
+Use `POST /deals` when the requested result is a set of rounds or the analysis must
+include historical rounds even when they are no longer a company's latest.
+
+> **Example:** "Analyze every Seed round announced last year" should use `POST /deals`.
+> A company that later raised Series A still belongs in this result.
+
+Deal responses contain full round details, but related companies and investors are
+represented primarily by IDs. Follow a returned company ID with
+[`GET /company`](/api-reference/companies/get). Follow a deal ID with
+[`GET /deals/{id}/investors`](/api-reference/deals/investors) to retrieve firm
+investors, associated partners, angels, lead status, and profile links.
+
+## Choose investor firms or people
+
+Use `POST /investors` when the desired output is investor firms. Conceptually, its
+`company_investments` filters identify qualifying portfolio companies and deals, then
+return the firms that participated in them.
+
+> **Example:** "Find San Francisco-based investors that participated in a Seed round
+> during the last year" should use `POST /investors`. Put firm location filters under
+> `investor` and round filters under `company_investments`.
+
+When `company_investments` filters are active:
+
+- `filtered_deal_count` is the number of deals that matched those filters.
+- `filtered_lead_count` is the number of those matching deals the firm led.
+
+Use `POST /people` when the desired output is individuals:
+
+- `person_type: company` returns founders, executives, and employees based on their
+  current employer. `company.latest_deal` filters apply only to the employer's latest
+  round, but the returned person record does not include the employer's funding data.
+- `person_type: investor` applies investment filters similarly to `POST /investors`,
+  but returns individual angels or lead partners attached to their firms.
+
+> **Example:** "Find founders of AI companies in San Francisco whose latest round was
+> Series A" should use `POST /people` with `person_type: company`, a founder role,
+> current-employer filters, and `company.latest_deal.financing_types`.
+
+## Skip search when a stable identifier is known
+
+A domain or LinkedIn URL is usually a stronger identifier than a name. Pass it
+directly to a detail endpoint instead of searching first:
+
+| Known entity | Full detail | Name or uncertain identifier |
+| --- | --- | --- |
+| Company | [`GET /company`](/api-reference/companies/get) | [`GET /company/search`](/api-reference/companies/search) |
+| Investor firm | [`GET /investor`](/api-reference/investors/get) | [`GET /investor/search`](/api-reference/investors/search) |
+| Person | [`GET /person`](/api-reference/people/get) | [`GET /person/search`](/api-reference/people/search) |
+
+For batch lookup, pass arrays of known identifiers to the corresponding collection
+endpoint. Use the singular `/search` routes primarily for fuzzy name resolution or
+when an identifier might be ambiguous.
+
+## Resolve filters before discovery
+
+Do not guess location or industry permalinks.
+
+1. Resolve a location label with
+   [`GET /location/search`](/api-reference/locations/search).
+2. Resolve an industry or super category with
+   [`GET /industry/search`](/api-reference/industries/search).
+3. Pass the selected exact permalinks to the collection endpoint.
+
+See [Filtering & Permalinks](/api-reference/filtering) for permalink behavior and
+round-type enum values.
+
+## When to use semantic search
+
+Semantic search is a fallback for category intent that Fundable's industry taxonomy
+cannot express precisely. It matches the meaning of a company's product, technology,
+or business model rather than treating the query as a literal keyword filter.
+
+Use this decision sequence:
+
+1. Call [`GET /industry/search`](/api-reference/industries/search) with the user's
+   category.
+2. If the taxonomy contains an appropriate industry or super category, use its
+   permalink in the structured filter.
+3. If no taxonomy result captures the requested niche, use `search_query`.
+4. Apply location, stage, round date, funding, employee count, and other structured
+   requirements through their dedicated fields alongside the semantic query.
+
+| Endpoint and mode | Semantic-search field | What it matches |
+| --- | --- | --- |
+| `POST /companies` | `company.search_query` | What the returned companies do |
+| `POST /investors` | `company_investments.search_query` | What the firms' portfolio companies do |
+| `POST /people`, company mode | `company.search_query` | What each person's current employer does |
+| `POST /people`, investor mode | `investor.deals.search_query` | What companies the person invested in do |
+
+<Tip>
+  **Use a taxonomy filter:** "AI companies in San Francisco" maps cleanly to an AI
+  industry permalink plus a San Francisco location permalink.
+
+  **Use semantic search:** "Infrastructure that reduces the cost of training foundation
+  models" describes a specific product and technology niche that may not have an exact
+  industry permalink.
+</Tip>
+
+Semantic searches return at most 150 matches. Results are relevance-ranked, and an
+optional `min_relevance` threshold from 0 to 1 can exclude weaker matches. On
+`POST /companies` and `POST /people`, semantic search overrides an explicit `sort_by`;
+`POST /investors` ranks firms by how closely their portfolios match the query.
+
+Do not include structured requirements such as "Seed," "San Francisco," "raised last
+year," or "11-50 employees" inside `search_query`. Doing so makes the request less
+predictable and bypasses filters designed for those constraints.
+
+## Common endpoint sequences
+
+| Goal | Sequence |
+| --- | --- |
+| Source companies | Resolve location and industry → `POST /companies` |
+| Analyze historical rounds | Resolve location and industry → `POST /deals` |
+| Inspect investors in returned rounds | `POST /deals` → `GET /deals/{id}/investors` |
+| Find firms by investment history | Resolve filters → `POST /investors` |
+| Find founders by employer and latest round | Resolve filters → `POST /people` with `person_type: company` |
+| Find angels or lead partners by investment history | Resolve filters → `POST /people` with `person_type: investor` |

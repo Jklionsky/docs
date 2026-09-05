@@ -11,9 +11,9 @@ info:
     API usage is tracked and may be subject to monthly limits depending on your API key tier.
 
     ## Endpoint shape (POST)
-    `POST /people` accepts a JSON body with four filter sections. There is no `type`
-    discriminator — filter intent is implicit in which sections have data, so cross-type queries
-    (e.g. "founders at fintech companies who also invested in AI startups") work natively.
+    `POST /people` accepts a JSON body with an optional `person_type` selector and four filter
+    sections. Filter intent can also be inferred from which sections have data, so cross-type
+    queries (e.g. "founders at fintech companies who also invested in AI startups") work natively.
 
     Filter sections:
     - `identifiers` — look up specific people by UUID, LinkedIn, Crunchbase, or Twitter
@@ -43,17 +43,17 @@ info:
     add a filter block to imply it.
 
     ## Semantic search
-    Two independent natural-language search fields. Think of each as a flexible replacement for
-    an industry tag: use them to target a **niche industry or specific product type** by
+    Two independent natural-language search fields. First use /industry/search and apply a
+    structured taxonomy filter when an appropriate industry or super category exists. Use these
+    fields only for a **niche industry or specific product type** the taxonomy cannot express,
     describing what a company does — its product, technology, or business model — rather than
-    other attributes like stage, location, or funding (apply those with the dedicated filter
-    fields instead):
+    attributes like stage, location, or funding (apply dedicated filter fields instead):
     - `company.search_query` — semantic match against the person's current employer
     - `investor.deals.search_query` — semantic match against companies the person has invested in
 
     Both can fire simultaneously. Each accepts an optional `min_relevance` (0..1) to filter out
     weak matches. When semantic search is active, results are ordered by relevance and any
-    explicit `sort_by` is ignored.
+    explicit `sort_by` is ignored. Each semantic result set is capped at 150 matches.
 
     ## Response shape
     Every row carries every field. Investor-context aggregates (deal counts, top industries / locations / round types,
@@ -91,9 +91,21 @@ security:
 paths:
   /people:
     post:
-      summary: Search people with cross-type filters and optional semantic search
+      summary: Discover founders, employees, angels, and lead investors
       description: |
-        Retrieve people with advanced filtering, pagination, sorting, and optional AI-powered semantic search.
+        Use this endpoint when the requested result is a list of people.
+
+        With `person_type: company`, it returns founders, executives, or employees based on
+        their current employer. Filters under `company.latest_deal` apply only to that
+        employer's latest funding round, like `POST /companies`; funding information is used
+        for filtering but is not included in the returned person record. For example, use
+        this mode to find founders of AI companies in San Francisco whose latest round was
+        Series A.
+
+        With `person_type: investor`, it applies investment and portfolio filters in the same
+        way that `POST /investors` does, but returns individual angel investors or lead
+        partners attached to their firms rather than firm records. Use `POST /investors`
+        when the desired result is firms, and `POST /deals` when it is funding rounds.
 
         ## Request Body Structure
         Send a JSON body with up to 4 filter sections plus pagination/sort at the top level:
@@ -194,12 +206,14 @@ paths:
                       type: string
                       description: >-
                         AI-powered semantic search against the person's current employer —
-                        a flexible replacement for an industry tag. Use it to target a niche
-                        industry or specific product type by describing what that company does
-                        — its product, technology, or business model (e.g. "climate tech carbon
-                        accounting software"). Do NOT use it for other attributes like stage,
-                        location, or funding — apply those with the dedicated filter fields
-                        instead. Overrides explicit sort_by — results are ordered by relevance.
+                        a flexible replacement for an industry tag. First use /industry/search
+                        and apply an `industries` or `super_categories` filter when the taxonomy
+                        contains the intended category. Use semantic search only for a niche
+                        industry or product type the taxonomy cannot express, describing what
+                        that company does — its product, technology, or business model (e.g.
+                        "climate tech carbon accounting software"). Do NOT use it for stage,
+                        location, or funding — apply dedicated filters instead. Results are
+                        ordered by relevance and capped at 150 semantic matches.
                       example: "climate tech carbon accounting software"
                     min_relevance:
                       type: number
@@ -390,13 +404,14 @@ paths:
                           type: string
                           description: >-
                             AI-powered semantic search against the person's portfolio
-                            companies — a flexible replacement for an industry tag. Use it
-                            to target a niche industry or specific product type by describing
-                            what those companies do — their product, technology, or business
-                            model (e.g. "AI infrastructure for model training"). Do NOT use it
-                            for other attributes like stage, location, or funding — apply those
-                            with the dedicated filter fields instead. Overrides explicit sort_by
-                            — results are ordered by relevance.
+                            companies — a flexible replacement for an industry tag. First use
+                            /industry/search and apply an `industries` or `super_categories`
+                            filter when the taxonomy contains the intended category. Use
+                            semantic search only for a niche industry or product type the
+                            taxonomy cannot express, describing what those companies do (e.g.
+                            "AI infrastructure for model training"). Do NOT use it for stage,
+                            location, or funding — apply dedicated filters instead. Results are
+                            ordered by relevance and capped at 150 semantic matches.
                           example: "AI infrastructure for model training"
                         min_relevance:
                           type: number
@@ -674,8 +689,12 @@ paths:
     get:
       summary: Get person details by identifier
       description: |
-        Retrieve detailed person information using any supported identifier format.
-        The API intelligently detects the identifier type and queries accordingly.
+        Use this endpoint when one person is already identified and their full profile is
+        required. Prefer a LinkedIn URL when available; it can be passed directly without
+        calling `/person/search` first.
+
+        Use `/person/search` for fuzzy name resolution or an uncertain identifier. Use
+        `POST /people` to discover or batch-retrieve multiple people.
 
         Provide ONE of the following query parameters to identify the person:
         - `id` - Person UUID
@@ -802,7 +821,8 @@ paths:
     get:
       summary: Unlock a person's verified email by identifier
       description: |
-        Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,
+        Use this endpoint only when a verified email is explicitly required for an identified
+        person. Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,
         or Twitter/X. Provide one identifier. If multiple identifiers are supplied, the
         endpoint uses the first non-empty value in this order: `id`, `linkedin`,
         `crunchbase`, `twitter`.
@@ -946,8 +966,10 @@ paths:
     get:
       summary: Get deals a person participated in (as an investor) by identifier
       description: |
-        Retrieve all deals a person has participated in as an investor (angel deals + lead/firm deals)
-        using any supported identifier format. The API intelligently detects the identifier type and queries accordingly.
+        Use this endpoint when a person is already identified and their investment history
+        is required. It returns deals the person joined as an angel plus lead or firm deals.
+        Prefer a LinkedIn URL when available; it can be passed directly without first calling
+        `/person/search`.
 
         Provide ONE of the following query parameters to identify the person:
         - `id` - Person UUID
@@ -1116,7 +1138,11 @@ paths:
     get:
       summary: Search for a person by name or identifier
       description: |
-        Look up people using one of five search methods. Exactly one parameter must be provided.
+        Use this endpoint primarily to resolve a fuzzy person name or uncertain identifier.
+        If a reliable LinkedIn URL is already available, skip this search and pass it directly
+        to `GET /person` for one full profile or to `POST /people` for a batch lookup.
+
+        Exactly one parameter must be provided.
 
         **Search types:**
         - `name` — Fuzzy name search across both investors AND non-investor people (founders, employees). Returns up to 10 results.

@@ -64,8 +64,16 @@ def main() -> None:
             "title": "Fundable API",
             "description": (
                 "Canonical OpenAPI specification for the Fundable API. "
-                "This file bundles the Deals, Companies, Investors, People, "
-                "Alerts, Location, and Industry endpoints."
+                "Choose the collection endpoint whose return type matches the requested "
+                "result: POST /companies for company discovery (the default for most "
+                "sourcing workflows), POST /deals for round-level analysis across complete "
+                "company histories, POST /investors for investor firms, and POST /people "
+                "for founders, employees, angels, or lead partners. Use singular detail "
+                "endpoints when a stable identifier such as a domain or LinkedIn URL is "
+                "already known; use /search endpoints for fuzzy names or uncertain "
+                "identifiers. Resolve human-readable locations and industries with their "
+                "search endpoints before applying permalink filters. Operation descriptions "
+                "contain the route-specific selection rules."
             ),
             "version": "2.0.0",
             "contact": {

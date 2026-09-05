@@ -37,7 +37,8 @@
               "index",
               "fundable-mcp",
               "authentication",
-              "usage"
+              "usage",
+              "guides/endpoint-and-filter-selection"
             ]
           },
           {
@@ -45,8 +46,7 @@
             "pages": [
               "guides/track-newly-funded-startups",
               "guides/funding-alert-workflow",
-              "guides/crm-enrichment",
-              "guides/ai-agent-funding-data"
+              "guides/crm-enrichment"
             ]
           }
         ]

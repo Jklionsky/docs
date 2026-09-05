@@ -39,7 +39,7 @@ info:
     - `employee_count` — Investor firm employee count ranges
 
     ### `company_investments` — Portfolio filters
-    - `search_query` — Semantic search; a flexible replacement for an industry tag. Targets a niche industry or specific product type by describing **what portfolio companies do** (product/technology/business model); not for other attributes like stage, location, or funding — use the dedicated fields below. Results ranked by portfolio relevance
+    - `search_query` — Semantic search for a niche that /industry/search cannot resolve to an existing taxonomy filter. Describe **what portfolio companies do** (product/technology/business model), not attributes like stage, location, or funding. Results are ranked by portfolio relevance and capped at 150 semantic matches
     - `min_relevance` — Minimum relevance threshold (0–1) for the portfolio semantic search
     - `company_ids` — Specific portfolio companies (by UUID)
     - `industries`, `super_categories`, `locations` — Portfolio company attributes
@@ -50,6 +50,7 @@ info:
     - `min_matching_deals` — Minimum deals matching above criteria
 
     When portfolio filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.
+    These values count only deals that matched the supplied `company_investments` filters.
 
   version: 1.0.0
   contact:
@@ -69,9 +70,17 @@ security:
 paths:
   /investors:
     post:
-      summary: List and filter investors
+      summary: Discover investor firms by their attributes and investments
       description: |
-        Retrieve a paginated list of investors with optional filtering.
+        Use this endpoint when the requested result is a list of investor firms. Filters
+        under `company_investments` identify qualifying portfolio companies and deals, then
+        return the firms that participated in those deals. For example, use this route to
+        find San Francisco-based investors that participated in a Seed round during the
+        last year.
+
+        Use `POST /people` with investor filters instead when the desired result is an
+        individual angel investor or lead partner attached to a firm. Use `POST /deals`
+        when the desired result is the matching funding rounds themselves.
 
         ## Request Body Structure
         Send a JSON body with up to 3 filter sections plus pagination/sort at the top level:
@@ -79,7 +88,9 @@ paths:
         - `investor` - Filter by investor entity attributes (location, employee count)
         - `company_investments` - Filter by portfolio (industries, deal characteristics, etc.). Supports semantic search via `search_query` + `min_relevance`.
 
-        When `company_investments` filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.
+        When `company_investments` filters are active, `filtered_deal_count` is the number
+        of deals that matched those filters and `filtered_lead_count` is the number of those
+        matched deals the investor led.
       operationId: listInvestors
       requestBody:
         required: false
@@ -152,14 +163,16 @@ paths:
                       description: |
                         AI-powered semantic search matched against each investor's
                         portfolio companies — a flexible replacement for an industry tag.
-                        Use it to target a niche industry or specific product type by
-                        describing what those companies do — their product, technology, or
-                        business model (e.g. "climate-focused carbon capture hardware"). Do
-                        NOT use it for other attributes like stage, location, or funding —
-                        apply those with the dedicated `company_investments` and `investor`
-                        filter fields instead. When provided, results are ranked by how
-                        closely an investor's portfolio matches the query rather than the
-                        default sort.
+                        First use /industry/search and apply an `industries` or
+                        `super_categories` filter when the taxonomy contains the intended
+                        category. Use semantic search only for a niche industry or specific
+                        product type the taxonomy cannot express, describing what those
+                        companies do — their product, technology, or business model (e.g.
+                        "climate-focused carbon capture hardware"). Do NOT use it for other
+                        attributes like stage, location, or funding — apply those with the
+                        dedicated `company_investments` and `investor` filter fields instead.
+                        Results are ranked by portfolio relevance and capped at 150 semantic
+                        matches.
                       example: "climate-focused carbon capture hardware"
                     min_relevance:
                       type: number
@@ -435,8 +448,12 @@ paths:
     get:
       summary: Get investor details and statistics by identifier
       description: |
-        Retrieve detailed investor information using any supported identifier format.
-        The API intelligently detects the identifier type and queries accordingly.
+        Use this endpoint when one investor firm is already identified and its full profile,
+        statistics, and portfolio summary are required. Prefer a domain or LinkedIn URL when
+        available; it can be passed directly without calling `/investor/search` first.
+
+        Use `/investor/search` for fuzzy firm-name resolution or an uncertain identifier.
+        Use `POST /investors` to discover or batch-retrieve multiple investor firms.
 
         Provide ONE of the following query parameters to identify the investor:
         - `id` - Investor UUID
@@ -572,8 +589,12 @@ paths:
     get:
       summary: Get deals for an investor by identifier
       description: |
-        Retrieve all deals for an investor using any supported identifier format.
-        The API intelligently detects the identifier type and queries accordingly.
+        Use this endpoint when an investor firm is already identified and its complete deal
+        history is required. Prefer a domain or LinkedIn URL when available; it can be passed
+        directly without calling `/investor/search` first.
+
+        Use `POST /investors` instead to discover firms from investment criteria, or
+        `POST /deals` when the desired result is a filtered list of funding rounds.
 
         Provide ONE of the following query parameters to identify the investor:
         - `id` - Investor UUID
@@ -786,7 +807,12 @@ paths:
     get:
       summary: Search investors by name, domain, LinkedIn, or Crunchbase
       description: |
-        Look up investors using one of four search methods. Exactly one parameter must be provided.
+        Use this endpoint primarily to resolve a fuzzy investor-firm name or an uncertain
+        identifier. If a reliable domain or LinkedIn URL is already available, skip this
+        search and pass it directly to `GET /investor` for one full profile or to
+        `POST /investors` for a batch lookup.
+
+        Exactly one parameter must be provided.
 
         **Search types:**
         - `name` — Fuzzy name search with relevance scoring
@@ -1140,11 +1166,11 @@ components:
             filtered_deal_count:
               type: integer
               nullable: true
-              description: Number of deals matching portfolio filters (present when portfolio filters are active)
+              description: Number of deals matching the active `company_investments` filters
             filtered_lead_count:
               type: integer
               nullable: true
-              description: Number of lead deals matching portfolio filters (present when portfolio filters are active)
+              description: Of the deals matching the active `company_investments` filters, how many the investor led
 
     LocationInfo:
       type: object

@@ -42,7 +42,12 @@ paths:
     get:
       summary: Search locations by name and optionally filter by type
       description: |
-        Look up locations (cities, states, countries, regions) by name with fuzzy matching. The `name` parameter is required; `type` is optional.
+        Use this endpoint to resolve a human-readable city, state, country, or region into
+        the exact permalink required by location filters on discovery endpoints. Agents
+        should not guess permalinks. Select the result that matches the user's intended
+        geography, then pass its permalink to the relevant filter.
+
+        The `name` parameter is required; `type` is optional.
 
         **Search types:**
         - `name` — Fuzzy name search with relevance scoring (required)
@@ -235,7 +240,13 @@ paths:
     get:
       summary: Search industries and super categories by name
       description: |
-        Look up industries and super categories by name with fuzzy matching. The `name` parameter is required; `type` is optional.
+        Use this endpoint before semantic search to resolve a human-readable category into
+        an exact `INDUSTRY` or `SUPER_CATEGORY` permalink. Agents should not guess permalinks.
+        If the taxonomy has an appropriate result, use its permalink in the structured
+        industry filter. Use `search_query` only when the requested niche is not represented
+        by the taxonomy.
+
+        The `name` parameter is required; `type` is optional.
 
         **Search types:**
         - `name` — Fuzzy name search with relevance scoring (required)

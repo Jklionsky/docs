@@ -26,14 +26,14 @@ info:
 
     ## Semantic Search
     The /companies endpoint supports AI-powered semantic search via `company.search_query`.
-    Think of it as a flexible replacement for an industry tag: use it to pinpoint a **niche
-    industry or specific product type** by describing what a company does — its product,
-    technology, or business model (e.g. "AI-powered medical imaging diagnostics" or "vertical
-    SaaS for dental practices"). It is best for product/category targeting that the fixed
-    industry list can't capture. It is not a keyword filter: do not put other attributes like
-    stage, location, funding, or employee count in `search_query` — apply those with the
-    dedicated filter fields instead, and combine them with semantic search. Results come back
-    with a `similarity` score (0-1) and are sorted by relevance.
+    First use /industry/search and apply a structured taxonomy filter when an appropriate
+    industry or super category exists. Use semantic search only for a **niche industry or
+    specific product type** the taxonomy cannot express, describing what a company does — its
+    product, technology, or business model (e.g. "AI-powered medical imaging diagnostics" or
+    "vertical SaaS for dental practices"). It is not a keyword filter: do not put other
+    attributes like stage, location, funding, or employee count in `search_query` — apply those
+    with the dedicated filter fields instead. Results include a `similarity` score (0-1), are
+    sorted by relevance, and are capped at 150 semantic matches.
 
   version: 1.0.0
   contact:
@@ -55,8 +55,12 @@ paths:
     get:
       summary: Get company details and recent funding by identifier
       description: |
-        Retrieve detailed company information using any supported identifier format.
-        The API intelligently detects the identifier type and queries accordingly.
+        Use this endpoint when one company is already identified and its full profile and
+        latest funding round are required. Prefer a domain or LinkedIn URL when available;
+        they can be passed directly here without calling `/company/search` first.
+
+        Use `/company/search` for fuzzy company-name resolution or an uncertain identifier.
+        Use `POST /companies` to discover or batch-retrieve multiple companies.
 
         Provide ONE of the following query parameters to identify the company:
         - `id` - Company UUID
@@ -227,8 +231,12 @@ paths:
     get:
       summary: Get deals for a company by identifier
       description: |
-        Retrieve all deals for a company using any supported identifier format.
-        The API intelligently detects the identifier type and queries accordingly.
+        Use this endpoint when a company is already identified and its complete funding
+        history is required. Prefer a domain or LinkedIn URL when available; it can be
+        passed directly without first calling `/company/search`.
+
+        This route retrieves history for one identified company. Use `POST /deals` instead
+        to discover rounds across the market with deal, company, or investor filters.
 
         Provide ONE of the following query parameters to identify the company:
         - `id` - Company UUID
@@ -441,7 +449,12 @@ paths:
     get:
       summary: Search for a company by name, domain, LinkedIn, or Crunchbase
       description: |
-        Look up companies using one of four search methods. Exactly one parameter must be provided.
+        Use this endpoint primarily to resolve a fuzzy company name or an uncertain
+        identifier into matching company records. If a reliable domain or LinkedIn URL is
+        already available, skip this search and pass it directly to `GET /company` for one
+        full profile or to `POST /companies` for a batch lookup.
+
+        Exactly one parameter must be provided.
 
         **Search types:**
         - `name` — Fuzzy name search with relevance scoring
@@ -602,9 +615,19 @@ paths:
 
   /companies:
     post:
-      summary: Search and filter companies with recent funding details
+      summary: Discover companies with metadata and full latest-deal details
       description: |
-        Retrieve companies with advanced filtering, pagination, sorting, and optional AI-powered semantic search.
+        Use this endpoint by default for company sourcing and discovery. It returns company
+        metadata such as name and domain together with the full details of each company's
+        latest funding round.
+
+        Filters inside `latest_deal` apply only to the company's most recent round. Use
+        `POST /deals` instead when deal criteria must match any round in a company's history.
+        For example, `/companies` is appropriate for "find AI companies in San Francisco
+        whose latest round was Seed"; `/deals` is appropriate for "analyze all Seed rounds
+        announced last year," regardless of whether Seed is now the company's latest round.
+
+        Filters inside `investors` can match investor participation across all rounds.
 
         ## Request Body Structure
         Send a JSON body with up to 4 filter sections plus pagination/sort at the top level:
@@ -659,14 +682,16 @@ paths:
                       type: string
                       description: >-
                         AI-powered semantic search — a flexible replacement for an
-                        industry tag. Use it to target a niche industry or specific
-                        product type by describing what the company does — its product,
-                        technology, or business model (e.g. "AI-powered medical imaging
-                        diagnostics" or "vertical SaaS for dental practices"). Best for
-                        product/category targeting the fixed industry list can't capture.
+                        industry tag. First use /industry/search and apply an `industries`
+                        or `super_categories` filter when the taxonomy contains the intended
+                        category. Use semantic search only for a niche industry or specific
+                        product type the taxonomy cannot express, describing what the company
+                        does — its product, technology, or business model (e.g. "AI-powered
+                        medical imaging diagnostics" or "vertical SaaS for dental practices").
                         Do NOT use it for other attributes like stage, location, funding,
                         or employee count — apply those with the dedicated filter fields
-                        instead. Results include a similarity score and are sorted by relevance.
+                        instead. Results include a similarity score, are sorted by relevance,
+                        and are capped at 150 semantic matches.
                       example: "AI-powered medical imaging diagnostics software"
                     min_relevance:
                       type: number

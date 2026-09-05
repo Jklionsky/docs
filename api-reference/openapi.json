@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Fundable API",
-    "description": "Canonical OpenAPI specification for the Fundable API. This file bundles the Deals, Companies, Investors, People, Alerts, Location, and Industry endpoints.",
+    "description": "Canonical OpenAPI specification for the Fundable API. Choose the collection endpoint whose return type matches the requested result: POST /companies for company discovery (the default for most sourcing workflows), POST /deals for round-level analysis across complete company histories, POST /investors for investor firms, and POST /people for founders, employees, angels, or lead partners. Use singular detail endpoints when a stable identifier such as a domain or LinkedIn URL is already known; use /search endpoints for fuzzy names or uncertain identifiers. Resolve human-readable locations and industries with their search endpoints before applying permalink filters. Operation descriptions contain the route-specific selection rules.",
     "version": "2.0.0",
     "contact": {
       "name": "Fundable API Support",
@@ -27,8 +27,8 @@
   "paths": {
     "/deals": {
       "post": {
-        "summary": "Search and filter funding rounds by company, investor, and round details",
-        "description": "Retrieve venture capital deals with advanced filtering, pagination, and sorting.\n\n## Request Body Structure\nSend a JSON body with up to 4 filter sections plus pagination/sort at the top level:\n- `identifiers` - Look up specific deals by UUID\n- `deal` - Filter by deal attributes (financing type, size, date)\n- `company` - Filter by company attributes (location, industry, size)\n- `investors` - Filter by investor participation (firms or people, by UUID)\n",
+        "summary": "Find funding rounds across complete company histories",
+        "description": "Use this endpoint when the requested result is a set of funding rounds, or when\ndeal criteria must match any historical round rather than only each company's\nlatest round. It supports round-level analysis across the full deal history.\n\nFor most company-sourcing requests, prefer `POST /companies`: it returns company\nmetadata together with the full latest deal. Its `latest_deal` filters apply only\nto each company's most recent round. For example, use `/companies` for \"find AI\ncompanies in San Francisco whose latest round was Seed,\" but use `/deals` for\n\"analyze every Seed round announced last year.\"\n\nDeal records contain full round details, but related companies and investors are\nidentified by IDs instead of full entity profiles. Use `GET /company?id=...` to\nretrieve company metadata and `GET /deals/{id}/investors` to retrieve the full\ninvestor lineup for a returned deal.\n\n## Request Body Structure\nSend a JSON body with up to 4 filter sections plus pagination/sort at the top level:\n- `identifiers` - Look up specific deals by UUID\n- `deal` - Filter by deal attributes (financing type, size, date)\n- `company` - Filter by company attributes (location, industry, size)\n- `investors` - Filter by investor participation (firms or people, by UUID)\n",
         "operationId": "searchDeals",
         "requestBody": {
           "required": true,
@@ -535,7 +535,7 @@
     "/deals/{id}": {
       "get": {
         "summary": "Get a specific deal by ID",
-        "description": "Retrieve detailed information about a single venture capital deal by its unique identifier",
+        "description": "Use this endpoint when a deal UUID is already known and full details for that one\nfunding round are required. The response identifies related entities by ID rather\nthan embedding their full profiles. Use `GET /company?id=...` for company metadata\nand `GET /deals/{id}/investors` for the complete investor lineup.\n",
         "operationId": "getDealById",
         "parameters": [
           {
@@ -808,7 +808,7 @@
     "/deals/{id}/investors": {
       "get": {
         "summary": "Get investors for a specific deal",
-        "description": "Retrieve detailed investor information for a single deal, including lead status, personnel, and investor profile links.",
+        "description": "Use this endpoint after identifying a deal when investor IDs in the deal record\nneed to be resolved into the complete investor lineup. It returns firm investors,\nassociated people, angel investors, lead status, and profile links for one deal.\n\nDo not use this endpoint to discover investors across many deals. Use\n`POST /investors` when the desired result is a list of firms, or `POST /people`\nwith investor filters when the desired result is individual investors.\n",
         "operationId": "getDealInvestors",
         "parameters": [
           {
@@ -1002,7 +1002,7 @@
     "/company": {
       "get": {
         "summary": "Get company details and recent funding by identifier",
-        "description": "Retrieve detailed company information using any supported identifier format.\nThe API intelligently detects the identifier type and queries accordingly.\n\nProvide ONE of the following query parameters to identify the company:\n- `id` - Company UUID\n- `domain` - Company domain or full URL (e.g., \"stripe.com\" or \"https://stripe.com\")\n- `linkedin` - LinkedIn company URL\n- `crunchbase` - Crunchbase organization URL\n\nThe response includes the company's latest funding round details with participating investors.\n",
+        "description": "Use this endpoint when one company is already identified and its full profile and\nlatest funding round are required. Prefer a domain or LinkedIn URL when available;\nthey can be passed directly here without calling `/company/search` first.\n\nUse `/company/search` for fuzzy company-name resolution or an uncertain identifier.\nUse `POST /companies` to discover or batch-retrieve multiple companies.\n\nProvide ONE of the following query parameters to identify the company:\n- `id` - Company UUID\n- `domain` - Company domain or full URL (e.g., \"stripe.com\" or \"https://stripe.com\")\n- `linkedin` - LinkedIn company URL\n- `crunchbase` - Crunchbase organization URL\n\nThe response includes the company's latest funding round details with participating investors.\n",
         "operationId": "getCompany",
         "parameters": [
           {
@@ -1242,7 +1242,7 @@
     "/company/deals": {
       "get": {
         "summary": "Get deals for a company by identifier",
-        "description": "Retrieve all deals for a company using any supported identifier format.\nThe API intelligently detects the identifier type and queries accordingly.\n\nProvide ONE of the following query parameters to identify the company:\n- `id` - Company UUID\n- `domain` - Company domain or full URL (e.g., \"stripe.com\" or \"https://stripe.com\")\n- `linkedin` - LinkedIn company URL\n- `crunchbase` - Crunchbase organization URL\n\nThe response includes the company's deals with pagination. If the identifier matches multiple companies, deals from all matches are returned.\n",
+        "description": "Use this endpoint when a company is already identified and its complete funding\nhistory is required. Prefer a domain or LinkedIn URL when available; it can be\npassed directly without first calling `/company/search`.\n\nThis route retrieves history for one identified company. Use `POST /deals` instead\nto discover rounds across the market with deal, company, or investor filters.\n\nProvide ONE of the following query parameters to identify the company:\n- `id` - Company UUID\n- `domain` - Company domain or full URL (e.g., \"stripe.com\" or \"https://stripe.com\")\n- `linkedin` - LinkedIn company URL\n- `crunchbase` - Crunchbase organization URL\n\nThe response includes the company's deals with pagination. If the identifier matches multiple companies, deals from all matches are returned.\n",
         "operationId": "getCompanyDeals",
         "parameters": [
           {
@@ -1538,7 +1538,7 @@
     "/company/search": {
       "get": {
         "summary": "Search for a company by name, domain, LinkedIn, or Crunchbase",
-        "description": "Look up companies using one of four search methods. Exactly one parameter must be provided.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search with relevance scoring\n- `domain` \u2014 Company domain or full URL\n- `linkedin` \u2014 LinkedIn company URL\n- `crunchbase` \u2014 Crunchbase organization URL\n\nExamples:\n- `?linkedin=https://linkedin.com/company/stripe`\n- `?crunchbase=https://crunchbase.com/organization/notion`\n",
+        "description": "Use this endpoint primarily to resolve a fuzzy company name or an uncertain\nidentifier into matching company records. If a reliable domain or LinkedIn URL is\nalready available, skip this search and pass it directly to `GET /company` for one\nfull profile or to `POST /companies` for a batch lookup.\n\nExactly one parameter must be provided.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search with relevance scoring\n- `domain` \u2014 Company domain or full URL\n- `linkedin` \u2014 LinkedIn company URL\n- `crunchbase` \u2014 Crunchbase organization URL\n\nExamples:\n- `?linkedin=https://linkedin.com/company/stripe`\n- `?crunchbase=https://crunchbase.com/organization/notion`\n",
         "operationId": "searchCompany",
         "parameters": [
           {
@@ -1760,8 +1760,8 @@
     },
     "/companies": {
       "post": {
-        "summary": "Search and filter companies with recent funding details",
-        "description": "Retrieve companies with advanced filtering, pagination, sorting, and optional AI-powered semantic search.\n\n## Request Body Structure\nSend a JSON body with up to 4 filter sections plus pagination/sort at the top level:\n- `identifiers` - Look up specific companies by UUID, domain, LinkedIn, or Crunchbase\n- `company` - Filter by company attributes (search, location, industry, size, etc.)\n- `latest_deal` - Filter by latest funding round attributes (type, size, date, investors)\n- `investors` - Filter by investors (firms or people) across all rounds\n",
+        "summary": "Discover companies with metadata and full latest-deal details",
+        "description": "Use this endpoint by default for company sourcing and discovery. It returns company\nmetadata such as name and domain together with the full details of each company's\nlatest funding round.\n\nFilters inside `latest_deal` apply only to the company's most recent round. Use\n`POST /deals` instead when deal criteria must match any round in a company's history.\nFor example, `/companies` is appropriate for \"find AI companies in San Francisco\nwhose latest round was Seed\"; `/deals` is appropriate for \"analyze all Seed rounds\nannounced last year,\" regardless of whether Seed is now the company's latest round.\n\nFilters inside `investors` can match investor participation across all rounds.\n\n## Request Body Structure\nSend a JSON body with up to 4 filter sections plus pagination/sort at the top level:\n- `identifiers` - Look up specific companies by UUID, domain, LinkedIn, or Crunchbase\n- `company` - Filter by company attributes (search, location, industry, size, etc.)\n- `latest_deal` - Filter by latest funding round attributes (type, size, date, investors)\n- `investors` - Filter by investors (firms or people) across all rounds\n",
         "operationId": "searchCompanies",
         "requestBody": {
           "required": true,
@@ -1829,7 +1829,7 @@
                     "properties": {
                       "search_query": {
                         "type": "string",
-                        "description": "AI-powered semantic search \u2014 a flexible replacement for an industry tag. Use it to target a niche industry or specific product type by describing what the company does \u2014 its product, technology, or business model (e.g. \"AI-powered medical imaging diagnostics\" or \"vertical SaaS for dental practices\"). Best for product/category targeting the fixed industry list can't capture. Do NOT use it for other attributes like stage, location, funding, or employee count \u2014 apply those with the dedicated filter fields instead. Results include a similarity score and are sorted by relevance.",
+                        "description": "AI-powered semantic search \u2014 a flexible replacement for an industry tag. First use /industry/search and apply an `industries` or `super_categories` filter when the taxonomy contains the intended category. Use semantic search only for a niche industry or specific product type the taxonomy cannot express, describing what the company does \u2014 its product, technology, or business model (e.g. \"AI-powered medical imaging diagnostics\" or \"vertical SaaS for dental practices\"). Do NOT use it for other attributes like stage, location, funding, or employee count \u2014 apply those with the dedicated filter fields instead. Results include a similarity score, are sorted by relevance, and are capped at 150 semantic matches.",
                         "example": "AI-powered medical imaging diagnostics software"
                       },
                       "min_relevance": {
@@ -2305,8 +2305,8 @@
     },
     "/investors": {
       "post": {
-        "summary": "List and filter investors",
-        "description": "Retrieve a paginated list of investors with optional filtering.\n\n## Request Body Structure\nSend a JSON body with up to 3 filter sections plus pagination/sort at the top level:\n- `identifiers` - Look up specific investors by UUID, domain, LinkedIn, or Crunchbase\n- `investor` - Filter by investor entity attributes (location, employee count)\n- `company_investments` - Filter by portfolio (industries, deal characteristics, etc.). Supports semantic search via `search_query` + `min_relevance`.\n\nWhen `company_investments` filters are active, each investor in the response includes `filtered_deal_count` and `filtered_lead_count`.\n",
+        "summary": "Discover investor firms by their attributes and investments",
+        "description": "Use this endpoint when the requested result is a list of investor firms. Filters\nunder `company_investments` identify qualifying portfolio companies and deals, then\nreturn the firms that participated in those deals. For example, use this route to\nfind San Francisco-based investors that participated in a Seed round during the\nlast year.\n\nUse `POST /people` with investor filters instead when the desired result is an\nindividual angel investor or lead partner attached to a firm. Use `POST /deals`\nwhen the desired result is the matching funding rounds themselves.\n\n## Request Body Structure\nSend a JSON body with up to 3 filter sections plus pagination/sort at the top level:\n- `identifiers` - Look up specific investors by UUID, domain, LinkedIn, or Crunchbase\n- `investor` - Filter by investor entity attributes (location, employee count)\n- `company_investments` - Filter by portfolio (industries, deal characteristics, etc.). Supports semantic search via `search_query` + `min_relevance`.\n\nWhen `company_investments` filters are active, `filtered_deal_count` is the number\nof deals that matched those filters and `filtered_lead_count` is the number of those\nmatched deals the investor led.\n",
         "operationId": "listInvestors",
         "requestBody": {
           "required": false,
@@ -2424,7 +2424,7 @@
                       },
                       "search_query": {
                         "type": "string",
-                        "description": "AI-powered semantic search matched against each investor's\nportfolio companies \u2014 a flexible replacement for an industry tag.\nUse it to target a niche industry or specific product type by\ndescribing what those companies do \u2014 their product, technology, or\nbusiness model (e.g. \"climate-focused carbon capture hardware\"). Do\nNOT use it for other attributes like stage, location, or funding \u2014\napply those with the dedicated `company_investments` and `investor`\nfilter fields instead. When provided, results are ranked by how\nclosely an investor's portfolio matches the query rather than the\ndefault sort.\n",
+                        "description": "AI-powered semantic search matched against each investor's\nportfolio companies \u2014 a flexible replacement for an industry tag.\nFirst use /industry/search and apply an `industries` or\n`super_categories` filter when the taxonomy contains the intended\ncategory. Use semantic search only for a niche industry or specific\nproduct type the taxonomy cannot express, describing what those\ncompanies do \u2014 their product, technology, or business model (e.g.\n\"climate-focused carbon capture hardware\"). Do NOT use it for other\nattributes like stage, location, or funding \u2014 apply those with the\ndedicated `company_investments` and `investor` filter fields instead.\nResults are ranked by portfolio relevance and capped at 150 semantic\nmatches.\n",
                         "example": "climate-focused carbon capture hardware"
                       },
                       "min_relevance": {
@@ -2864,7 +2864,7 @@
     "/investor": {
       "get": {
         "summary": "Get investor details and statistics by identifier",
-        "description": "Retrieve detailed investor information using any supported identifier format.\nThe API intelligently detects the identifier type and queries accordingly.\n\nProvide ONE of the following query parameters to identify the investor:\n- `id` - Investor UUID\n- `domain` - Investor domain or full URL (e.g., \"sequoiacap.com\" or \"https://sequoiacap.com\")\n- `linkedin` - LinkedIn company URL\n- `crunchbase` - Crunchbase organization URL\n\nThe response includes the investor's statistics, portfolio summary, and profile links.\n",
+        "description": "Use this endpoint when one investor firm is already identified and its full profile,\nstatistics, and portfolio summary are required. Prefer a domain or LinkedIn URL when\navailable; it can be passed directly without calling `/investor/search` first.\n\nUse `/investor/search` for fuzzy firm-name resolution or an uncertain identifier.\nUse `POST /investors` to discover or batch-retrieve multiple investor firms.\n\nProvide ONE of the following query parameters to identify the investor:\n- `id` - Investor UUID\n- `domain` - Investor domain or full URL (e.g., \"sequoiacap.com\" or \"https://sequoiacap.com\")\n- `linkedin` - LinkedIn company URL\n- `crunchbase` - Crunchbase organization URL\n\nThe response includes the investor's statistics, portfolio summary, and profile links.\n",
         "operationId": "getInvestorByIdentifier",
         "parameters": [
           {
@@ -3054,7 +3054,7 @@
     "/investor/deals": {
       "get": {
         "summary": "Get deals for an investor by identifier",
-        "description": "Retrieve all deals for an investor using any supported identifier format.\nThe API intelligently detects the identifier type and queries accordingly.\n\nProvide ONE of the following query parameters to identify the investor:\n- `id` - Investor UUID\n- `domain` - Investor domain or full URL (e.g., \"sequoiacap.com\" or \"https://sequoiacap.com\")\n- `linkedin` - LinkedIn company URL\n- `crunchbase` - Crunchbase organization URL\n\nThe response includes the investor's deals with pagination. If the identifier matches multiple investors (e.g., a16z has multiple firms), deals from all matches are returned together.\n",
+        "description": "Use this endpoint when an investor firm is already identified and its complete deal\nhistory is required. Prefer a domain or LinkedIn URL when available; it can be passed\ndirectly without calling `/investor/search` first.\n\nUse `POST /investors` instead to discover firms from investment criteria, or\n`POST /deals` when the desired result is a filtered list of funding rounds.\n\nProvide ONE of the following query parameters to identify the investor:\n- `id` - Investor UUID\n- `domain` - Investor domain or full URL (e.g., \"sequoiacap.com\" or \"https://sequoiacap.com\")\n- `linkedin` - LinkedIn company URL\n- `crunchbase` - Crunchbase organization URL\n\nThe response includes the investor's deals with pagination. If the identifier matches multiple investors (e.g., a16z has multiple firms), deals from all matches are returned together.\n",
         "operationId": "getInvestorDeals",
         "parameters": [
           {
@@ -3350,7 +3350,7 @@
     "/investor/search": {
       "get": {
         "summary": "Search investors by name, domain, LinkedIn, or Crunchbase",
-        "description": "Look up investors using one of four search methods. Exactly one parameter must be provided.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search with relevance scoring\n- `domain` \u2014 Investor domain or full URL\n- `linkedin` \u2014 LinkedIn company URL\n- `crunchbase` \u2014 Crunchbase organization URL\n\nIdentifier lookups (`domain`, `linkedin`, `crunchbase`) return `relevance_score: 1`.\nExamples:\n- `?linkedin=https://linkedin.com/company/sequoia-capital`\n- `?crunchbase=https://crunchbase.com/organization/sequoia-capital`\n",
+        "description": "Use this endpoint primarily to resolve a fuzzy investor-firm name or an uncertain\nidentifier. If a reliable domain or LinkedIn URL is already available, skip this\nsearch and pass it directly to `GET /investor` for one full profile or to\n`POST /investors` for a batch lookup.\n\nExactly one parameter must be provided.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search with relevance scoring\n- `domain` \u2014 Investor domain or full URL\n- `linkedin` \u2014 LinkedIn company URL\n- `crunchbase` \u2014 Crunchbase organization URL\n\nIdentifier lookups (`domain`, `linkedin`, `crunchbase`) return `relevance_score: 1`.\nExamples:\n- `?linkedin=https://linkedin.com/company/sequoia-capital`\n- `?crunchbase=https://crunchbase.com/organization/sequoia-capital`\n",
         "operationId": "searchInvestors",
         "parameters": [
           {
@@ -3627,8 +3627,8 @@
     },
     "/people": {
       "post": {
-        "summary": "Search people with cross-type filters and optional semantic search",
-        "description": "Retrieve people with advanced filtering, pagination, sorting, and optional AI-powered semantic search.\n\n## Request Body Structure\nSend a JSON body with up to 4 filter sections plus pagination/sort at the top level:\n- `identifiers` - Look up specific people by UUID, LinkedIn, Crunchbase, or Twitter\n- `person` - Filter by person attributes (role, contact info, job title, education, prior employers)\n- `company` - Filter by current employer attributes (industry, location, funding, IPO status, etc.)\n- `investor` - Filter by investor activity (firm, deal characteristics, portfolio companies)\n",
+        "summary": "Discover founders, employees, angels, and lead investors",
+        "description": "Use this endpoint when the requested result is a list of people.\n\nWith `person_type: company`, it returns founders, executives, or employees based on\ntheir current employer. Filters under `company.latest_deal` apply only to that\nemployer's latest funding round, like `POST /companies`; funding information is used\nfor filtering but is not included in the returned person record. For example, use\nthis mode to find founders of AI companies in San Francisco whose latest round was\nSeries A.\n\nWith `person_type: investor`, it applies investment and portfolio filters in the same\nway that `POST /investors` does, but returns individual angel investors or lead\npartners attached to their firms rather than firm records. Use `POST /investors`\nwhen the desired result is firms, and `POST /deals` when it is funding rounds.\n\n## Request Body Structure\nSend a JSON body with up to 4 filter sections plus pagination/sort at the top level:\n- `identifiers` - Look up specific people by UUID, LinkedIn, Crunchbase, or Twitter\n- `person` - Filter by person attributes (role, contact info, job title, education, prior employers)\n- `company` - Filter by current employer attributes (industry, location, funding, IPO status, etc.)\n- `investor` - Filter by investor activity (firm, deal characteristics, portfolio companies)\n",
         "operationId": "searchPeople",
         "requestBody": {
           "required": false,
@@ -3780,7 +3780,7 @@
                     "properties": {
                       "search_query": {
                         "type": "string",
-                        "description": "AI-powered semantic search against the person's current employer \u2014 a flexible replacement for an industry tag. Use it to target a niche industry or specific product type by describing what that company does \u2014 its product, technology, or business model (e.g. \"climate tech carbon accounting software\"). Do NOT use it for other attributes like stage, location, or funding \u2014 apply those with the dedicated filter fields instead. Overrides explicit sort_by \u2014 results are ordered by relevance.",
+                        "description": "AI-powered semantic search against the person's current employer \u2014 a flexible replacement for an industry tag. First use /industry/search and apply an `industries` or `super_categories` filter when the taxonomy contains the intended category. Use semantic search only for a niche industry or product type the taxonomy cannot express, describing what that company does \u2014 its product, technology, or business model (e.g. \"climate tech carbon accounting software\"). Do NOT use it for stage, location, or funding \u2014 apply dedicated filters instead. Results are ordered by relevance and capped at 150 semantic matches.",
                         "example": "climate tech carbon accounting software"
                       },
                       "min_relevance": {
@@ -4095,7 +4095,7 @@
                         "properties": {
                           "search_query": {
                             "type": "string",
-                            "description": "AI-powered semantic search against the person's portfolio companies \u2014 a flexible replacement for an industry tag. Use it to target a niche industry or specific product type by describing what those companies do \u2014 their product, technology, or business model (e.g. \"AI infrastructure for model training\"). Do NOT use it for other attributes like stage, location, or funding \u2014 apply those with the dedicated filter fields instead. Overrides explicit sort_by \u2014 results are ordered by relevance.",
+                            "description": "AI-powered semantic search against the person's portfolio companies \u2014 a flexible replacement for an industry tag. First use /industry/search and apply an `industries` or `super_categories` filter when the taxonomy contains the intended category. Use semantic search only for a niche industry or product type the taxonomy cannot express, describing what those companies do (e.g. \"AI infrastructure for model training\"). Do NOT use it for stage, location, or funding \u2014 apply dedicated filters instead. Results are ordered by relevance and capped at 150 semantic matches.",
                             "example": "AI infrastructure for model training"
                           },
                           "min_relevance": {
@@ -4530,7 +4530,7 @@
     "/person": {
       "get": {
         "summary": "Get person details by identifier",
-        "description": "Retrieve detailed person information using any supported identifier format.\nThe API intelligently detects the identifier type and queries accordingly.\n\nProvide ONE of the following query parameters to identify the person:\n- `id` - Person UUID\n- `linkedin` - LinkedIn person URL\n- `crunchbase` - Crunchbase person URL\n- `twitter` - Twitter/X URL\n\nReturns the same constant unified shape as the list endpoint, with **full**\nemployment and education history (no per-section limit).\n",
+        "description": "Use this endpoint when one person is already identified and their full profile is\nrequired. Prefer a LinkedIn URL when available; it can be passed directly without\ncalling `/person/search` first.\n\nUse `/person/search` for fuzzy name resolution or an uncertain identifier. Use\n`POST /people` to discover or batch-retrieve multiple people.\n\nProvide ONE of the following query parameters to identify the person:\n- `id` - Person UUID\n- `linkedin` - LinkedIn person URL\n- `crunchbase` - Crunchbase person URL\n- `twitter` - Twitter/X URL\n\nReturns the same constant unified shape as the list endpoint, with **full**\nemployment and education history (no per-section limit).\n",
         "operationId": "getPerson",
         "parameters": [
           {
@@ -4714,7 +4714,7 @@
     "/person/email": {
       "get": {
         "summary": "Unlock a person's verified email by identifier",
-        "description": "Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that user. Provider attribution is internal and is not returned.\n\nAvailable on non-trial Pro+ and Enterprise plans.\n",
+        "description": "Use this endpoint only when a verified email is explicitly required for an identified\nperson. Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that user. Provider attribution is internal and is not returned.\n\nAvailable on non-trial Pro+ and Enterprise plans.\n",
         "operationId": "getPersonEmail",
         "parameters": [
           {
@@ -4914,7 +4914,7 @@
     "/person/deals": {
       "get": {
         "summary": "Get deals a person participated in (as an investor) by identifier",
-        "description": "Retrieve all deals a person has participated in as an investor (angel deals + lead/firm deals)\nusing any supported identifier format. The API intelligently detects the identifier type and queries accordingly.\n\nProvide ONE of the following query parameters to identify the person:\n- `id` - Person UUID\n- `linkedin` - LinkedIn person URL\n- `crunchbase` - Crunchbase person URL\n- `twitter` - Twitter/X URL\n\nThe response includes the person's investment deals with pagination.\n",
+        "description": "Use this endpoint when a person is already identified and their investment history\nis required. It returns deals the person joined as an angel plus lead or firm deals.\nPrefer a LinkedIn URL when available; it can be passed directly without first calling\n`/person/search`.\n\nProvide ONE of the following query parameters to identify the person:\n- `id` - Person UUID\n- `linkedin` - LinkedIn person URL\n- `crunchbase` - Crunchbase person URL\n- `twitter` - Twitter/X URL\n\nThe response includes the person's investment deals with pagination.\n",
         "operationId": "getPersonDeals",
         "parameters": [
           {
@@ -5156,7 +5156,7 @@
     "/person/search": {
       "get": {
         "summary": "Search for a person by name or identifier",
-        "description": "Look up people using one of five search methods. Exactly one parameter must be provided.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search across both investors AND non-investor people (founders, employees). Returns up to 10 results.\n- `id` \u2014 Person UUID lookup (returns 0 or 1)\n- `linkedin` \u2014 LinkedIn person URL or slug\n- `crunchbase` \u2014 Crunchbase person URL or slug\n- `twitter` \u2014 Twitter/X URL or handle\n\n`person_type` on each result indicates which pool the row came from\n(`investor` wins when a person is in both). For full person detail, use `/person`.\n",
+        "description": "Use this endpoint primarily to resolve a fuzzy person name or uncertain identifier.\nIf a reliable LinkedIn URL is already available, skip this search and pass it directly\nto `GET /person` for one full profile or to `POST /people` for a batch lookup.\n\nExactly one parameter must be provided.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search across both investors AND non-investor people (founders, employees). Returns up to 10 results.\n- `id` \u2014 Person UUID lookup (returns 0 or 1)\n- `linkedin` \u2014 LinkedIn person URL or slug\n- `crunchbase` \u2014 Crunchbase person URL or slug\n- `twitter` \u2014 Twitter/X URL or handle\n\n`person_type` on each result indicates which pool the row came from\n(`investor` wins when a person is in both). For full person detail, use `/person`.\n",
         "operationId": "searchPerson",
         "parameters": [
           {
@@ -6093,7 +6093,7 @@
     "/location/search": {
       "get": {
         "summary": "Search locations by name and optionally filter by type",
-        "description": "Look up locations (cities, states, countries, regions) by name with fuzzy matching. The `name` parameter is required; `type` is optional.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search with relevance scoring (required)\n- `type` \u2014 Optional filter by location type: `CITY`, `STATE`, `REGION`, or `COUNTRY`\n- `location_type` \u2014 Alias for `type`\n\nExamples:\n- `?name=san francisco`\n- `?name=california&type=STATE`\n",
+        "description": "Use this endpoint to resolve a human-readable city, state, country, or region into\nthe exact permalink required by location filters on discovery endpoints. Agents\nshould not guess permalinks. Select the result that matches the user's intended\ngeography, then pass its permalink to the relevant filter.\n\nThe `name` parameter is required; `type` is optional.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search with relevance scoring (required)\n- `type` \u2014 Optional filter by location type: `CITY`, `STATE`, `REGION`, or `COUNTRY`\n- `location_type` \u2014 Alias for `type`\n\nExamples:\n- `?name=san francisco`\n- `?name=california&type=STATE`\n",
         "operationId": "searchLocations",
         "parameters": [
           {
@@ -6379,7 +6379,7 @@
     "/industry/search": {
       "get": {
         "summary": "Search industries and super categories by name",
-        "description": "Look up industries and super categories by name with fuzzy matching. The `name` parameter is required; `type` is optional.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search with relevance scoring (required)\n- `type` \u2014 Optional filter by industry type: `INDUSTRY` or `SUPER_CATEGORY`\n- `industry_type` \u2014 Alias for `type`\n\nExamples:\n- `?name=artificial intelligence`\n- `?name=fintech&type=INDUSTRY`\n",
+        "description": "Use this endpoint before semantic search to resolve a human-readable category into\nan exact `INDUSTRY` or `SUPER_CATEGORY` permalink. Agents should not guess permalinks.\nIf the taxonomy has an appropriate result, use its permalink in the structured\nindustry filter. Use `search_query` only when the requested niche is not represented\nby the taxonomy.\n\nThe `name` parameter is required; `type` is optional.\n\n**Search types:**\n- `name` \u2014 Fuzzy name search with relevance scoring (required)\n- `type` \u2014 Optional filter by industry type: `INDUSTRY` or `SUPER_CATEGORY`\n- `industry_type` \u2014 Alias for `type`\n\nExamples:\n- `?name=artificial intelligence`\n- `?name=fintech&type=INDUSTRY`\n",
         "operationId": "searchIndustries",
         "parameters": [
           {
@@ -8278,12 +8278,12 @@
               "filtered_deal_count": {
                 "type": "integer",
                 "nullable": true,
-                "description": "Number of deals matching portfolio filters (present when portfolio filters are active)"
+                "description": "Number of deals matching the active `company_investments` filters"
               },
               "filtered_lead_count": {
                 "type": "integer",
                 "nullable": true,
-                "description": "Number of lead deals matching portfolio filters (present when portfolio filters are active)"
+                "description": "Of the deals matching the active `company_investments` filters, how many the investor led"
               }
             }
           }
