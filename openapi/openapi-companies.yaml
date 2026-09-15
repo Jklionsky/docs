@@ -1037,6 +1037,22 @@ components:
           nullable: true
           description: Company region
           example: "San Francisco Bay Area"
+        operating_status:
+          type: string
+          nullable: true
+          description: Current operating status of the company
+          example: "active"
+        founded_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date and time the company was founded
+          example: "2010-01-01T00:00:00.000Z"
+        acquired:
+          type: boolean
+          nullable: true
+          description: Whether the company has been acquired
+          example: false
         short_description:
           type: string
           nullable: true
