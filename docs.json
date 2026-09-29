@@ -35,7 +35,6 @@
             "group": "Getting Started",
             "pages": [
               "index",
-              "fundable-mcp",
               "authentication",
               "usage",
               "guides/endpoint-and-filter-selection"
@@ -47,6 +46,15 @@
               "guides/track-newly-funded-startups",
               "guides/funding-alert-workflow",
               "guides/crm-enrichment"
+            ]
+          },
+          {
+            "group": "Fundable MCP",
+            "pages": [
+              "fundable-mcp",
+              "mcp/use-cases",
+              "mcp/tools-and-credits",
+              "mcp/troubleshooting"
             ]
           }
         ]

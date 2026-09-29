@@ -1,0 +1,38 @@
+---
+title: "Fundable MCP Tools and Credits"
+description: "Available Fundable MCP tools, free previews, export costs, email unlocks, and approval limits."
+---
+
+## Available tools
+
+| Tool | What it does | Cost and limits |
+| --- | --- | --- |
+| `getDatasetContext` | Explains the dataset, business rules, and common joins. | Free |
+| `listDatasetTables` | Lists the available dataset tables. | Free |
+| `getTableDetails` | Returns the columns and constraints for one table. | Free |
+| `getQueryExamples` | Returns example queries by research category. | Free |
+| `previewData` | Runs a read-only SQL query for analysis and previews. | Free; up to 15 rows per response and 1,000 preview rows in a rolling 24-hour period |
+| `exportData` | Creates a downloadable CSV from a read-only query. | 1 credit per exported row; up to 1,000 rows |
+| `unlockPersonEmail` | Retrieves a verified email for one person when available. | Up to 5 credits; repeat unlocks for the same account cost 0 |
+| `unlockPersonEmails` | Retrieves verified emails for an explicitly bounded batch of 1–20 people. | Up to 5 credits per new email; free outcomes use 0 |
+
+## Previews, exports, and approval
+
+Fundable separates research from paid retrieval:
+
+- Analytical previews are free and return at most 15 rows at a time.
+- Preview queries are read-only and cannot modify the dataset.
+- A CSV export happens only after you explicitly request a file or download and
+  approve a maximum credit amount.
+- Exports support up to 1,000 rows, 25 columns, 4,096 bytes per cell, and 10 MB per
+  file. A result above your approved ceiling or a file limit is rejected without a
+  charge.
+- Retrying identical export SQL within 15 minutes recovers the same export without a
+  second charge.
+- Email unlocks require explicit approval. Missing emails, invalid identifiers,
+  duplicates, and emails previously unlocked by the same account use 0 credits.
+
+<Tip>
+  Begin broad research with a free preview. Ask for a CSV only after the filters and
+  columns look right.
+</Tip>
