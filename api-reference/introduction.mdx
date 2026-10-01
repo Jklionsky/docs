@@ -46,7 +46,8 @@ match historical deals rather than only each company's latest deal. Use
 ### People
 - **POST /people** -- Discover individuals. Company mode returns founders or employees and can filter on the current employer's latest round without returning that funding data. Investor mode returns angels or lead partners attached to firms.
 - **GET /person** -- Get full person detail by UUID, LinkedIn, Crunchbase, or Twitter. Pass a known LinkedIn URL directly instead of searching first.
-- **GET /person/email** -- Unlock a person's verified email by UUID, LinkedIn, Crunchbase, or Twitter. Available on non-trial Pro+ and Enterprise plans. New unlocks consume 5 credits; previously unlocked emails consume 0 credits.
+- **GET /person/email** -- Unlock a person's verified email by UUID, LinkedIn, Crunchbase, or Twitter. Available on non-trial Pro+, Enterprise, and API plans. New unlocks consume 5 credits; previously unlocked emails consume 0 credits.
+- **GET /person/phone** -- Unlock a person's verified phone number by UUID, LinkedIn, Crunchbase, or Twitter. Available on non-trial Pro+, Enterprise, and API plans. New unlocks consume 5 credits; previously unlocked numbers consume 0 credits.
 - **GET /person/deals** -- Retrieve every deal a person has participated in as an investor (angel plus lead/firm deals), including related source articles.
 - **GET /person/search** -- Resolve a fuzzy person name or uncertain identifier across both investors and non-investors. Skip it when a reliable LinkedIn URL is already available.
 

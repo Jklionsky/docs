@@ -29,6 +29,7 @@ cost 0.1 credits per call or are free, as shown below.
 | `POST /people` | List and filter people with investment activity | 1 credit/row |
 | `GET /person` | Get a person by ID, LinkedIn, Crunchbase, or Twitter | 1 credit/call |
 | `GET /person/email` | Unlock a verified email for a person | 5 credits/new unlock; repeat unlocks free |
+| `GET /person/phone` | Unlock a verified phone number for a person | 5 credits/new unlock; repeat unlocks free |
 | `GET /person/deals` | Get deals a person participated in as an investor | 1 credit/row |
 | `GET /person/search` | Search for a person by name or identifier | 0.1 credit/call |
 | `GET /industry/search` | Search industries by name | Free |
@@ -38,7 +39,7 @@ cost 0.1 credits per call or are free, as shown below.
 
 ## Plan-gated endpoints
 
-- `GET /person/email` is available on non-trial Pro+ and Enterprise plans.
+- `GET /person/email` and `GET /person/phone` are available on non-trial Pro+, Enterprise, and API plans.
 - `GET /alerts` and `GET /alerts/configurations` are available on Pro+ and Enterprise plans.
 - Alert requests do not consume credits.
 
@@ -85,6 +86,6 @@ Paid endpoints return a `meta` object with credit usage details:
 - **Single-record lookups** (`/company`, `/investor`, `/person`) cost **1 credit per call**.
 - **Company, investor, and person search** cost **0.1 credits per request**, regardless of rows returned.
 - **Industry & location search** (`/industry/search`, `/location/search`) are always free and don't return credit fields.
-- **Person email unlocks** (`/person/email`) cost **5 credits for a new unlock** and **0 credits when the same user already unlocked that email**.
+- **Contact unlocks** (`/person/email` and `/person/phone`) cost **5 credits for each new email or phone number** and **0 credits when the same account already unlocked that contact**.
 - **Alert endpoints** (`/alerts`, `/alerts/configurations`) consume **0 credits**.
 - Credits come included with your plan. If you don't want a recurring plan, you can buy credits individually for as low as **$0.05 per credit**.

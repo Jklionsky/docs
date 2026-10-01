@@ -1,12 +1,18 @@
 ---
-title: "Endpoint and Filter Selection"
-description: "Choose the right Fundable endpoints and filters for company, funding-round, investor, and people workflows."
+title: "Endpoint Selection for AI Agents"
+description: "Choose the right Fundable endpoints and combine them into reliable company, funding-round, investor, and people workflows."
 ---
 
 Fundable's collection endpoints can apply similar filters while returning different
-entity types. Choose the endpoint based first on the result you need, then on
+entity types. Choose the endpoint based first on the result the user wants, then on
 whether funding-round filters should apply only to a company's latest round or to its
 complete history.
+
+<Note>
+  This guide applies whether an agent imports Fundable's OpenAPI document directly or
+  calls narrow tools implemented on top of the REST API. For Fundable's hosted MCP
+  server, see [Fundable MCP](/fundable-mcp).
+</Note>
 
 ## Choose the result type first
 
@@ -78,18 +84,13 @@ directly to a detail endpoint instead of searching first:
 | Investor firm | [`GET /investor`](/api-reference/investors/get) | [`GET /investor/search`](/api-reference/investors/search) |
 | Person | [`GET /person`](/api-reference/people/get) | [`GET /person/search`](/api-reference/people/search) |
 
-When you need verified contact information for an identified person, use
-[`GET /person/email`](/api-reference/people/email) or
-[`GET /person/phone`](/api-reference/people/phone). Each new unlock costs 5 credits;
-repeat unlocks for the same account are free.
-
 For batch lookup, pass arrays of known identifiers to the corresponding collection
 endpoint. Use the singular `/search` routes primarily for fuzzy name resolution or
 when an identifier might be ambiguous.
 
 ## Resolve filters before discovery
 
-Do not guess location or industry permalinks.
+Do not let an agent invent location or industry permalinks.
 
 1. Resolve a location label with
    [`GET /location/search`](/api-reference/locations/search).
@@ -151,3 +152,18 @@ predictable and bypasses filters designed for those constraints.
 | Find firms by investment history | Resolve filters → `POST /investors` |
 | Find founders by employer and latest round | Resolve filters → `POST /people` with `person_type: company` |
 | Find angels or lead partners by investment history | Resolve filters → `POST /people` with `person_type: investor` |
+
+## Agent guardrails
+
+- Keep the Fundable API key outside model context.
+- Allowlist filters and round-type enum values.
+- Cap `page_size` and automatic pagination.
+- Log tool arguments, response status, credits used, and the requesting user.
+- Call [`GET /person/email`](/api-reference/people/email) or
+  [`GET /person/phone`](/api-reference/people/phone) only when verified contact
+  information is explicitly required; each new unlock consumes 5 credits.
+- Require confirmation before writing to a CRM or sending outreach.
+
+When wrapping the API in custom tools, expose narrow tools whose names reflect the
+returned entity, such as `find_companies`, `find_deals`, `find_investor_firms`, and
+`find_people`. This keeps permissions, return shapes, and tool selection predictable.
