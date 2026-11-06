@@ -38,6 +38,100 @@ security:
   - bearerAuth: []
 
 paths:
+  /credits:
+    get:
+      summary: Get the authenticated account's credit balance
+      description: |
+        Retrieve the current credit balance for the account associated with the API key.
+        This endpoint is free, consumes no credits, and does not accept a user ID. The
+        response includes the standard metadata with `credits_used: 0`.
+
+        `purchased_remaining` includes one-time signup credits and purchased credits.
+        Signup credits are granted once per account and do not expire. For unlimited
+        accounts, `monthly_remaining` and `total_available` are `null` and
+        `is_unlimited` is `true`. `has_included_credits` indicates whether the plan has
+        included monthly credits, even when its current monthly balance is zero.
+      operationId: getCreditBalance
+      tags:
+        - credits
+      parameters: []
+      responses:
+        '200':
+          description: Current balance returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditBalanceResponse'
+              example:
+                success: true
+                data:
+                  tier: Free
+                  is_unlimited: false
+                  monthly_remaining: 0
+                  purchased_remaining: 250
+                  total_available: 250
+                  has_included_credits: false
+                  purchase_url: https://www.tryfundable.ai/credits
+                  plans_url: https://www.tryfundable.ai/billing
+                meta:
+                  page: 0
+                  page_size: 1
+                  credits_used: 0
+        '401':
+          description: Missing, invalid, or inactive API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+        '429':
+          description: Rate limit exceeded (200 requests per minute)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+                example: 60
+        '503':
+          description: Credit accounting is temporarily unavailable; retry after 5 seconds
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, error, statusCode]
+                properties:
+                  success:
+                    type: boolean
+                    enum: [false]
+                  error:
+                    type: object
+                    required: [code, message]
+                    properties:
+                      code:
+                        type: string
+                        enum: [CREDIT_ACCOUNTING_UNAVAILABLE]
+                      message:
+                        type: string
+                        example: Credit accounting is temporarily unavailable. Try again shortly.
+                  statusCode:
+                    type: integer
+                    example: 503
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+                example: 5
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerError'
+
   /location/search:
     get:
       summary: Search locations by name and optionally filter by type
@@ -442,6 +536,75 @@ components:
         API keys follow the pattern: `vg_[12_hex_chars]_[32_base64url_chars]`
         
   schemas:
+    CreditBalanceResponse:
+      type: object
+      required: [success, data, meta]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required:
+            - tier
+            - is_unlimited
+            - monthly_remaining
+            - purchased_remaining
+            - total_available
+            - has_included_credits
+            - purchase_url
+            - plans_url
+          properties:
+            tier:
+              type: string
+              description: Current or legacy account tier
+              example: Free
+            is_unlimited:
+              type: boolean
+              description: Whether monthly and total available credits are unlimited
+              example: false
+            monthly_remaining:
+              type: number
+              nullable: true
+              description: Remaining monthly credits, or null for unlimited accounts
+              example: 0
+            purchased_remaining:
+              type: number
+              description: Remaining one-time signup and purchased credits
+              example: 250
+            total_available:
+              type: number
+              nullable: true
+              description: Total available credits, or null for unlimited accounts
+              example: 250
+            has_included_credits:
+              type: boolean
+              description: Whether the tier includes monthly credits, even if exhausted
+              example: false
+            purchase_url:
+              type: string
+              format: uri
+              example: https://www.tryfundable.ai/credits
+            plans_url:
+              type: string
+              format: uri
+              example: https://www.tryfundable.ai/billing
+        meta:
+          type: object
+          required: [page, page_size, credits_used]
+          properties:
+            page:
+              type: integer
+              example: 0
+            page_size:
+              type: integer
+              description: Number of data objects returned
+              example: 1
+            credits_used:
+              type: integer
+              description: Credits consumed by this request (always zero)
+              example: 0
+
     LocationSearchResult:
       type: object
       properties:
@@ -559,7 +722,7 @@ components:
               example: 'INSUFFICIENT_CREDITS'
             message:
               type: string
-              example: "Not enough credits to complete this request. Visit https://www.tryfundable.ai/api-access to purchase more."
+              example: "Not enough credits to complete this request. Visit https://www.tryfundable.ai/credits to purchase more."
             details:
               type: object
               properties:
@@ -578,7 +741,7 @@ components:
                   example: 0
                 help:
                   type: string
-                  example: "Purchase additional credits at https://www.tryfundable.ai/api-access or upgrade your plan."
+                  example: "Purchase additional credits at https://www.tryfundable.ai/credits or upgrade your plan."
       required:
         - error
 
@@ -602,6 +765,8 @@ components:
         - error
 
 tags:
+  - name: credits
+    description: Credit balance and account usage operations
   - name: locations
     description: Location search and utility operations
   - name: industries

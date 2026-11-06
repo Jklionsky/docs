@@ -831,7 +831,7 @@ paths:
         same user already unlocked costs 0 credits. Unlock ownership persists across API
         keys belonging to that account. Provider attribution is internal and is not returned.
 
-        Available on non-trial Pro+, Enterprise, and API plans.
+        Available with credits, including during active trials.
       operationId: getPersonEmail
       parameters:
         - name: id
@@ -907,7 +907,7 @@ paths:
                     purchased_credits_remaining: 0
                 statusCode: 402
         '403':
-          description: Current subscription or trial status cannot unlock emails
+          description: Account eligibility requirements are not met
           content:
             application/json:
               schema:
@@ -916,9 +916,9 @@ paths:
                 success: false
                 error:
                   code: UPGRADE_REQUIRED
-                  message: Email unlocks require a Pro+ or Enterprise plan.
+                  message: This account is not eligible to unlock this email.
                   details:
-                    current_tier: Pro
+                    current_tier: Unknown
                 statusCode: 403
         '404':
           description: Person not found or no verified email available
@@ -976,7 +976,7 @@ paths:
         same account already unlocked costs 0 credits. Unlock ownership persists across API
         keys belonging to that account. Provider attribution is internal and is not returned.
 
-        Available on non-trial Pro+, Enterprise, and API plans.
+        Available with credits, including during active trials.
       operationId: getPersonPhone
       parameters:
         - name: id
@@ -1052,7 +1052,7 @@ paths:
                     purchased_credits_remaining: 0
                 statusCode: 402
         '403':
-          description: Current subscription or trial status cannot unlock phones
+          description: Account eligibility requirements are not met
           content:
             application/json:
               schema:
@@ -1061,9 +1061,9 @@ paths:
                 success: false
                 error:
                   code: UPGRADE_REQUIRED
-                  message: Phone unlocks require a Pro+, Enterprise, or API plan.
+                  message: This account is not eligible to unlock this phone number.
                   details:
-                    current_tier: Pro
+                    current_tier: Unknown
                 statusCode: 403
         '404':
           description: Person not found or no verified phone number available

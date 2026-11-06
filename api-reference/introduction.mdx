@@ -1,6 +1,6 @@
 ---
 title: "Fundable API Reference"
-description: "Full REST reference for the Fundable API: deals, companies, investors, and people endpoints, with parameters and examples."
+description: "Full REST reference for the Fundable API: deals, companies, investors, people, and credit balance endpoints, with parameters and examples."
 ---
 
 ## Base URL
@@ -46,14 +46,17 @@ match historical deals rather than only each company's latest deal. Use
 ### People
 - **POST /people** -- Discover individuals. Company mode returns founders or employees and can filter on the current employer's latest round without returning that funding data. Investor mode returns angels or lead partners attached to firms.
 - **GET /person** -- Get full person detail by UUID, LinkedIn, Crunchbase, or Twitter. Pass a known LinkedIn URL directly instead of searching first.
-- **GET /person/email** -- Unlock a person's verified email by UUID, LinkedIn, Crunchbase, or Twitter. Available on non-trial Pro+, Enterprise, and API plans. New unlocks consume 5 credits; previously unlocked emails consume 0 credits.
-- **GET /person/phone** -- Unlock a person's verified phone number by UUID, LinkedIn, Crunchbase, or Twitter. Available on non-trial Pro+, Enterprise, and API plans. New unlocks consume 5 credits; previously unlocked numbers consume 0 credits.
+- **GET /person/email** -- Unlock a person's verified email by UUID, LinkedIn, Crunchbase, or Twitter. Available with credits, including during active trials. New unlocks consume 5 credits; previously unlocked emails consume 0 credits.
+- **GET /person/phone** -- Unlock a person's verified phone number by UUID, LinkedIn, Crunchbase, or Twitter. Available with credits, including during active trials. New unlocks consume 5 credits; previously unlocked numbers consume 0 credits.
 - **GET /person/deals** -- Retrieve every deal a person has participated in as an investor (angel plus lead/firm deals), including related source articles.
 - **GET /person/search** -- Resolve a fuzzy person name or uncertain identifier across both investors and non-investors. Skip it when a reliable LinkedIn URL is already available.
 
 ### Filters
 - **GET /industry/search** -- Look up industries and super categories by name with fuzzy matching and relevance scoring; optionally filter by type (`INDUSTRY` or `SUPER_CATEGORY`).
 - **GET /location/search** -- Look up locations by name with fuzzy matching and relevance scoring; optionally filter by type (`CITY`, `STATE`, `REGION`, or `COUNTRY`).
+
+### Credits
+- **GET /credits** -- Retrieve the authenticated account's current monthly and purchased credit balances. This endpoint is free and does not accept a user ID.
 
 <Tip>
   `locations`, `industries`, and `super_categories` filters must use **exact
@@ -68,8 +71,8 @@ See [Endpoint and Filter Selection](/guides/endpoint-and-filter-selection) for c
 route-selection rules, filter guidance, and common multi-endpoint workflows.
 
 ### Alerts
-- **GET /alerts** -- Retrieve saved alert data with all matching deals in a date range (up to 10 alerts per request). Available on Pro+ and Enterprise plans.
-- **GET /alerts/configurations** -- List the authenticated user's alert configurations (filters, frequency, descriptions). Available on Pro+ and Enterprise plans.
+- **GET /alerts** -- Retrieve saved alert data with all matching deals in a date range (up to 10 alerts per request). Requires an active Pro trial or paid subscription.
+- **GET /alerts/configurations** -- List the authenticated user's alert configurations (filters, frequency, descriptions). Requires an active Pro trial or paid subscription.
 
 Both alert endpoints return `credits_used: 0`; they do not consume API credits.
 

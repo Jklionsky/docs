@@ -1098,7 +1098,7 @@ components:
               example: 'INSUFFICIENT_CREDITS'
             message:
               type: string
-              example: "Not enough credits to complete this request. Visit https://www.tryfundable.ai/api-access to purchase more."
+              example: "Not enough credits to complete this request. Visit https://www.tryfundable.ai/credits to purchase more."
             details:
               type: object
               properties:
@@ -1117,7 +1117,7 @@ components:
                   example: 0
                 help:
                   type: string
-                  example: "Purchase additional credits at https://www.tryfundable.ai/api-access or upgrade your plan."
+                  example: "Purchase additional credits at https://www.tryfundable.ai/credits or upgrade your plan."
       required:
         - error
 

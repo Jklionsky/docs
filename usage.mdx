@@ -1,11 +1,11 @@
 ---
 title: "Fundable API Pricing and Credits"
-description: "Fundable API pricing: credit cost per endpoint, free search endpoints, and pay-as-you-go credits from $0.05."
+description: "Fundable API pricing: credit cost per endpoint, free search endpoints, and purchased credits at $0.06 each."
 ---
 
 ## Get started and buy credits
 
-Your first **200 credits are free** — no credit card required. [Open API Access](https://www.tryfundable.ai/api-access/) to get your API key, see your balance, or purchase additional credits. You can buy credits individually without a recurring plan.
+New accounts receive **250 one-time signup credits** — no credit card required. Create an API key from [API Access](https://www.tryfundable.ai/api-access/); check your balance or buy credits on the [Credits page](https://www.tryfundable.ai/credits). Purchased credits cost **$0.06 each**, with no subscription required.
 
 ## API Pricing
 
@@ -32,20 +32,21 @@ cost 0.1 credits per call or are free, as shown below.
 | `GET /person/phone` | Unlock a verified phone number for a person | 5 credits/new unlock; repeat unlocks free |
 | `GET /person/deals` | Get deals a person participated in as an investor | 1 credit/row |
 | `GET /person/search` | Search for a person by name or identifier | 0.1 credit/call |
+| `GET /credits` | Get the authenticated account's current credit balance | Free |
 | `GET /industry/search` | Search industries by name | Free |
 | `GET /location/search` | Search locations by name | Free |
 | `GET /alerts` | Get alert data with deals | Free |
 | `GET /alerts/configurations` | Get alert configurations | Free |
 
-## Plan-gated endpoints
+## Access requirements
 
-- `GET /person/email` and `GET /person/phone` are available on non-trial Pro+, Enterprise, and API plans.
-- `GET /alerts` and `GET /alerts/configurations` are available on Pro+ and Enterprise plans.
+- API and MCP contact unlocks are available with credits; web app unlocks require a subscription or active trial.
+- Trial users can use their normal monthly and purchased balance for API calls and for exports through the web app and MCP, subject to existing limits.
+- `GET /alerts` and `GET /alerts/configurations` are available during active Pro trials and to current Pro and eligible legacy paid subscribers.
 - Alert requests do not consume credits.
 
 <Note>
-  View current usage, credit balances, and billing details on the
-  [API Access page](https://www.tryfundable.ai/api-access#usage).
+  Check your balance and purchase credits on the [Credits page](https://www.tryfundable.ai/credits); manage subscriptions on [Billing](https://www.tryfundable.ai/billing).
 </Note>
 
 ## How Credits Work
@@ -80,7 +81,7 @@ Paid endpoints return a `meta` object with credit usage details:
 | `credits_used` | Number of credits consumed by this request |
 | `credit_source` | Whether credits came from `monthly` plan or `purchased` balance |
 | `monthly_credits_remaining` | Remaining credits from your plan |
-| `purchased_credits_remaining` | Remaining individually purchased credits |
+| `purchased_credits_remaining` | Remaining signup and purchased credits |
 
 - **List and history endpoints** cost **1 credit per row returned**. A request that returns 25 rows costs 25 credits.
 - **Single-record lookups** (`/company`, `/investor`, `/person`) cost **1 credit per call**.
@@ -88,4 +89,4 @@ Paid endpoints return a `meta` object with credit usage details:
 - **Industry & location search** (`/industry/search`, `/location/search`) are always free and don't return credit fields.
 - **Contact unlocks** (`/person/email` and `/person/phone`) cost **5 credits for each new email or phone number** and **0 credits when the same account already unlocked that contact**.
 - **Alert endpoints** (`/alerts`, `/alerts/configurations`) consume **0 credits**.
-- Credits come included with your plan. If you don't want a recurring plan, you can buy credits individually for as low as **$0.05 per credit**.
+- Credits may come from your one-time signup grant, a paid plan, or purchases. If you don't want a recurring plan, you can buy credits for **$0.06 per credit**.

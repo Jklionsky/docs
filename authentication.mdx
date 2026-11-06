@@ -1,6 +1,6 @@
 ---
 title: "Fundable API Authentication and Keys"
-description: "Authenticate the Fundable API with a Bearer token. Get an API key and start with free credits."
+description: "Authenticate the Fundable API with a Bearer token. Get an API key and start with 250 one-time signup credits."
 ---
 
 ## API Key Authentication
@@ -13,7 +13,7 @@ Authorization: Bearer vg_xxxxxxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ### Getting Your API Key
 
-API keys are available through your Fundable account. Get your key [here](https://www.tryfundable.ai/api-access/) -- your first 200 credits are free. You can purchase credits directly or through a Fundable subscription.
+API keys are available through your Fundable account. Get your key [here](https://www.tryfundable.ai/api-access/). New accounts receive 250 one-time signup credits per account. You can buy additional credits at $0.06 each on [Fundable Credits](https://www.tryfundable.ai/credits), without a recurring plan.
 
 ### Key Format
 
@@ -24,6 +24,6 @@ API keys follow the format: `vg_[12_hex_chars]_[32_base64url_chars]`
 Include your API key as a Bearer token in every request:
 
 ```bash
-curl -X GET "https://www.tryfundable.ai/api/v1/deals" \
+curl -X GET "https://www.tryfundable.ai/api/v1/credits" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```

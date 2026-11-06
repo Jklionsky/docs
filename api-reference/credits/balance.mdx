@@ -1,0 +1,11 @@
+---
+title: "Credit Balance"
+description: "Get the authenticated account's current monthly, signup, and purchased credit balances."
+openapi: "openapi.json GET /credits"
+---
+
+`GET /credits` is free and returns the balance associated with your API key. It does
+not accept a user ID or consume credits. The `purchased_remaining` value includes
+one-time signup credits and purchased credits. For unlimited accounts,
+`monthly_remaining` and `total_available` are `null`; check `is_unlimited` to
+distinguish that from a zero balance.

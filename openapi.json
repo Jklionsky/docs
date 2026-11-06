@@ -4714,7 +4714,7 @@
     "/person/email": {
       "get": {
         "summary": "Unlock a person's verified email by identifier",
-        "description": "Use this endpoint only when a verified email is explicitly required for an identified\nperson. Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that account. Provider attribution is internal and is not returned.\n\nAvailable on non-trial Pro+, Enterprise, and API plans.\n",
+        "description": "Use this endpoint only when a verified email is explicitly required for an identified\nperson. Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that account. Provider attribution is internal and is not returned.\n\nAvailable with credits, including during active trials.\n",
         "operationId": "getPersonEmail",
         "parameters": [
           {
@@ -4825,7 +4825,7 @@
             }
           },
           "403": {
-            "description": "Current subscription or trial status cannot unlock emails",
+            "description": "Account eligibility requirements are not met",
             "content": {
               "application/json": {
                 "schema": {
@@ -4835,9 +4835,9 @@
                   "success": false,
                   "error": {
                     "code": "UPGRADE_REQUIRED",
-                    "message": "Email unlocks require a Pro+ or Enterprise plan.",
+                    "message": "This account is not eligible to unlock this email.",
                     "details": {
-                      "current_tier": "Pro"
+                      "current_tier": "Unknown"
                     }
                   },
                   "statusCode": 403
@@ -4914,7 +4914,7 @@
     "/person/phone": {
       "get": {
         "summary": "Unlock a person's verified phone number by identifier",
-        "description": "Use this endpoint only when a verified phone number is explicitly required for an identified\nperson. Return a verified phone number for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for a phone number the\nsame account already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that account. Provider attribution is internal and is not returned.\n\nAvailable on non-trial Pro+, Enterprise, and API plans.\n",
+        "description": "Use this endpoint only when a verified phone number is explicitly required for an identified\nperson. Return a verified phone number for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for a phone number the\nsame account already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that account. Provider attribution is internal and is not returned.\n\nAvailable with credits, including during active trials.\n",
         "operationId": "getPersonPhone",
         "parameters": [
           {
@@ -5025,7 +5025,7 @@
             }
           },
           "403": {
-            "description": "Current subscription or trial status cannot unlock phones",
+            "description": "Account eligibility requirements are not met",
             "content": {
               "application/json": {
                 "schema": {
@@ -5035,9 +5035,9 @@
                   "success": false,
                   "error": {
                     "code": "UPGRADE_REQUIRED",
-                    "message": "Phone unlocks require a Pro+, Enterprise, or API plan.",
+                    "message": "This account is not eligible to unlock this phone number.",
                     "details": {
-                      "current_tier": "Pro"
+                      "current_tier": "Unknown"
                     }
                   },
                   "statusCode": 403
@@ -5631,7 +5631,7 @@
     "/alerts": {
       "get": {
         "summary": "Get alert data with deals",
-        "description": "Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.\nResults include a flattened array of deals sorted by date (newest first) with duplicates removed.\n\nAvailable on Pro+ and Enterprise plans. This endpoint does not consume credits.\n\n**Multiple Alerts Support:**\n- Query multiple alerts in a single request (up to 10)\n- Each alert returns its own flattened deals array\n- Different alerts can have different frequencies (e.g., one daily, one weekly)\n- Successful requests report `credits_used: 0`, regardless of deal count\n\n**Important Notes:**\n- All alert_ids must belong to alerts you have access to\n- Deals are flattened from all time periods and sorted by date DESC (newest first)\n- Duplicate deals are automatically removed\n- Each deal includes AI-generated reasoning for why it matched the alert criteria\n- Deal structure is simplified with flattened company information for easier integration\n",
+        "description": "Retrieve saved alert data including all deals that matched the alert criteria within the specified date range.\nResults include a flattened array of deals sorted by date (newest first) with duplicates removed.\n\nAvailable during an active Pro trial and to current Pro or eligible legacy paid subscribers. This endpoint does not consume credits.\n\n**Multiple Alerts Support:**\n- Query multiple alerts in a single request (up to 10)\n- Each alert returns its own flattened deals array\n- Different alerts can have different frequencies (e.g., one daily, one weekly)\n- Successful requests report `credits_used: 0`, regardless of deal count\n\n**Important Notes:**\n- All alert_ids must belong to alerts you have access to\n- Deals are flattened from all time periods and sorted by date DESC (newest first)\n- Duplicate deals are automatically removed\n- Each deal includes AI-generated reasoning for why it matched the alert criteria\n- Deal structure is simplified with flattened company information for easier integration\n",
         "operationId": "getAlerts",
         "tags": [
           "alerts"
@@ -5961,7 +5961,7 @@
             }
           },
           "403": {
-            "description": "A Pro+ or Enterprise plan is required",
+            "description": "A paid subscription is required",
             "content": {
               "application/json": {
                 "schema": {
@@ -6102,7 +6102,7 @@
     "/alerts/configurations": {
       "get": {
         "summary": "Get alert configurations for authenticated user",
-        "description": "Retrieve all alert configurations for the authenticated user (identified by API key).\nReturns configuration metadata including filters, frequency, and descriptions.\n\nAvailable on Pro+ and Enterprise plans. This endpoint does not consume credits.\n\n**Important Notes:**\n- This endpoint does NOT consume usage credits (actualUsageCount: 0)\n- Returns only configuration metadata, not deal data\n- Does not require any query parameters - user is identified by API key\n- All configurations for the authenticated user are returned (no pagination)\n\n**Authentication:**\n- User identity is automatically determined from the API key\n- No email or user_id parameter needed\n\n**Use Cases:**\n- Look up what alerts are configured for the authenticated user\n- Retrieve alert filter settings for external integrations\n- Audit alert configurations programmatically\n",
+        "description": "Retrieve all alert configurations for the authenticated user (identified by API key).\nReturns configuration metadata including filters, frequency, and descriptions.\n\nAvailable during an active Pro trial and to current Pro or eligible legacy paid subscribers. This endpoint does not consume credits.\n\n**Important Notes:**\n- This endpoint does NOT consume usage credits (actualUsageCount: 0)\n- Returns only configuration metadata, not deal data\n- Does not require any query parameters - user is identified by API key\n- All configurations for the authenticated user are returned (no pagination)\n\n**Authentication:**\n- User identity is automatically determined from the API key\n- No email or user_id parameter needed\n\n**Use Cases:**\n- Look up what alerts are configured for the authenticated user\n- Retrieve alert filter settings for external integrations\n- Audit alert configurations programmatically\n",
         "operationId": "getAlertConfigurations",
         "tags": [
           "alerts"
@@ -6290,7 +6290,7 @@
             }
           },
           "403": {
-            "description": "A Pro+ or Enterprise plan is required",
+            "description": "A paid subscription is required",
             "content": {
               "application/json": {
                 "schema": {
@@ -6314,6 +6314,141 @@
                 "schema": {
                   "type": "integer",
                   "example": 60
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/credits": {
+      "get": {
+        "summary": "Get the authenticated account's credit balance",
+        "description": "Retrieve the current credit balance for the account associated with the API key.\nThis endpoint is free, consumes no credits, and does not accept a user ID. The\nresponse includes the standard metadata with `credits_used: 0`.\n\n`purchased_remaining` includes one-time signup credits and purchased credits.\nSignup credits are granted once per account and do not expire. For unlimited\naccounts, `monthly_remaining` and `total_available` are `null` and\n`is_unlimited` is `true`. `has_included_credits` indicates whether the plan has\nincluded monthly credits, even when its current monthly balance is zero.\n",
+        "operationId": "getCreditBalance",
+        "tags": [
+          "credits"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current balance returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditBalanceResponse"
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "tier": "Free",
+                    "is_unlimited": false,
+                    "monthly_remaining": 0,
+                    "purchased_remaining": 250,
+                    "total_available": 250,
+                    "has_included_credits": false,
+                    "purchase_url": "https://www.tryfundable.ai/credits",
+                    "plans_url": "https://www.tryfundable.ai/billing"
+                  },
+                  "meta": {
+                    "page": 0,
+                    "page_size": 1,
+                    "credits_used": 0
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or inactive API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OtherAuthError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded (200 requests per minute)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer",
+                  "example": 60
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Credit accounting is temporarily unavailable; retry after 5 seconds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "error",
+                    "statusCode"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "error": {
+                      "type": "object",
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "CREDIT_ACCOUNTING_UNAVAILABLE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Credit accounting is temporarily unavailable. Try again shortly."
+                        }
+                      }
+                    },
+                    "statusCode": {
+                      "type": "integer",
+                      "example": 503
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer",
+                  "example": 5
                 }
               }
             }
@@ -7436,7 +7571,7 @@
               },
               "message": {
                 "type": "string",
-                "example": "Not enough credits to complete this request. Visit https://www.tryfundable.ai/api-access to purchase more."
+                "example": "Not enough credits to complete this request. Visit https://www.tryfundable.ai/credits to purchase more."
               },
               "details": {
                 "type": "object",
@@ -7459,7 +7594,7 @@
                   },
                   "help": {
                     "type": "string",
-                    "example": "Purchase additional credits at https://www.tryfundable.ai/api-access or upgrade your plan."
+                    "example": "Purchase additional credits at https://www.tryfundable.ai/credits or upgrade your plan."
                   }
                 }
               }
@@ -10595,7 +10730,7 @@
               },
               "message": {
                 "type": "string",
-                "example": "This endpoint requires a Pro+ or Enterprise plan."
+                "example": "This endpoint requires a paid subscription."
               },
               "details": {
                 "type": "object",
@@ -10606,11 +10741,11 @@
                 "properties": {
                   "current_tier": {
                     "type": "string",
-                    "example": "Pro"
+                    "example": "Free"
                   },
                   "help": {
                     "type": "string",
-                    "example": "Upgrade to Pro+ or Enterprise to access this endpoint."
+                    "example": "Subscribe to a paid plan to access this endpoint."
                   }
                 }
               }
@@ -10737,6 +10872,103 @@
           "success",
           "error"
         ]
+      },
+      "CreditBalanceResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "tier",
+              "is_unlimited",
+              "monthly_remaining",
+              "purchased_remaining",
+              "total_available",
+              "has_included_credits",
+              "purchase_url",
+              "plans_url"
+            ],
+            "properties": {
+              "tier": {
+                "type": "string",
+                "description": "Current or legacy account tier",
+                "example": "Free"
+              },
+              "is_unlimited": {
+                "type": "boolean",
+                "description": "Whether monthly and total available credits are unlimited",
+                "example": false
+              },
+              "monthly_remaining": {
+                "type": "number",
+                "nullable": true,
+                "description": "Remaining monthly credits, or null for unlimited accounts",
+                "example": 0
+              },
+              "purchased_remaining": {
+                "type": "number",
+                "description": "Remaining one-time signup and purchased credits",
+                "example": 250
+              },
+              "total_available": {
+                "type": "number",
+                "nullable": true,
+                "description": "Total available credits, or null for unlimited accounts",
+                "example": 250
+              },
+              "has_included_credits": {
+                "type": "boolean",
+                "description": "Whether the tier includes monthly credits, even if exhausted",
+                "example": false
+              },
+              "purchase_url": {
+                "type": "string",
+                "format": "uri",
+                "example": "https://www.tryfundable.ai/credits"
+              },
+              "plans_url": {
+                "type": "string",
+                "format": "uri",
+                "example": "https://www.tryfundable.ai/billing"
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "required": [
+              "page",
+              "page_size",
+              "credits_used"
+            ],
+            "properties": {
+              "page": {
+                "type": "integer",
+                "example": 0
+              },
+              "page_size": {
+                "type": "integer",
+                "description": "Number of data objects returned",
+                "example": 1
+              },
+              "credits_used": {
+                "type": "integer",
+                "description": "Credits consumed by this request (always zero)",
+                "example": 0
+              }
+            }
+          }
+        }
       },
       "LocationSearchResult": {
         "type": "object",
@@ -10866,6 +11098,10 @@
     {
       "name": "alerts",
       "description": "Saved alert configurations and deal data"
+    },
+    {
+      "name": "credits",
+      "description": "Credit balance and account usage operations"
     },
     {
       "name": "locations",

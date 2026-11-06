@@ -1,12 +1,13 @@
 ---
 title: "Fundable MCP Tools and Credits"
-description: "Available Fundable MCP tools, free previews, export costs, email unlocks, and approval limits."
+description: "Available Fundable MCP tools, free previews, export costs, contact unlocks, and approval limits."
 ---
 
 ## Available tools
 
 | Tool | What it does | Cost and limits |
 | --- | --- | --- |
+| `get_credit_balance` | Returns the current account credit balance. | Free; no arguments |
 | `getDatasetContext` | Explains the dataset, business rules, and common joins. | Free |
 | `listDatasetTables` | Lists the available dataset tables. | Free |
 | `getTableDetails` | Returns the columns and constraints for one table. | Free |
@@ -15,6 +16,13 @@ description: "Available Fundable MCP tools, free previews, export costs, email u
 | `exportData` | Creates a downloadable CSV from a read-only query. | 1 credit per exported row; up to 1,000 rows |
 | `unlockPersonEmail` | Retrieves a verified email for one person when available. | Up to 5 credits; repeat unlocks for the same account cost 0 |
 | `unlockPersonEmails` | Retrieves verified emails for an explicitly bounded batch of 1–20 people. | Up to 5 credits per new email; free outcomes use 0 |
+| `unlockPersonPhone` | Retrieves a verified phone number for one person when available. | Up to 5 credits; repeat unlocks for the same account cost 0 |
+| `unlockPersonPhones` | Retrieves verified phone numbers for an explicitly bounded batch of 1–20 people. | Up to 5 credits per new phone; free outcomes use 0 |
+
+New accounts receive 250 one-time signup credits. Use `get_credit_balance` to check
+the balance; purchased credits cost $0.06 each and do not require a subscription.
+Free tools and previews remain available when the balance is zero; exports and
+contact unlocks require enough credits for the requested action.
 
 ## Previews, exports, and approval
 
@@ -24,6 +32,8 @@ Fundable separates research from paid retrieval:
 - Preview queries are read-only and cannot modify the dataset.
 - A CSV export happens only after you explicitly request a file or download and
   approve a maximum credit amount.
+- Active trials use their normal monthly and purchased balance for exports and
+  contact unlocks; no separate export balance is required.
 - Exports support up to 1,000 rows, 25 columns, 4,096 bytes per cell, and 10 MB per
   file. A result above your approved ceiling or a file limit is rejected without a
   charge.
