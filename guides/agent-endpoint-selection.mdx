@@ -1,23 +1,20 @@
 ---
 title: "Endpoint Selection for AI Agents"
-description: "Access Fundable through Monid, Delegate, Orthogonal, FluxaPay, or Superpowers without a Fundable account, and choose endpoints for company, funding-round, investor, and people workflows."
+description: "Choose how to connect to Fundable, then select endpoints for company, funding-round, investor, and people workflows."
 ---
 
-Fundable's collection endpoints can apply similar filters while returning different
-entity types. Choose the endpoint based first on the result the user wants, then on
-whether funding-round filters should apply only to a company's latest round or to its
-complete history.
+Choose a connection before choosing endpoints. Authentication, billing, and available
+tools depend on whether you connect directly to Fundable or use a third-party service.
 
-<Note>
-  This guide applies whether an agent imports Fundable's OpenAPI document directly or
-  calls narrow tools implemented on top of the REST API. For Fundable's hosted MCP
-  server, see [Fundable MCP](/fundable-mcp).
-</Note>
+| Connection | Setup and authentication | Billing and credits |
+| --- | --- | --- |
+| **Fundable REST API** | Create a key through [API Access](https://www.tryfundable.ai/api-access/) and send it as a Bearer token to `https://www.tryfundable.ai/api/v1`. See [Authentication](/authentication). | Direct API calls use credits on your Fundable account. |
+| **Fundable hosted MCP** | Add `https://mcp.tryfundable.ai/` as a remote MCP server, then sign in to Fundable and authorize with OAuth. No local server or API key is needed. See [Fundable MCP](/fundable-mcp). | Free previews are available. Exports and contact unlocks use Fundable credits. An active Fundable account with a primary email is required; email verification and a paid plan are not. |
+| **Third-party service** | Find Fundable in the service's catalog and follow its setup instructions. | The service bills under its own terms. Check the listing for required Fundable credentials and supported tools. Do not assume Fundable signup or Pro credits apply. |
 
-## Access Fundable without a Fundable account
+Direct REST API calls and credit-based MCP actions use Fundable account credits. New accounts receive **250 one-time signup credits**; additional credits cost **$0.06 each**. A subscription is not required for these API and MCP workflows. Saved-alert API endpoints have separate eligibility requirements. Pro is optional if you need the web app and other paid features; it costs **$100/month** and includes **2,000 monthly credits**. See [Pricing and Credits](/usage) for endpoint costs and [API Reference](/api-reference/introduction) for endpoint access requirements.
 
-Agents can use Fundable data through these third-party services without creating a
-Fundable account or obtaining a Fundable API key:
+Third-party services that list Fundable include:
 
 - [Monid](https://monid.ai/)
 - [Delegate (DLGT)](https://dlgt.io/)
@@ -25,13 +22,14 @@ Fundable account or obtaining a Fundable API key:
 - [FluxaPay](https://agentmarket.fluxapay.xyz/marketplace/apis/fundable)
 - [Superpowers](https://superpowers.tools/tools/fundable.funded-companies)
 
-Use the selected service's catalog and setup instructions to discover and call its
-Fundable tools. Authentication, payment setup, pricing, and endpoint availability
-depend on that service. The endpoint guidance below describes Fundable's REST API;
-check the service's tool schema before adapting a request.
+The endpoint guidance below describes Fundable's REST API. A marketplace may expose a
+subset of endpoints or use different inputs, so check its tool schema before adapting
+a request.
 
-For direct REST access, use a [Fundable API key](/authentication). For Fundable's
-hosted MCP server, follow the [MCP connection instructions](/fundable-mcp).
+Fundable's collection endpoints can apply similar filters while returning different
+entity types. Choose the endpoint based first on the result the user wants, then on
+whether funding-round filters should apply only to a company's latest round or to its
+complete history.
 
 ## Choose the result type first
 
