@@ -521,7 +521,7 @@ paths:
                       credits_used:
                         type: integer
                         description: Number of credits consumed by this request
-                        example: 10
+                        example: 1
                       credit_source:
                         type: string
                         nullable: true
@@ -886,9 +886,9 @@ paths:
                         type: integer
                         example: 1
                       credits_used:
-                        type: integer
-                        description: Number of credits consumed by this request
-                        example: 0
+                        type: number
+                        description: 0.1 for a successful search with matches; 0 for an empty successful response
+                        example: 0.1
                       credit_source:
                         type: string
                         nullable: true
@@ -933,7 +933,7 @@ paths:
                   total_count: 2
                   page: 0
                   page_size: 1
-                  credits_used: 0
+                  credits_used: 0.1
         '400':
           description: Validation error
           content:

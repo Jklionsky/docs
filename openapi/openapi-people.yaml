@@ -827,7 +827,7 @@ paths:
         endpoint uses the first non-empty value in this order: `id`, `linkedin`,
         `crunchbase`, `twitter`.
 
-        A newly created unlock costs 5 credits. Repeating the request for an email the
+        A newly created unlock costs 1 credit. Repeating the request for an email the
         same user already unlocked costs 0 credits. Unlock ownership persists across API
         keys belonging to that account. Provider attribution is internal and is not returned.
 
@@ -902,7 +902,7 @@ paths:
                   code: INSUFFICIENT_CREDITS
                   message: Not enough credits to unlock this email
                   details:
-                    credits_needed: 5
+                    credits_needed: 1
                     monthly_credits_remaining: 0
                     purchased_credits_remaining: 0
                 statusCode: 402
@@ -1230,6 +1230,10 @@ paths:
                       page_size:
                         type: integer
                         example: 10
+                      credits_used:
+                        type: integer
+                        description: One credit per row returned
+                        example: 10
                 required:
                   - success
                   - data
@@ -1422,6 +1426,10 @@ paths:
                       total_count:
                         type: integer
                         example: 7
+                      credits_used:
+                        type: number
+                        description: 0.1 for a successful search with matches; 0 for an empty successful response
+                        example: 0.1
                 required:
                   - success
                   - data
@@ -1641,8 +1649,8 @@ components:
               enum: [1]
             credits_used:
               type: integer
-              enum: [0, 5]
-              description: Five for a new unlock; zero when already unlocked.
+              enum: [0, 1]
+              description: One credit for a new unlock; zero when already unlocked.
             credit_source:
               type: string
               nullable: true

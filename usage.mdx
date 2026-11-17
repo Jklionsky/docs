@@ -1,5 +1,5 @@
 ---
-title: "Fundable API Pricing and Credits"
+title: "Pricing and Credits"
 description: "API and MCP pricing: 250 free signup credits, $0.06 purchased credits, or Pro at $100/month with 2,000 credits and web app access."
 ---
 
@@ -11,29 +11,27 @@ Pro is $100/month with 2,000 monthly credits, the web app, deal alerts, and inte
 
 ## API Pricing
 
-Single-record company, investor, and person lookups cost **1 credit per call**.
-List and history endpoints cost **1 credit per row returned**. Search endpoints
-cost 0.1 credits per call or are free, as shown below.
+Pricing depends on the endpoint; the table lists each rate and free route.
 
 | Endpoint | Description | Cost |
 | --- | --- | --- |
-| `POST /deals` | Search and filter funding rounds | 1 credit/row |
-| `GET /deals/{id}` | Get a specific funding round by ID | 1 credit/row |
-| `GET /deals/{id}/investors` | Get investors for a specific funding round | 1 credit/row |
-| `POST /companies` | List and filter companies with recent funding details | 1 credit/row |
-| `GET /company` | Get a company by ID, domain, LinkedIn, or Crunchbase | 1 credit/call |
-| `GET /company/deals` | Get funding rounds for a specific company | 1 credit/row |
-| `GET /company/search` | Search companies by name or domain | 0.1 credit/call |
-| `POST /investors` | List and filter investors with matching investments | 1 credit/row |
-| `GET /investor` | Get an investor by ID, domain, LinkedIn, or Crunchbase | 1 credit/call |
-| `GET /investor/deals` | Get funding rounds for a specific investor | 1 credit/row |
-| `GET /investor/search` | Search investors by name or domain | 0.1 credit/call |
-| `POST /people` | List and filter people with investment activity | 1 credit/row |
-| `GET /person` | Get a person by ID, LinkedIn, Crunchbase, or Twitter | 1 credit/call |
-| `GET /person/email` | Unlock a verified email for a person | 5 credits/new unlock; repeat unlocks free |
-| `GET /person/phone` | Unlock a verified phone number for a person | 5 credits/new unlock; repeat unlocks free |
-| `GET /person/deals` | Get deals a person participated in as an investor | 1 credit/row |
-| `GET /person/search` | Search for a person by name or identifier | 0.1 credit/call |
+| `POST /deals` | Search and filter funding rounds | 1 credit per row returned |
+| `GET /deals/{id}` | Get a specific funding round by ID | 1 credit per successful call |
+| `GET /deals/{id}/investors` | Get investors for a specific funding round | 1 credit per successful call |
+| `POST /companies` | List and filter companies with recent funding details | 1 credit per row returned |
+| `GET /company` | Get a company by ID, domain, LinkedIn, or Crunchbase | 1 credit per successful call |
+| `GET /company/deals` | Get funding rounds for a specific company | 1 credit per row returned |
+| `GET /company/search` | Search companies by name or domain | 0.1 credit per call with matches |
+| `POST /investors` | List and filter investors with matching investments | 1 credit per row returned |
+| `GET /investor` | Get an investor by ID, domain, LinkedIn, or Crunchbase | 1 credit per successful call |
+| `GET /investor/deals` | Get funding rounds for a specific investor | 1 credit per row returned |
+| `GET /investor/search` | Search investors by name or domain | 0.1 credit per call with matches |
+| `POST /people` | List and filter people with investment activity | 1 credit per row returned |
+| `GET /person` | Get a person by ID, LinkedIn, Crunchbase, or Twitter | 1 credit per successful call |
+| `GET /person/email` | Unlock a verified email for a person | 1 credit per new unlock |
+| `GET /person/phone` | Unlock a verified phone number for a person | 5 credits per new unlock |
+| `GET /person/deals` | Get deals a person participated in as an investor | 1 credit per row returned |
+| `GET /person/search` | Search for a person by name or identifier | 0.1 credit per call with matches |
 | `GET /credits` | Get the authenticated account's current credit balance | Free |
 | `GET /industry/search` | Search industries by name | Free |
 | `GET /location/search` | Search locations by name | Free |
@@ -53,7 +51,7 @@ cost 0.1 credits per call or are free, as shown below.
 
 ## How Credits Work
 
-Paid endpoints return a `meta` object with credit usage details:
+Successful responses from the endpoints above include a `meta` object with credit usage details:
 
 ```json
 {
@@ -86,9 +84,8 @@ Paid endpoints return a `meta` object with credit usage details:
 | `purchased_credits_remaining` | Remaining signup and purchased credits |
 
 - **List and history endpoints** cost **1 credit per row returned**. A request that returns 25 rows costs 25 credits.
-- **Single-record lookups** (`/company`, `/investor`, `/person`) cost **1 credit per call**.
-- **Company, investor, and person search** cost **0.1 credits per request**, regardless of rows returned.
-- **Industry & location search** (`/industry/search`, `/location/search`) are always free and don't return credit fields.
-- **Contact unlocks** (`/person/email` and `/person/phone`) cost **5 credits for each new email or phone number** and **0 credits when the same account already unlocked that contact**.
-- **Alert endpoints** (`/alerts`, `/alerts/configurations`) consume **0 credits**.
+- **Single-record lookups and deal details** (`/company`, `/investor`, `/person`, `/deals/{id}`, and `/deals/{id}/investors`) cost **1 credit per successful call**.
+- **Company, investor, and person search** costs **0.1 credit per call with matches**; an empty successful response costs **0 credits**.
+- **Contact unlocks**: a new email unlock (`/person/email`) costs **1 credit**, and a new phone unlock (`/person/phone`) costs **5 credits**. Repeats for a contact already unlocked by the same account are free.
+- **Free endpoints** (`/credits`, `/industry/search`, `/location/search`, `/alerts`, and `/alerts/configurations`) consume **0 credits**. Successful responses report `meta.credits_used: 0`.
 - Credits may come from your one-time signup grant, a paid plan, or purchases. If you don't want a recurring plan, you can buy credits for **$0.06 per credit**.

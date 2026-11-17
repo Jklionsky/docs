@@ -1081,7 +1081,7 @@
                         "credits_used": {
                           "type": "integer",
                           "description": "Number of credits consumed by this request",
-                          "example": 10
+                          "example": 1
                         },
                         "credit_source": {
                           "type": "string",
@@ -1622,9 +1622,9 @@
                           "example": 1
                         },
                         "credits_used": {
-                          "type": "integer",
-                          "description": "Number of credits consumed by this request",
-                          "example": 0
+                          "type": "number",
+                          "description": "0.1 for a successful search with matches; 0 for an empty successful response",
+                          "example": 0.1
                         },
                         "credit_source": {
                           "type": "string",
@@ -2943,7 +2943,7 @@
                         "credits_used": {
                           "type": "integer",
                           "description": "Number of credits consumed by this request",
-                          "example": 10
+                          "example": 1
                         },
                         "credit_source": {
                           "type": "string",
@@ -3434,9 +3434,9 @@
                           "example": 1
                         },
                         "credits_used": {
-                          "type": "integer",
-                          "description": "Number of credits consumed by this request",
-                          "example": 0
+                          "type": "number",
+                          "description": "0.1 for a successful search with matches; 0 for an empty successful response",
+                          "example": 0.1
                         },
                         "credit_source": {
                           "type": "string",
@@ -3499,7 +3499,7 @@
                     "total_count": 2,
                     "page": 0,
                     "page_size": 1,
-                    "credits_used": 0
+                    "credits_used": 0.1
                   }
                 }
               }
@@ -4714,7 +4714,7 @@
     "/person/email": {
       "get": {
         "summary": "Unlock a person's verified email by identifier",
-        "description": "Use this endpoint only when a verified email is explicitly required for an identified\nperson. Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that account. Provider attribution is internal and is not returned.\n\nAvailable with credits, including during active trials.\n",
+        "description": "Use this endpoint only when a verified email is explicitly required for an identified\nperson. Return a verified email for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 1 credit. Repeating the request for an email the\nsame user already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that account. Provider attribution is internal and is not returned.\n\nAvailable with credits, including during active trials.\n",
         "operationId": "getPersonEmail",
         "parameters": [
           {
@@ -4814,7 +4814,7 @@
                     "code": "INSUFFICIENT_CREDITS",
                     "message": "Not enough credits to unlock this email",
                     "details": {
-                      "credits_needed": 5,
+                      "credits_needed": 1,
                       "monthly_credits_remaining": 0,
                       "purchased_credits_remaining": 0
                     }
@@ -5262,6 +5262,11 @@
                         "page_size": {
                           "type": "integer",
                           "example": 10
+                        },
+                        "credits_used": {
+                          "type": "integer",
+                          "description": "One credit per row returned",
+                          "example": 10
                         }
                       }
                     }
@@ -5527,6 +5532,11 @@
                         "total_count": {
                           "type": "integer",
                           "example": 7
+                        },
+                        "credits_used": {
+                          "type": "number",
+                          "description": "0.1 for a successful search with matches; 0 for an empty successful response",
+                          "example": 0.1
                         }
                       }
                     }
@@ -9252,9 +9262,9 @@
                 "type": "integer",
                 "enum": [
                   0,
-                  5
+                  1
                 ],
-                "description": "Five for a new unlock; zero when already unlocked."
+                "description": "One credit for a new unlock; zero when already unlocked."
               },
               "credit_source": {
                 "type": "string",

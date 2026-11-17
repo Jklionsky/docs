@@ -128,7 +128,7 @@ paths:
                       credits_used:
                         type: integer
                         description: Number of credits consumed by this request
-                        example: 10
+                        example: 1
                       credit_source:
                         type: string
                         nullable: true
@@ -527,9 +527,9 @@ paths:
                         type: integer
                         example: 1
                       credits_used:
-                        type: integer
-                        description: Number of credits consumed by this request
-                        example: 0
+                        type: number
+                        description: 0.1 for a successful search with matches; 0 for an empty successful response
+                        example: 0.1
                       credit_source:
                         type: string
                         nullable: true
