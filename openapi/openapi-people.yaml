@@ -972,7 +972,7 @@ paths:
         endpoint uses the first non-empty value in this order: `id`, `linkedin`,
         `crunchbase`, `twitter`.
 
-        A newly created unlock costs 5 credits. Repeating the request for a phone number the
+        A newly created unlock costs 1 credit. Repeating the request for a phone number the
         same account already unlocked costs 0 credits. Unlock ownership persists across API
         keys belonging to that account. Provider attribution is internal and is not returned.
 

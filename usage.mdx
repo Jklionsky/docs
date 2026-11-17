@@ -29,7 +29,7 @@ Pricing depends on the endpoint; the table lists each rate and free route.
 | `POST /people` | List and filter people with investment activity | 1 credit per row returned |
 | `GET /person` | Get a person by ID, LinkedIn, Crunchbase, or Twitter | 1 credit per successful call |
 | `GET /person/email` | Unlock a verified email for a person | 1 credit per new unlock |
-| `GET /person/phone` | Unlock a verified phone number for a person | 5 credits per new unlock |
+| `GET /person/phone` | Unlock a verified phone number for a person | 1 credit per new unlock |
 | `GET /person/deals` | Get deals a person participated in as an investor | 1 credit per row returned |
 | `GET /person/search` | Search for a person by name or identifier | 0.1 credit per call with matches |
 | `GET /credits` | Get the authenticated account's current credit balance | Free |
@@ -86,6 +86,6 @@ Successful responses from the endpoints above include a `meta` object with credi
 - **List and history endpoints** cost **1 credit per row returned**. A request that returns 25 rows costs 25 credits.
 - **Single-record lookups and deal details** (`/company`, `/investor`, `/person`, `/deals/{id}`, and `/deals/{id}/investors`) cost **1 credit per successful call**.
 - **Company, investor, and person search** costs **0.1 credit per call with matches**; an empty successful response costs **0 credits**.
-- **Contact unlocks**: a new email unlock (`/person/email`) costs **1 credit**, and a new phone unlock (`/person/phone`) costs **5 credits**. Repeats for a contact already unlocked by the same account are free.
+- **Contact unlocks**: a new email unlock (`/person/email`) or new phone unlock (`/person/phone`) costs **1 credit**. Repeats for a contact already unlocked by the same account are free.
 - **Free endpoints** (`/credits`, `/industry/search`, `/location/search`, `/alerts`, and `/alerts/configurations`) consume **0 credits**. Successful responses report `meta.credits_used: 0`.
 - Credits may come from your one-time signup grant, a paid plan, or purchases. If you don't want a recurring plan, you can buy credits for **$0.06 per credit**.

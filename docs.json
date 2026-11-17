@@ -65,9 +65,7 @@
           {
             "group": "Overview",
             "pages": [
-              "api-reference/introduction",
-              "api-reference/credits/balance",
-              "api-reference/filtering"
+              "api-reference/introduction"
             ]
           },
           {
@@ -110,8 +108,15 @@
           {
             "group": "Filters",
             "pages": [
+              "api-reference/filtering",
               "api-reference/industries/search",
               "api-reference/locations/search"
+            ]
+          },
+          {
+            "group": "Credits",
+            "pages": [
+              "api-reference/credits/balance"
             ]
           },
           {

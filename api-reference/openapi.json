@@ -4914,7 +4914,7 @@
     "/person/phone": {
       "get": {
         "summary": "Unlock a person's verified phone number by identifier",
-        "description": "Use this endpoint only when a verified phone number is explicitly required for an identified\nperson. Return a verified phone number for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 5 credits. Repeating the request for a phone number the\nsame account already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that account. Provider attribution is internal and is not returned.\n\nAvailable with credits, including during active trials.\n",
+        "description": "Use this endpoint only when a verified phone number is explicitly required for an identified\nperson. Return a verified phone number for a person identified by UUID, LinkedIn, Crunchbase,\nor Twitter/X. Provide one identifier. If multiple identifiers are supplied, the\nendpoint uses the first non-empty value in this order: `id`, `linkedin`,\n`crunchbase`, `twitter`.\n\nA newly created unlock costs 1 credit. Repeating the request for a phone number the\nsame account already unlocked costs 0 credits. Unlock ownership persists across API\nkeys belonging to that account. Provider attribution is internal and is not returned.\n\nAvailable with credits, including during active trials.\n",
         "operationId": "getPersonPhone",
         "parameters": [
           {

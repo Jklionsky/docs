@@ -178,8 +178,8 @@ predictable and bypasses filters designed for those constraints.
 - Log tool arguments, response status, credits used, and the requesting user.
 - Call [`GET /person/email`](/api-reference/people/email) or
   [`GET /person/phone`](/api-reference/people/phone) only when verified contact
-  information is explicitly required; a new email unlock consumes 1 credit and a
-  new phone unlock consumes 5 credits. Repeats for the same account are free.
+  information is explicitly required; a new email or phone unlock consumes 1 credit.
+  Repeats for the same account are free.
 - Require confirmation before writing to a CRM or sending outreach.
 
 When wrapping the API in custom tools, expose narrow tools whose names reflect the
